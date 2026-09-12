@@ -1,26 +1,35 @@
 package com.music.app
 
 import android.Manifest
+import android.content.ContentUris
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.widget.*
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
 import android.graphics.Color
 import android.view.Gravity
 import androidx.activity.ComponentActivity
-import androidx.core.app.ActivityCompat
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
 
     private var mediaPlayer: MediaPlayer? = null
-    private val permissionCode = 100
+
+    private val permissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) {
+            showMusicHome()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // بدون Loading گیرکننده؛ مستقیم وارد Music می‌شویم
         if (hasAudioPermission()) {
             showMusicHome()
         } else {
@@ -29,45 +38,26 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun hasAudioPermission(): Boolean {
-        return if (android.os.Build.VERSION.SDK_INT >= 33) {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_MEDIA_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
+        val permission = if (Build.VERSION.SDK_INT >= 33) {
+            Manifest.permission.READ_MEDIA_AUDIO
         } else {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
+            Manifest.permission.READ_EXTERNAL_STORAGE
         }
+
+        return ContextCompat.checkSelfPermission(
+            this,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestAudioPermission() {
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.READ_MEDIA_AUDIO),
-                permissionCode
-            )
+        val permission = if (Build.VERSION.SDK_INT >= 33) {
+            Manifest.permission.READ_MEDIA_AUDIO
         } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-                permissionCode
-            )
+            Manifest.permission.READ_EXTERNAL_STORAGE
         }
-    }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == permissionCode) {
-            showMusicHome()
-        }
+        permissionLauncher.launch(permission)
     }
 
     private fun showMusicHome() {
@@ -75,7 +65,7 @@ class MainActivity : ComponentActivity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
-            setPadding(28, 35, 28, 0)
+            setPadding(28, 45, 28, 20)
         }
 
         val title = TextView(this).apply {
@@ -89,7 +79,7 @@ class MainActivity : ComponentActivity() {
             text = "Songs"
             textSize = 18f
             setTextColor(Color.DKGRAY)
-            setPadding(0, 8, 0, 20)
+            setPadding(0, 8, 0, 25)
         }
 
         val songsList = LinearLayout(this).apply {
@@ -113,10 +103,8 @@ class MainActivity : ComponentActivity() {
             MediaStore.Audio.Media.ARTIST
         )
 
-        val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-
         val cursor = contentResolver.query(
-            collection,
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             projection,
             "${MediaStore.Audio.Media.IS_MUSIC} != 0",
             null,
@@ -125,23 +113,20 @@ class MainActivity : ComponentActivity() {
 
         cursor?.use {
 
-            val idColumn = it.getColumnIndexOrThrow(
-                MediaStore.Audio.Media._ID
-            )
+            val idColumn =
+                it.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
 
-            val titleColumn = it.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.TITLE
-            )
+            val titleColumn =
+                it.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
 
-            val artistColumn = it.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.ARTIST
-            )
+            val artistColumn =
+                it.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
 
             while (it.moveToNext()) {
 
                 val id = it.getLong(idColumn)
-                val title = it.getString(titleColumn)
-                val artist = it.getString(artistColumn)
+                val title = it.getString(titleColumn) ?: "Unknown"
+                val artist = it.getString(artistColumn) ?: "Unknown Artist"
 
                 val song = TextView(this).apply {
                     text = "$title\n$artist"
@@ -163,7 +148,7 @@ class MainActivity : ComponentActivity() {
 
         mediaPlayer?.release()
 
-        val uri = android.content.ContentUris.withAppendedId(
+        val uri = ContentUris.withAppendedId(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             id
         )
