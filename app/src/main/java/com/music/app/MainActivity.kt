@@ -267,13 +267,13 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.HORIZONTAL
         }
 
-        songs.take(8).forEach {
+        songs.take(8).forEach { song ->
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(0, 0, 14, 0)
 
                 setOnClickListener {
-                    playSong(it)
+                    playSong(song)
                 }
             }
 
