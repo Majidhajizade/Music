@@ -1293,8 +1293,6 @@ class MainActivity : ComponentActivity() {
                 .coerceAtLeast(dp(250))
 
         val coverContainer = FrameLayout(this).apply {
-            gravity = Gravity.CENTER
-
             addView(
                 cover,
                 FrameLayout.LayoutParams(
