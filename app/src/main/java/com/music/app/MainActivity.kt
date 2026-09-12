@@ -1,36 +1,77 @@
 package com.music.app
 
 import android.os.Bundle
-import android.graphics.Color
-import android.view.Gravity
+import android.os.Handler
+import android.os.Looper
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import android.graphics.Color
+import android.view.Gravity
+import androidx.activity.ComponentActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val root = LinearLayout(this)
-        root.orientation = LinearLayout.VERTICAL
-        root.gravity = Gravity.CENTER
-        root.setBackgroundColor(Color.WHITE)
+        showLoading()
 
-        val title = TextView(this)
-        title.text = "Music"
-        title.textSize = 32f
-        title.setTextColor(Color.BLACK)
-        title.gravity = Gravity.CENTER
+        Handler(Looper.getMainLooper()).postDelayed({
+            showHome()
+        }, 1800)
+    }
 
-        root.addView(
-            title,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
+    private fun showLoading() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(Color.WHITE)
+        }
 
-        setContentView(root)
+        val title = TextView(this).apply {
+            text = "Music"
+            textSize = 32f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+        }
+
+        val loading = TextView(this).apply {
+            text = "♪"
+            textSize = 42f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+        }
+
+        layout.addView(loading)
+        layout.addView(title)
+
+        setContentView(layout)
+    }
+
+    private fun showHome() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+            gravity = Gravity.CENTER
+        }
+
+        val title = TextView(this).apply {
+            text = "Music"
+            textSize = 34f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+        }
+
+        val subtitle = TextView(this).apply {
+            text = "Your music, beautifully simple."
+            textSize = 16f
+            setTextColor(Color.DKGRAY)
+            gravity = Gravity.CENTER
+        }
+
+        layout.addView(title)
+        layout.addView(subtitle)
+
+        setContentView(layout)
     }
 }
