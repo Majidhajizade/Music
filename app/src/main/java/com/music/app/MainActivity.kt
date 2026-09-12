@@ -1,5 +1,6 @@
 package com.music.app
 
+import android.app.AlertDialog
 import android.media.MediaMetadataRetriever
 
 import android.Manifest
@@ -1453,29 +1454,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private fun addSettingsSection(titleValue: String) {
-        val section = text(
-            titleValue,
-            12f,
-            Color.rgb(120, 120, 125),
-            Typeface.BOLD
-        ).apply {
-            setPadding(
-                dp(4),
-                dp(18),
-                dp(4),
-                dp(6)
-            )
-        }
-
-        content.addView(
-            section,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(42)
-            )
-        )
-    }
 
     private fun addSetting(
         titleValue: String,
