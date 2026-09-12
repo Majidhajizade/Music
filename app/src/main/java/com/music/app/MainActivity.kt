@@ -162,36 +162,38 @@ class MainActivity : ComponentActivity() {
 
         content.removeAllViews()
 
+        // ---------- HOME HEADER ----------
         val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val topRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        val titleBox = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        titleBox.addView(
-            text("Home", 34f, Color.BLACK, Typeface.BOLD)
+        val title = text(
+            "Home",
+            34f,
+            Color.BLACK,
+            Typeface.BOLD
         )
 
-        titleBox.addView(
-            View(this).apply {
-                setBackgroundColor(Color.LTGRAY)
-            },
-            LinearLayout.LayoutParams(-1, 1).apply {
-                topMargin = 22
+        topRow.addView(
+            title,
+            LinearLayout.LayoutParams(0, -2, 1f).apply {
+                topMargin = 18
             }
-        )
-
-        header.addView(
-            titleBox,
-            LinearLayout.LayoutParams(0, -2, 1f)
         )
 
         avatar = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
-            setBackgroundColor(Color.BLACK)
+
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(Color.BLACK)
+            }
+
             setPadding(5, 5, 5, 5)
 
             setOnClickListener {
@@ -199,10 +201,26 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        header.addView(
+        topRow.addView(
             avatar,
-            LinearLayout.LayoutParams(54, 54).apply {
-                leftMargin = 16
+            LinearLayout.LayoutParams(52, 52).apply {
+                rightMargin = 2
+                topMargin = 12
+            }
+        )
+
+        header.addView(topRow)
+
+        // Thin full-width divider
+        header.addView(
+            View(this).apply {
+                setBackgroundColor(Color.rgb(225, 225, 225))
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                1
+            ).apply {
+                topMargin = 14
             }
         )
 
@@ -210,14 +228,15 @@ class MainActivity : ComponentActivity() {
 
         updateAvatar()
 
+        // ---------- TOP PICKS ----------
         content.addView(
             text(
                 "Top Picks for You",
-                23f,
+                24f,
                 Color.BLACK,
                 Typeface.BOLD
             ).apply {
-                setPadding(0, 28, 0, 4)
+                setPadding(0, 25, 0, 2)
             }
         )
 
@@ -225,51 +244,74 @@ class MainActivity : ComponentActivity() {
             text(
                 "Favorites",
                 15f,
-                Color.GRAY,
+                Color.rgb(135, 135, 135),
                 Typeface.NORMAL
-            )
+            ).apply {
+                setPadding(0, 0, 0, 12)
+            }
         )
 
         val favorite = TextView(this).apply {
-            text = if (songs.isNotEmpty()) songs[0].title else "Favorites"
-            textSize = 17f
+            text = if (songs.isNotEmpty()) songs[0].title else "No music yet"
+
+            textSize = 18f
             setTextColor(Color.WHITE)
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            setPadding(15, 15, 15, 18)
-            setBackgroundColor(Color.BLACK)
+
+            setPadding(18, 18, 18, 22)
+
+            background = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                intArrayOf(
+                    Color.rgb(20, 20, 20),
+                    Color.rgb(75, 75, 75),
+                    Color.rgb(5, 5, 5)
+                )
+            ).apply {
+                cornerRadius = 34f
+            }
 
             setOnClickListener {
-                if (songs.isNotEmpty()) playSong(songs[0])
+                if (songs.isNotEmpty()) {
+                    playSong(songs[0])
+                }
             }
         }
 
         content.addView(
             favorite,
-            LinearLayout.LayoutParams(-1, 300).apply {
-                topMargin = 12
+            LinearLayout.LayoutParams(-1, 330).apply {
+                topMargin = 4
             }
         )
 
+        // ---------- RECENTLY PLAYED ----------
         content.addView(
             text(
                 "Recently Played",
-                21f,
+                22f,
                 Color.BLACK,
                 Typeface.BOLD
             ).apply {
-                setPadding(0, 25, 0, 12)
+                setPadding(0, 28, 0, 12)
             }
         )
 
-        val recentScroll = HorizontalScrollView(this)
+        val recentScroll = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            clipToPadding = false
+            setPadding(0, 0, 0, 4)
+        }
 
         val recent = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
 
-        songs.take(8).forEach { song ->
+        songs.take(8).forEachIndexed { index, song ->
+
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
                 setPadding(0, 0, 14, 0)
 
                 setOnClickListener {
@@ -277,17 +319,42 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            val colors = when (index % 4) {
+                0 -> intArrayOf(
+                    Color.rgb(15, 15, 15),
+                    Color.rgb(80, 80, 80)
+                )
+                1 -> intArrayOf(
+                    Color.rgb(35, 35, 35),
+                    Color.rgb(5, 5, 5)
+                )
+                2 -> intArrayOf(
+                    Color.rgb(90, 90, 90),
+                    Color.rgb(20, 20, 20)
+                )
+                else -> intArrayOf(
+                    Color.rgb(55, 55, 55),
+                    Color.rgb(10, 10, 10)
+                )
+            }
+
             val cover = TextView(this).apply {
                 text = "♪"
-                textSize = 28f
+                textSize = 27f
                 gravity = Gravity.CENTER
                 setTextColor(Color.WHITE)
-                setBackgroundColor(Color.BLACK)
+
+                background = android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                    colors
+                ).apply {
+                    cornerRadius = 26f
+                }
             }
 
             item.addView(
                 cover,
-                LinearLayout.LayoutParams(110, 110)
+                LinearLayout.LayoutParams(120, 120)
             )
 
             item.addView(
@@ -298,14 +365,21 @@ class MainActivity : ComponentActivity() {
                     Typeface.BOLD
                 ).apply {
                     maxLines = 1
-                }
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    setPadding(2, 7, 2, 0)
+                },
+                LinearLayout.LayoutParams(120, -2)
             )
 
             recent.addView(item)
         }
 
         recentScroll.addView(recent)
-        content.addView(recentScroll)
+
+        content.addView(
+            recentScroll,
+            LinearLayout.LayoutParams(-1, -2)
+        )
     }
 
     private fun showLibrary() {
@@ -512,24 +586,49 @@ class MainActivity : ComponentActivity() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(16, 8, 12, 8)
-            setBackgroundColor(Color.BLACK)
+            setPadding(10, 8, 10, 8)
+
+            background = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                intArrayOf(
+                    Color.rgb(25, 25, 25),
+                    Color.rgb(55, 55, 55),
+                    Color.rgb(15, 15, 15)
+                )
+            ).apply {
+                cornerRadius = 38f
+            }
+
+            elevation = 8f
         }
 
-        val icon = TextView(this).apply {
+        // Album artwork
+        val cover = TextView(this).apply {
             text = "♪"
-            textSize = 23f
+            textSize = 22f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
+
+            background = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                intArrayOf(
+                    Color.rgb(80, 80, 80),
+                    Color.rgb(20, 20, 20)
+                )
+            ).apply {
+                cornerRadius = 18f
+            }
         }
 
         layout.addView(
-            icon,
+            cover,
             LinearLayout.LayoutParams(48, 48)
         )
 
+        // Song information
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(12, 0, 8, 0)
         }
 
@@ -538,14 +637,20 @@ class MainActivity : ComponentActivity() {
             14f,
             Color.WHITE,
             Typeface.BOLD
-        )
+        ).apply {
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
 
         miniArtist = text(
             "Choose a song",
-            12f,
-            Color.LTGRAY,
+            11f,
+            Color.rgb(190, 190, 190),
             Typeface.NORMAL
-        )
+        ).apply {
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
 
         info.addView(miniTitle)
         info.addView(miniArtist)
@@ -555,30 +660,36 @@ class MainActivity : ComponentActivity() {
             LinearLayout.LayoutParams(0, -2, 1f)
         )
 
-        playButton = text(
-            "▶",
-            21f,
-            Color.WHITE,
-            Typeface.BOLD
-        )
+        // Play / Pause button
+        playButton = TextView(this).apply {
+            text = "▶"
+            textSize = 18f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
 
-        playButton.gravity = Gravity.CENTER
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(Color.WHITE)
+            }
 
-        playButton.setOnClickListener {
-            mediaPlayer?.let {
-                if (it.isPlaying) {
-                    it.pause()
-                    playButton.text = "▶"
-                } else {
-                    it.start()
-                    playButton.text = "Ⅱ"
+            setOnClickListener {
+                mediaPlayer?.let {
+                    if (it.isPlaying) {
+                        it.pause()
+                        playButton.text = "▶"
+                    } else {
+                        it.start()
+                        playButton.text = "Ⅱ"
+                    }
                 }
             }
         }
 
         layout.addView(
             playButton,
-            LinearLayout.LayoutParams(48, 48)
+            LinearLayout.LayoutParams(46, 46).apply {
+                leftMargin = 4
+            }
         )
 
         return layout
@@ -589,23 +700,31 @@ class MainActivity : ComponentActivity() {
         val nav = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(20, 8, 20, 14)
-            setBackgroundColor(Color.WHITE)
+            setPadding(10, 8, 10, 8)
+
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = 42f
+                setColor(Color.WHITE)
+                setStroke(1, Color.rgb(225, 225, 225))
+            }
+
+            elevation = 10f
         }
 
         nav.addView(
             navItem("⌂", "Home") { showHome() },
-            LinearLayout.LayoutParams(0, 60, 1f)
+            LinearLayout.LayoutParams(0, 62, 1f)
         )
 
         nav.addView(
             navItem("♫", "Library") { showLibrary() },
-            LinearLayout.LayoutParams(0, 60, 1f)
+            LinearLayout.LayoutParams(0, 62, 1f)
         )
 
         nav.addView(
             navItem("⚙", "Settings") { showSettings() },
-            LinearLayout.LayoutParams(0, 60, 1f)
+            LinearLayout.LayoutParams(0, 62, 1f)
         )
 
         return nav
@@ -620,20 +739,32 @@ class MainActivity : ComponentActivity() {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.WHITE)
+            setPadding(4, 3, 4, 3)
 
             setOnClickListener {
                 action()
             }
 
             addView(
-                text(icon, 26f, Color.BLACK, Typeface.NORMAL)
-                    .apply { gravity = Gravity.CENTER }
+                text(
+                    icon,
+                    29f,
+                    Color.BLACK,
+                    Typeface.NORMAL
+                ).apply {
+                    gravity = Gravity.CENTER
+                }
             )
 
             addView(
-                text(label, 11f, Color.BLACK, Typeface.NORMAL)
-                    .apply { gravity = Gravity.CENTER }
+                text(
+                    label,
+                    10f,
+                    Color.rgb(60, 60, 60),
+                    Typeface.BOLD
+                ).apply {
+                    gravity = Gravity.CENTER
+                }
             )
         }
     }
