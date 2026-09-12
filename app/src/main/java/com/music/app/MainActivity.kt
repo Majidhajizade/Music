@@ -266,11 +266,7 @@ class MainActivity : ComponentActivity() {
                     setColor(Color.rgb(235, 235, 235))
                 }
 
-            if (profileBitmap != null) {
-                setImageBitmap(profileBitmap)
-            } else {
-                setImageResource(android.R.drawable.ic_menu_myplaces)
-            }
+            setImageResource(android.R.drawable.ic_menu_myplaces)
 
             setOnClickListener {
                 showProfileDialog()
