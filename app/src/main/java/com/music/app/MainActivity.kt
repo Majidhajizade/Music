@@ -226,6 +226,7 @@ class MainActivity : ComponentActivity() {
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(6), 0, 0)
         }
 
         val title = text(
@@ -291,7 +292,7 @@ class MainActivity : ComponentActivity() {
             header,
             LinearLayout.LayoutParams(
                 -1,
-                dp(50)
+                dp(56)
             )
         )
 
@@ -387,17 +388,95 @@ class MainActivity : ComponentActivity() {
                 resources.displayMetrics.widthPixels
 
             val featuredWidth =
-                (screenWidth - dp(40))
-                    .coerceAtMost(dp(430))
+                ((screenWidth - dp(40)) * 0.86f)
+                    .toInt()
+                    .coerceAtMost(dp(390))
 
             val featuredHeight =
-                (featuredWidth * 0.60f).toInt()
+                (featuredWidth * 0.64f).toInt()
 
-            content.addView(
+            val featuredWrap =
+                LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(0, 0, 0, 0)
+                }
+
+            featuredWrap.addView(
                 featuredCover,
                 LinearLayout.LayoutParams(
                     -1,
                     featuredHeight
+                )
+            )
+
+            val featuredInfo =
+                LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(
+                        dp(2),
+                        dp(9),
+                        dp(2),
+                        0
+                    )
+                }
+
+            val featuredTitle =
+                text(
+                    featuredSong.title,
+                    16f,
+                    Color.rgb(20, 20, 20),
+                    Typeface.BOLD
+                ).apply {
+                    includeFontPadding = false
+                    maxLines = 1
+                    ellipsize =
+                        android.text.TextUtils.TruncateAt.END
+                }
+
+            featuredInfo.addView(
+                featuredTitle,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(22)
+                )
+            )
+
+            val featuredArtist =
+                text(
+                    featuredSong.artist,
+                    13f,
+                    Color.rgb(120, 120, 120),
+                    Typeface.NORMAL
+                ).apply {
+                    includeFontPadding = false
+                    maxLines = 1
+                    ellipsize =
+                        android.text.TextUtils.TruncateAt.END
+                }
+
+            featuredInfo.addView(
+                featuredArtist,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(19)
+                ).apply {
+                    topMargin = dp(2)
+                }
+            )
+
+            featuredWrap.addView(
+                featuredInfo,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(46)
+                )
+            )
+
+            content.addView(
+                featuredWrap,
+                LinearLayout.LayoutParams(
+                    -1,
+                    featuredHeight + dp(46)
                 ).apply {
                     topMargin = dp(6)
                 }
@@ -495,15 +574,15 @@ class MainActivity : ComponentActivity() {
             item.addView(
                 cover,
                 LinearLayout.LayoutParams(
-                    dp(92),
-                    dp(92)
+                    dp(96),
+                    dp(96)
                 )
             )
 
             val songTitle =
                 text(
                     song.title,
-                    11f,
+                    12f,
                     Color.rgb(35, 35, 35),
                     Typeface.NORMAL
                 ).apply {
@@ -539,7 +618,7 @@ class MainActivity : ComponentActivity() {
             recentRow,
             LinearLayout.LayoutParams(
                 -2,
-                dp(118)
+                dp(126)
             )
         )
 
@@ -547,7 +626,7 @@ class MainActivity : ComponentActivity() {
             recentScroll,
             LinearLayout.LayoutParams(
                 -1,
-                dp(118)
+                dp(126)
             ).apply {
                 topMargin = dp(4)
             }
@@ -1197,9 +1276,9 @@ class MainActivity : ComponentActivity() {
 
         val iconView = text(
             icon,
-            20f,
-            Color.rgb(35, 35, 35),
-            Typeface.NORMAL
+            24f,
+            Color.rgb(25, 25, 25),
+            Typeface.BOLD
         ).apply {
             gravity = Gravity.CENTER
             includeFontPadding = false
