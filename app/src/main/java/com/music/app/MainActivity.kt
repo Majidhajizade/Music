@@ -809,7 +809,7 @@ class MainActivity : ComponentActivity() {
 
         scroll.addView(
             list,
-            ScrollView.LayoutParams(
+            android.view.ViewGroup.LayoutParams(
                 -1,
                 -2
             )
