@@ -292,7 +292,7 @@ class MainActivity : ComponentActivity() {
 
             item.addView(
                 text(
-                    it.title,
+                    song.title,
                     12f,
                     Color.BLACK,
                     Typeface.BOLD
