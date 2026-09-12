@@ -146,10 +146,24 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(20), dp(10), dp(20), dp(14))
         }
 
-        root.addView(
-            content,
-            LinearLayout.LayoutParams(-1, 0, 1f)
+        val homeScroll = ScrollView(this).apply {
+        isFillViewport = true
+        clipToPadding = false
+        setBackgroundColor(Color.WHITE)
+    }
+
+    homeScroll.addView(
+        content,
+        android.view.ViewGroup.LayoutParams(
+            -1,
+            -2
         )
+    )
+
+    root.addView(
+        homeScroll,
+        LinearLayout.LayoutParams(-1, 0, 1f)
+    )
 
         // ---------- MINI PLAYER ----------
         root.addView(
@@ -226,7 +240,7 @@ class MainActivity : ComponentActivity() {
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(16), 0, 0)
+            setPadding(0, dp(26), 0, 0)
         }
 
         val title = text(
@@ -335,56 +349,8 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        // ---------- FEATURED COVER ----------
+        // ---------- FEATURED ----------
         if (songs.isNotEmpty()) {
-
-            val featuredSong =
-                currentSong ?: songs.first()
-
-            val featuredCover =
-                ImageView(this).apply {
-                    scaleType =
-                        ImageView.ScaleType.CENTER_CROP
-                    clipToOutline = true
-
-                    outlineProvider =
-                        object :
-                            android.view.ViewOutlineProvider() {
-                            override fun getOutline(
-                                view: android.view.View,
-                                outline: android.graphics.Outline
-                            ) {
-                                outline.setRoundRect(
-                                    0,
-                                    0,
-                                    view.width,
-                                    view.height,
-                                    dp(14).toFloat()
-                                )
-                            }
-                        }
-
-                    background =
-                        android.graphics.drawable.GradientDrawable().apply {
-                            cornerRadius =
-                                dp(14).toFloat()
-                            setColor(
-                                Color.rgb(
-                                    235,
-                                    235,
-                                    235
-                                )
-                            )
-                        }
-
-                    getAlbumArt(featuredSong)?.let {
-                        setImageBitmap(it)
-                    }
-
-                    setOnClickListener {
-                        playSong(featuredSong)
-                    }
-                }
 
             val screenWidthDp =
                 resources.displayMetrics.widthPixels /
@@ -402,91 +368,191 @@ class MainActivity : ComponentActivity() {
             val featuredHeight =
                 (dp(359) * screenScale).toInt()
 
-            val featuredWrap =
-                LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(0, 0, 0, 0)
+            val featuredScroll =
+                HorizontalScrollView(this).apply {
+                    isHorizontalScrollBarEnabled = false
+                    overScrollMode =
+                        View.OVER_SCROLL_NEVER
+                    clipToPadding = false
                 }
 
-            featuredWrap.addView(
-                featuredCover,
-                LinearLayout.LayoutParams(
-                    -1,
+            val featuredRow =
+                LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(0, 0, dp(4), 0)
+                }
+
+            songs.take(6).forEach { song ->
+
+                val card =
+                    LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(0, 0, 0, 0)
+                        clipToOutline = true
+                        background =
+                            android.graphics.drawable.GradientDrawable().apply {
+                                cornerRadius =
+                                    dp(16).toFloat()
+                                setColor(
+                                    Color.rgb(
+                                        246,
+                                        246,
+                                        248
+                                    )
+                                )
+                            }
+                        elevation = dp(2).toFloat()
+                    }
+
+                val cover =
+                    ImageView(this).apply {
+                        scaleType =
+                            ImageView.ScaleType.CENTER_CROP
+
+                        clipToOutline = true
+
+                        outlineProvider =
+                            object :
+                                android.view.ViewOutlineProvider() {
+                                override fun getOutline(
+                                    view: android.view.View,
+                                    outline: android.graphics.Outline
+                                ) {
+                                    outline.setRoundRect(
+                                        0,
+                                        0,
+                                        view.width,
+                                        view.height,
+                                        dp(16).toFloat()
+                                    )
+                                }
+                            }
+
+                        background =
+                            android.graphics.drawable.GradientDrawable().apply {
+                                cornerRadius =
+                                    dp(16).toFloat()
+                                setColor(
+                                    Color.rgb(
+                                        235,
+                                        235,
+                                        235
+                                    )
+                                )
+                            }
+
+                        getAlbumArt(song)?.let {
+                            setImageBitmap(it)
+                        }
+
+                        setOnClickListener {
+                            playSong(song)
+                        }
+                    }
+
+                card.addView(
+                    cover,
+                    LinearLayout.LayoutParams(
+                        -1,
+                        featuredHeight - dp(78)
+                    )
+                )
+
+                val info =
+                    LinearLayout(this).apply {
+                        orientation =
+                            LinearLayout.VERTICAL
+                        gravity =
+                            Gravity.CENTER_VERTICAL
+                        setPadding(
+                            dp(14),
+                            dp(4),
+                            dp(14),
+                            dp(8)
+                        )
+                    }
+
+                val title =
+                    text(
+                        song.title,
+                        16f,
+                        Color.rgb(18, 18, 18),
+                        Typeface.BOLD
+                    ).apply {
+                        includeFontPadding = false
+                        maxLines = 1
+                        ellipsize =
+                            android.text.TextUtils.TruncateAt.END
+                    }
+
+                val artist =
+                    text(
+                        song.artist,
+                        13f,
+                        Color.rgb(105, 105, 110),
+                        Typeface.NORMAL
+                    ).apply {
+                        includeFontPadding = false
+                        maxLines = 1
+                        ellipsize =
+                            android.text.TextUtils.TruncateAt.END
+                    }
+
+                info.addView(
+                    title,
+                    LinearLayout.LayoutParams(
+                        -1,
+                        dp(24)
+                    )
+                )
+
+                info.addView(
+                    artist,
+                    LinearLayout.LayoutParams(
+                        -1,
+                        dp(21)
+                    )
+                )
+
+                card.addView(
+                    info,
+                    LinearLayout.LayoutParams(
+                        -1,
+                        dp(78)
+                    )
+                )
+
+                card.setOnLongClickListener {
+                    showSongPopup(card, song)
+                    true
+                }
+
+                featuredRow.addView(
+                    card,
+                    LinearLayout.LayoutParams(
+                        featuredWidth,
+                        featuredHeight
+                    ).apply {
+                        rightMargin = dp(12)
+                    }
+                )
+            }
+
+            featuredScroll.addView(
+                featuredRow,
+                HorizontalScrollView.LayoutParams(
+                    -2,
                     featuredHeight
                 )
             )
 
-            val featuredInfo =
-                LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(
-                        dp(2),
-                        dp(9),
-                        dp(2),
-                        0
-                    )
-                }
-
-            val featuredTitle =
-                text(
-                    featuredSong.title,
-                    16f,
-                    Color.rgb(20, 20, 20),
-                    Typeface.BOLD
-                ).apply {
-                    includeFontPadding = false
-                    maxLines = 1
-                    ellipsize =
-                        android.text.TextUtils.TruncateAt.END
-                }
-
-            featuredInfo.addView(
-                featuredTitle,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(22)
-                )
-            )
-
-            val featuredArtist =
-                text(
-                    featuredSong.artist,
-                    13f,
-                    Color.rgb(120, 120, 120),
-                    Typeface.NORMAL
-                ).apply {
-                    includeFontPadding = false
-                    maxLines = 1
-                    ellipsize =
-                        android.text.TextUtils.TruncateAt.END
-                }
-
-            featuredInfo.addView(
-                featuredArtist,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(19)
-                ).apply {
-                    topMargin = dp(2)
-                }
-            )
-
-            featuredWrap.addView(
-                featuredInfo,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(46)
-                )
-            )
-
             content.addView(
-                featuredWrap,
+                featuredScroll,
                 LinearLayout.LayoutParams(
-                    featuredWidth,
-                    featuredHeight + dp(46)
+                    -1,
+                    featuredHeight
                 ).apply {
                     topMargin = dp(6)
-                    gravity = Gravity.CENTER_HORIZONTAL
                 }
             )
         }
@@ -914,90 +980,150 @@ class MainActivity : ComponentActivity() {
 
     private fun showSettings() {
         content.removeAllViews()
+        content.setPadding(dp(18), dp(24), dp(18), dp(30))
 
-        content.setPadding(
-            dp(20),
-            dp(14),
-            dp(20),
-            dp(20)
-        )
-
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(10), 0, dp(18))
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            clipToPadding = false
+            setBackgroundColor(Color.WHITE)
         }
 
-        header.addView(
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, dp(24))
+        }
+
+        val title = text(
+            "Settings",
+            34f,
+            Color.rgb(15, 15, 15),
+            Typeface.BOLD
+        ).apply {
+            includeFontPadding = false
+        }
+
+        page.addView(
+            title,
+            LinearLayout.LayoutParams(-1, dp(48)).apply {
+                bottomMargin = dp(18)
+            }
+        )
+
+        // ---------- ACCOUNT ----------
+        val account = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(14), dp(14), dp(14))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.rgb(247, 247, 249))
+                cornerRadius = dp(18).toFloat()
+            }
+            elevation = dp(1).toFloat()
+
+            setOnClickListener {
+                showProfileDialog()
+            }
+        }
+
+        val accountIcon = TextView(this).apply {
+            text = "●"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(90, 90, 95))
+        }
+
+        account.addView(
+            accountIcon,
+            LinearLayout.LayoutParams(dp(48), dp(48)).apply {
+                rightMargin = dp(12)
+            }
+        )
+
+        val accountTexts = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        accountTexts.addView(
             text(
-                "Settings",
-                32f,
-                Color.rgb(15, 15, 15),
+                "Music",
+                17f,
+                Color.rgb(20, 20, 22),
                 Typeface.BOLD
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                dp(42)
             )
         )
 
-        header.addView(
+        accountTexts.addView(
             text(
-                "Customize your music experience",
-                14f,
-                Color.rgb(110, 110, 110),
+                "Apple Music style player",
+                13f,
+                Color.rgb(120, 120, 125),
                 Typeface.NORMAL
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                dp(24)
-            )
+            ).apply {
+                setPadding(0, dp(3), 0, 0)
+            }
         )
 
-        content.addView(
-            header,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(84)
-            )
+        account.addView(
+            accountTexts,
+            LinearLayout.LayoutParams(0, -2, 1f)
         )
 
-        addSettingsSection("PLAYBACK")
+        account.addView(
+            TextView(this).apply {
+                text = "›"
+                textSize = 28f
+                setTextColor(Color.rgb(155, 155, 160))
+                gravity = Gravity.CENTER
+            },
+            LinearLayout.LayoutParams(dp(28), dp(48))
+        )
 
-        addSetting(
+        page.addView(
+            account,
+            LinearLayout.LayoutParams(-1, dp(76)).apply {
+                bottomMargin = dp(28)
+            }
+        )
+
+        // ---------- PLAYBACK ----------
+        addSettingsSectionTo(page, "PLAYBACK")
+
+        addAppleSettingTo(
+            page,
+            "♫",
             "Audio Quality",
             "High"
         ) {
             showChoiceDialog(
                 "Audio Quality",
-                arrayOf("Low", "Medium", "High")
+                arrayOf("High", "Lossless", "Automatic")
             )
         }
 
-        addSetting(
+        addAppleSettingTo(
+            page,
+            "∞",
             "Gapless Playback",
             "On"
         ) {
-            Toast.makeText(
-                this,
-                "Gapless Playback enabled",
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(this, "Gapless Playback", Toast.LENGTH_SHORT).show()
         }
 
-        addSetting(
+        addAppleSettingTo(
+            page,
+            "◉",
             "Normalize Volume",
             "On"
         ) {
-            Toast.makeText(
-                this,
-                "Volume normalization enabled",
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(this, "Normalize Volume", Toast.LENGTH_SHORT).show()
         }
 
-        addSettingsSection("APPEARANCE")
+        // ---------- APPEARANCE ----------
+        addSettingsSectionTo(page, "APPEARANCE")
 
-        addSetting(
+        addAppleSettingTo(
+            page,
+            "☼",
             "Theme",
             "System"
         ) {
@@ -1006,6 +1132,325 @@ class MainActivity : ComponentActivity() {
                 arrayOf("System", "Light", "Dark")
             )
         }
+
+        // ---------- LIBRARY ----------
+        addSettingsSectionTo(page, "LIBRARY")
+
+        addAppleSettingTo(
+            page,
+            "♫",
+            "Music Library",
+            "${songs.size} Songs"
+        ) {
+            showLibrary()
+        }
+
+        addAppleSettingTo(
+            page,
+            "↻",
+            "Recently Played",
+            "On"
+        ) {
+            Toast.makeText(this, "Recently Played", Toast.LENGTH_SHORT).show()
+        }
+
+        // ---------- ABOUT ----------
+        addSettingsSectionTo(page, "ABOUT")
+
+        addAppleSettingTo(
+            page,
+            "ⓘ",
+            "About Music",
+            "Version 1.0"
+        ) {
+            AlertDialog.Builder(this)
+                .setTitle("Music")
+                .setMessage("Apple Music inspired music player.")
+                .setPositiveButton("Done", null)
+                .show()
+        }
+
+        scroll.addView(
+            page,
+            android.view.ViewGroup.LayoutParams(-1, -2)
+        )
+
+        content.addView(
+            scroll,
+            LinearLayout.LayoutParams(-1, 0, 1f)
+        )
+    }
+
+    private fun addSettingsSectionTo(
+        parent: LinearLayout,
+        titleValue: String
+    ) {
+        val section = TextView(this).apply {
+            text = titleValue
+            textSize = 12f
+            typeface = Typeface.create(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+            )
+            setTextColor(Color.rgb(125, 125, 130))
+            letterSpacing = 0.08f
+            includeFontPadding = false
+            setPadding(dp(4), 0, 0, dp(8))
+        }
+
+        parent.addView(
+            section,
+            LinearLayout.LayoutParams(-1, dp(28)).apply {
+                topMargin = dp(8)
+            }
+        )
+    }
+
+    private fun addAppleSettingTo(
+        parent: LinearLayout,
+        iconValue: String,
+        titleValue: String,
+        value: String,
+        action: () -> Unit
+    ) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), 0, dp(12), 0)
+
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.rgb(248, 248, 250))
+                cornerRadius = dp(14).toFloat()
+            }
+
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                action()
+            }
+        }
+
+        val icon = TextView(this).apply {
+            text = iconValue
+            textSize = 21f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(45, 45, 48))
+        }
+
+        row.addView(
+            icon,
+            LinearLayout.LayoutParams(dp(38), dp(52)).apply {
+                rightMargin = dp(10)
+            }
+        )
+
+        val texts = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        texts.addView(
+            text(
+                titleValue,
+                16f,
+                Color.rgb(25, 25, 27),
+                Typeface.NORMAL
+            )
+        )
+
+        texts.addView(
+            text(
+                value,
+                12f,
+                Color.rgb(135, 135, 140),
+                Typeface.NORMAL
+            ).apply {
+                setPadding(0, dp(2), 0, 0)
+            }
+        )
+
+        row.addView(
+            texts,
+            LinearLayout.LayoutParams(0, dp(58), 1f)
+        )
+
+        row.addView(
+            TextView(this).apply {
+                text = "›"
+                textSize = 25f
+                gravity = Gravity.CENTER
+                setTextColor(Color.rgb(165, 165, 170))
+            },
+            LinearLayout.LayoutParams(dp(24), dp(58))
+        )
+
+        parent.addView(
+            row,
+            LinearLayout.LayoutParams(-1, dp(58)).apply {
+                bottomMargin = dp(8)
+            }
+        )
+    }
+
+    private fun addSettingsSection(
+        titleValue: String
+    ) {
+        val section = text(
+            titleValue.uppercase(),
+            11f,
+            Color.rgb(120, 120, 125),
+            Typeface.BOLD
+        ).apply {
+            includeFontPadding = false
+            setPadding(
+                dp(4),
+                dp(18),
+                dp(4),
+                dp(8)
+            )
+        }
+
+        content.addView(
+            section,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(40)
+            )
+        )
+    }
+
+    private fun addAppleSetting(
+        icon: String,
+        titleValue: String,
+        value: String,
+        action: () -> Unit
+    ) {
+        val row =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                gravity =
+                    Gravity.CENTER_VERTICAL
+                setPadding(
+                    dp(14),
+                    0,
+                    dp(10),
+                    0
+                )
+
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius =
+                            dp(15).toFloat()
+                        setColor(
+                            Color.rgb(
+                                247,
+                                247,
+                                249
+                            )
+                        )
+                    }
+
+                setOnClickListener {
+                    action()
+                }
+            }
+
+        val iconView =
+            TextView(this).apply {
+                text = icon
+                textSize = 19f
+                setTextColor(
+                    Color.rgb(
+                        25,
+                        25,
+                        27
+                    )
+                )
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            }
+
+        row.addView(
+            iconView,
+            LinearLayout.LayoutParams(
+                dp(34),
+                dp(42)
+            )
+        )
+
+        val names =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                gravity =
+                    Gravity.CENTER_VERTICAL
+            }
+
+        names.addView(
+            text(
+                titleValue,
+                15f,
+                Color.rgb(25, 25, 27),
+                Typeface.BOLD
+            ).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(23)
+            )
+        )
+
+        names.addView(
+            text(
+                value,
+                12f,
+                Color.rgb(120, 120, 125),
+                Typeface.NORMAL
+            ).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(18)
+            )
+        )
+
+        row.addView(
+            names,
+            LinearLayout.LayoutParams(
+                0,
+                -1,
+                1f
+            )
+        )
+
+        row.addView(
+            text(
+                "›",
+                27f,
+                Color.rgb(165, 165, 170),
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(
+                dp(26),
+                -1
+            )
+        )
+
+        content.addView(
+            row,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(62)
+            ).apply {
+                bottomMargin = dp(8)
+            }
+        )
     }
 
     private fun addSettingsSection(titleValue: String) {
@@ -1586,6 +2031,169 @@ class MainActivity : ComponentActivity() {
         popup.elevation = 12f
 
         popup.showAsDropDown(anchor, -210, -160)
+    }
+
+    private fun showSongPopup(
+        anchor: View,
+        song: Song
+    ) {
+        val box =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                setPadding(
+                    dp(6),
+                    dp(6),
+                    dp(6),
+                    dp(6)
+                )
+
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius =
+                            dp(16).toFloat()
+                        setColor(Color.WHITE)
+                    }
+
+                elevation = dp(18).toFloat()
+            }
+
+        fun addPopupItem(
+            title: String,
+            action: () -> Unit
+        ) {
+            val item =
+                TextView(this).apply {
+                    text = title
+                    textSize = 15f
+                    setTextColor(
+                        Color.rgb(
+                            25,
+                            25,
+                            27
+                        )
+                    )
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+                    setPadding(
+                        dp(14),
+                        0,
+                        dp(14),
+                        0
+                    )
+
+                    setOnClickListener {
+                        action()
+                    }
+                }
+
+            box.addView(
+                item,
+                LinearLayout.LayoutParams(
+                    dp(190),
+                    dp(46)
+                )
+            )
+        }
+
+        addPopupItem("Play Next") {
+            playSong(song)
+        }
+
+        addPopupItem("Add to Queue") {
+            Toast.makeText(
+                this,
+                "Added to queue",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        addPopupItem("Add to Favorites") {
+            Toast.makeText(
+                this,
+                "Added to favorites",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        addPopupItem("Song Info") {
+            showChoiceDialog(
+                song.title,
+                arrayOf(
+                    song.artist,
+                    "Music"
+                )
+            )
+        }
+
+        showBlurPopup(
+            box,
+            anchor
+        )
+    }
+
+    private fun showBlurPopup(
+        contentView: View,
+        anchor: View
+    ) {
+        val scrim =
+            View(this).apply {
+                setBackgroundColor(
+                    Color.argb(
+                        55,
+                        0,
+                        0,
+                        0
+                    )
+                )
+            }
+
+        val overlay =
+            FrameLayout(this).apply {
+                addView(
+                    scrim,
+                    FrameLayout.LayoutParams(
+                        -1,
+                        -1
+                    )
+                )
+
+                addView(
+                    contentView,
+                    FrameLayout.LayoutParams(
+                        -2,
+                        -2,
+                        Gravity.CENTER
+                    )
+                )
+            }
+
+        val dialog =
+            android.app.Dialog(this)
+
+        dialog.window?.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.TRANSPARENT
+            )
+        )
+
+        dialog.setContentView(overlay)
+
+        scrim.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        contentView.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.window?.setDimAmount(0.18f)
+        dialog.show()
+
+        dialog.window?.setLayout(
+            -1,
+            -1
+        )
     }
 
     private fun showChoiceDialog(
