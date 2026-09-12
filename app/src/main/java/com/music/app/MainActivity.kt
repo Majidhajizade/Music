@@ -541,7 +541,7 @@ class MainActivity : ComponentActivity() {
 
             featuredScroll.addView(
                 featuredRow,
-                HorizontalScrollView.LayoutParams(
+                android.widget.FrameLayout.LayoutParams(
                     -2,
                     featuredHeight
                 )
