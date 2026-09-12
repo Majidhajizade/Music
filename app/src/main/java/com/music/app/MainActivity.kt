@@ -226,7 +226,7 @@ class MainActivity : ComponentActivity() {
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(6), 0, 0)
+            setPadding(0, dp(16), 0, 0)
         }
 
         val title = text(
@@ -390,16 +390,17 @@ class MainActivity : ComponentActivity() {
                 resources.displayMetrics.widthPixels /
                     resources.displayMetrics.density
 
-            // Base size: 6.3cm × 7.3cm at 360dp screen width.
-            // Scale proportionally for every screen size.
+            // Base size at 360dp:
+            // Width  = 7.3cm
+            // Height = 9.5cm
             val screenScale =
                 screenWidthDp / 360f
 
             val featuredWidth =
-                (dp(238) * screenScale).toInt()
+                (dp(276) * screenScale).toInt()
 
             val featuredHeight =
-                (dp(276) * screenScale).toInt()
+                (dp(359) * screenScale).toInt()
 
             val featuredWrap =
                 LinearLayout(this).apply {
@@ -912,61 +913,89 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showSettings() {
-
         content.removeAllViews()
 
-        // ---------- HEADER ----------
-        content.addView(
+        content.setPadding(
+            dp(20),
+            dp(14),
+            dp(20),
+            dp(20)
+        )
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(10), 0, dp(18))
+        }
+
+        header.addView(
             text(
                 "Settings",
                 32f,
                 Color.rgb(15, 15, 15),
                 Typeface.BOLD
-            ).apply {
-                includeFontPadding = false
-            },
+            ),
             LinearLayout.LayoutParams(
                 -1,
-                dp(48)
+                dp(42)
             )
         )
 
-        // ---------- SETTINGS ----------
+        header.addView(
+            text(
+                "Customize your music experience",
+                14f,
+                Color.rgb(110, 110, 110),
+                Typeface.NORMAL
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                dp(24)
+            )
+        )
+
+        content.addView(
+            header,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(84)
+            )
+        )
+
+        addSettingsSection("PLAYBACK")
+
         addSetting(
             "Audio Quality",
             "High"
         ) {
             showChoiceDialog(
                 "Audio Quality",
-                arrayOf(
-                    "Standard",
-                    "High",
-                    "Very High"
-                )
+                arrayOf("Low", "Medium", "High")
             )
         }
 
         addSetting(
             "Gapless Playback",
-            "Enabled"
+            "On"
         ) {
             Toast.makeText(
                 this,
-                "Gapless Playback",
+                "Gapless Playback enabled",
                 Toast.LENGTH_SHORT
             ).show()
         }
 
         addSetting(
             "Normalize Volume",
-            "Enabled"
+            "On"
         ) {
             Toast.makeText(
                 this,
-                "Normalize Volume",
+                "Volume normalization enabled",
                 Toast.LENGTH_SHORT
             ).show()
         }
+
+        addSettingsSection("APPEARANCE")
 
         addSetting(
             "Theme",
@@ -974,13 +1003,33 @@ class MainActivity : ComponentActivity() {
         ) {
             showChoiceDialog(
                 "Theme",
-                arrayOf(
-                    "System",
-                    "Light",
-                    "Dark"
-                )
+                arrayOf("System", "Light", "Dark")
             )
         }
+    }
+
+    private fun addSettingsSection(titleValue: String) {
+        val section = text(
+            titleValue,
+            12f,
+            Color.rgb(120, 120, 125),
+            Typeface.BOLD
+        ).apply {
+            setPadding(
+                dp(4),
+                dp(18),
+                dp(4),
+                dp(6)
+            )
+        }
+
+        content.addView(
+            section,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(42)
+            )
+        )
     }
 
     private fun addSetting(
@@ -988,18 +1037,16 @@ class MainActivity : ComponentActivity() {
         value: String,
         action: () -> Unit
     ) {
-
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-
             setPadding(
                 dp(4),
-                dp(14),
+                0,
                 dp(4),
-                dp(14)
+                0
             )
-
+            setBackgroundColor(Color.WHITE)
             setOnClickListener {
                 action()
             }
@@ -1008,39 +1055,62 @@ class MainActivity : ComponentActivity() {
         val title = text(
             titleValue,
             16f,
-            Color.rgb(20, 20, 20),
+            Color.rgb(25, 25, 25),
             Typeface.NORMAL
         ).apply {
-            includeFontPadding = false
-            maxLines = 1
-            ellipsize =
-                android.text.TextUtils.TruncateAt.END
+            gravity = Gravity.CENTER_VERTICAL
         }
 
         row.addView(
             title,
             LinearLayout.LayoutParams(
                 0,
-                dp(26),
+                -1,
                 1f
             )
         )
 
-        val valueView = text(
-            value,
-            14f,
-            Color.rgb(125, 125, 125),
-            Typeface.NORMAL
-        ).apply {
-            includeFontPadding = false
+        val right = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        row.addView(
-            valueView,
+        right.addView(
+            text(
+                value,
+                15f,
+                Color.rgb(120, 120, 125),
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER_VERTICAL
+            },
             LinearLayout.LayoutParams(
                 -2,
-                dp(26)
+                -1
+            )
+        )
+
+        right.addView(
+            text(
+                "›",
+                25f,
+                Color.rgb(170, 170, 175),
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(
+                dp(24),
+                -1
+            )
+        )
+
+        row.addView(
+            right,
+            LinearLayout.LayoutParams(
+                -2,
+                -1
             )
         )
 
@@ -1048,26 +1118,23 @@ class MainActivity : ComponentActivity() {
             row,
             LinearLayout.LayoutParams(
                 -1,
-                dp(54)
+                dp(56)
             )
         )
 
+        val separator = View(this).apply {
+            setBackgroundColor(Color.rgb(235, 235, 237))
+        }
+
         content.addView(
-            View(this).apply {
-                setBackgroundColor(
-                    Color.rgb(
-                        238,
-                        238,
-                        238
-                    )
-                )
-            },
+            separator,
             LinearLayout.LayoutParams(
                 -1,
                 dp(1)
             )
         )
     }
+
     private fun createMiniPlayer(): LinearLayout {
 
         val layout = LinearLayout(this).apply {
