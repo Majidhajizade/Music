@@ -154,7 +154,7 @@ class MainActivity : ComponentActivity() {
         // Apple Music style mini player
         root.addView(
             createMiniPlayer(),
-            LinearLayout.LayoutParams(-1, dp(68)).apply {
+            LinearLayout.LayoutParams(-1, dp(64)).apply {
                 leftMargin = dp(10)
                 rightMargin = dp(10)
                 topMargin = dp(2)
@@ -217,38 +217,48 @@ class MainActivity : ComponentActivity() {
         content.removeAllViews()
 
         // ---------- HOME HEADER ----------
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
         val topRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(6), 0, 0)
         }
 
         val title = text(
             "Home",
-            32f,
+            30f,
             Color.BLACK,
             Typeface.BOLD
-        )
+        ).apply {
+            includeFontPadding = false
+        }
 
         topRow.addView(
             title,
-            LinearLayout.LayoutParams(0, -2, 1f).apply {
-                topMargin = 12
-            }
+            LinearLayout.LayoutParams(0, dp(44), 1f)
         )
 
         avatar = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
+            clipToOutline = true
 
             background = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.OVAL
-                setColor(Color.BLACK)
+                setColor(Color.rgb(235, 235, 235))
             }
 
-            setPadding(5, 5, 5, 5)
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(
+                    view: android.view.View,
+                    outline: android.graphics.Outline
+                ) {
+                    outline.setOval(
+                        0,
+                        0,
+                        view.width,
+                        view.height
+                    )
+                }
+            }
 
             setOnClickListener {
                 showProfileDialog()
@@ -257,19 +267,19 @@ class MainActivity : ComponentActivity() {
 
         topRow.addView(
             avatar,
-            LinearLayout.LayoutParams(42, 42).apply {
-                rightMargin = 0
-                topMargin = 8
+            LinearLayout.LayoutParams(dp(40), dp(40)).apply {
+                leftMargin = dp(12)
             }
         )
 
-        header.addView(topRow)
-
-        content.addView(header)
+        content.addView(
+            topRow,
+            LinearLayout.LayoutParams(-1, dp(50))
+        )
 
         updateAvatar()
 
-        // ---------- TOP PICKS ----------
+        // ---------- MADE FOR YOU ----------
         content.addView(
             text(
                 "Top Picks for You",
@@ -277,7 +287,8 @@ class MainActivity : ComponentActivity() {
                 Color.BLACK,
                 Typeface.BOLD
             ).apply {
-                setPadding(0, 24, 0, 4)
+                includeFontPadding = false
+                setPadding(0, dp(28), 0, dp(4))
             }
         )
 
@@ -285,10 +296,11 @@ class MainActivity : ComponentActivity() {
             text(
                 "Favorites",
                 13f,
-                Color.rgb(110, 110, 110),
+                Color.rgb(115, 115, 115),
                 Typeface.NORMAL
             ).apply {
-                setPadding(0, 0, 0, 12)
+                includeFontPadding = false
+                setPadding(0, 0, 0, dp(12))
             }
         )
 
@@ -296,6 +308,7 @@ class MainActivity : ComponentActivity() {
 
             scaleType = ImageView.ScaleType.CENTER_CROP
             clipToOutline = true
+
             outlineProvider = object : android.view.ViewOutlineProvider() {
                 override fun getOutline(
                     view: android.view.View,
@@ -306,7 +319,7 @@ class MainActivity : ComponentActivity() {
                         0,
                         view.width,
                         view.height,
-                        dp(16).toFloat()
+                        dp(18).toFloat()
                     )
                 }
             }
@@ -314,12 +327,12 @@ class MainActivity : ComponentActivity() {
             background = android.graphics.drawable.GradientDrawable(
                 android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
                 intArrayOf(
-                    Color.rgb(20, 20, 20),
-                    Color.rgb(75, 75, 75),
-                    Color.rgb(5, 5, 5)
+                    Color.rgb(30, 30, 30),
+                    Color.rgb(85, 85, 85),
+                    Color.rgb(10, 10, 10)
                 )
             ).apply {
-                cornerRadius = dp(34).toFloat()
+                cornerRadius = dp(18).toFloat()
             }
 
             if (songs.isNotEmpty()) {
@@ -335,10 +348,12 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val pickWidth = (resources.displayMetrics.widthPixels - dp(72))
-            .coerceAtLeast(dp(200))
+        val screenWidth = resources.displayMetrics.widthPixels
 
-        val pickHeight = (pickWidth * 3 / 5)
+        val pickWidth = (screenWidth - dp(48))
+            .coerceAtLeast(dp(220))
+
+        val pickHeight = (pickWidth * 9 / 16)
             .coerceAtMost(dp(250))
 
         content.addView(
@@ -348,7 +363,6 @@ class MainActivity : ComponentActivity() {
                 pickHeight
             ).apply {
                 gravity = Gravity.CENTER_HORIZONTAL
-                topMargin = dp(4)
             }
         )
 
@@ -360,77 +374,58 @@ class MainActivity : ComponentActivity() {
                 Color.BLACK,
                 Typeface.BOLD
             ).apply {
-                setPadding(0, 30, 0, 12)
+                includeFontPadding = false
+                setPadding(0, dp(28), 0, dp(12))
             }
         )
 
         val recentScroll = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
             clipToPadding = false
-            setPadding(0, 0, 0, 4)
+            setPadding(0, 0, 0, dp(4))
         }
 
         val recent = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
 
-        songs.take(8).forEachIndexed { index, song ->
+        songs.take(8).forEach { song ->
 
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER_HORIZONTAL
-                setPadding(0, 0, 12, 0)
+                setPadding(0, 0, dp(14), 0)
 
                 setOnClickListener {
                     playSong(song)
                 }
             }
 
-            val colors = when (index % 4) {
-                0 -> intArrayOf(
-                    Color.rgb(15, 15, 15),
-                    Color.rgb(80, 80, 80)
-                )
-                1 -> intArrayOf(
-                    Color.rgb(35, 35, 35),
-                    Color.rgb(5, 5, 5)
-                )
-                2 -> intArrayOf(
-                    Color.rgb(90, 90, 90),
-                    Color.rgb(20, 20, 20)
-                )
-                else -> intArrayOf(
-                    Color.rgb(55, 55, 55),
-                    Color.rgb(10, 10, 10)
-                )
-            }
-
             val cover = ImageView(this).apply {
-
                 scaleType = ImageView.ScaleType.CENTER_CROP
-
-                background = android.graphics.drawable.GradientDrawable(
-                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                    colors
-                ).apply {
-                    shape = android.graphics.drawable.GradientDrawable.OVAL
-                }
-
                 clipToOutline = true
 
-                outlineProvider = object : android.view.ViewOutlineProvider() {
-                    override fun getOutline(
-                        view: android.view.View,
-                        outline: android.graphics.Outline
-                    ) {
-                        outline.setOval(
-                            0,
-                            0,
-                            view.width,
-                            view.height
-                        )
+                outlineProvider =
+                    object : android.view.ViewOutlineProvider() {
+                        override fun getOutline(
+                            view: android.view.View,
+                            outline: android.graphics.Outline
+                        ) {
+                            outline.setOval(
+                                0,
+                                0,
+                                view.width,
+                                view.height
+                            )
+                        }
                     }
-                }
+
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        shape =
+                            android.graphics.drawable.GradientDrawable.OVAL
+                        setColor(Color.rgb(35, 35, 35))
+                    }
 
                 getAlbumArt(song)?.let {
                     setImageBitmap(it)
@@ -439,21 +434,32 @@ class MainActivity : ComponentActivity() {
 
             item.addView(
                 cover,
-                LinearLayout.LayoutParams(dp(88), dp(88))
+                LinearLayout.LayoutParams(
+                    dp(92),
+                    dp(92)
+                )
             )
 
+            val songTitle = text(
+                song.title,
+                12f,
+                Color.rgb(25, 25, 25),
+                Typeface.BOLD
+            ).apply {
+                gravity = Gravity.CENTER
+                maxLines = 2
+                ellipsize =
+                    android.text.TextUtils.TruncateAt.END
+                includeFontPadding = false
+                setPadding(0, dp(7), 0, 0)
+            }
+
             item.addView(
-                text(
-                    song.title,
-                    12f,
-                    Color.BLACK,
-                    Typeface.BOLD
-                ).apply {
-                    maxLines = 1
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                    setPadding(1, 8, 1, 0)
-                },
-                LinearLayout.LayoutParams(dp(96), -2)
+                songTitle,
+                LinearLayout.LayoutParams(
+                    dp(92),
+                    dp(34)
+                )
             )
 
             recent.addView(item)
@@ -463,7 +469,7 @@ class MainActivity : ComponentActivity() {
 
         content.addView(
             recentScroll,
-            LinearLayout.LayoutParams(-1, -2)
+            LinearLayout.LayoutParams(-1, dp(132))
         )
     }
 
@@ -471,29 +477,42 @@ class MainActivity : ComponentActivity() {
 
         content.removeAllViews()
 
-        content.addView(
+        // ---------- LIBRARY HEADER ----------
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(6), 0, dp(12))
+        }
+
+        header.addView(
             text(
                 "Library",
-                34f,
+                30f,
                 Color.BLACK,
                 Typeface.BOLD
             ).apply {
-                setPadding(0, 10, 0, 4)
+                includeFontPadding = false
             }
         )
 
-        content.addView(
+        header.addView(
             text(
                 "${songs.size} Songs",
-                15f,
-                Color.GRAY,
+                13f,
+                Color.rgb(115, 115, 115),
                 Typeface.NORMAL
             ).apply {
-                setPadding(0, 0, 0, 14)
+                includeFontPadding = false
+                setPadding(0, dp(5), 0, 0)
             }
         )
 
-        val scroll = ScrollView(this)
+        content.addView(header)
+
+        // ---------- SONG LIST ----------
+        val scroll = ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            clipToPadding = false
+        }
 
         val list = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -504,63 +523,129 @@ class MainActivity : ComponentActivity() {
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, 9, 0, 9)
+                setPadding(0, dp(8), 0, dp(8))
 
                 setOnClickListener {
                     playSong(song)
                 }
             }
 
-            val cover = TextView(this).apply {
-                text = "♪"
-                textSize = 22f
-                gravity = Gravity.CENTER
-                setTextColor(Color.WHITE)
-                setBackgroundColor(Color.BLACK)
+            // Album artwork
+            val cover = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                clipToOutline = true
+
+                outlineProvider =
+                    object : android.view.ViewOutlineProvider() {
+                        override fun getOutline(
+                            view: android.view.View,
+                            outline: android.graphics.Outline
+                        ) {
+                            outline.setRoundRect(
+                                0,
+                                0,
+                                view.width,
+                                view.height,
+                                dp(7).toFloat()
+                            )
+                        }
+                    }
+
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = dp(7).toFloat()
+                        setColor(Color.rgb(35, 35, 35))
+                    }
+
+                getAlbumArt(song)?.let {
+                    setImageBitmap(it)
+                }
             }
 
             row.addView(
                 cover,
-                LinearLayout.LayoutParams(58, 58)
+                LinearLayout.LayoutParams(
+                    dp(58),
+                    dp(58)
+                )
             )
 
+            // Song information
             val info = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(14, 0, 5, 0)
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(13), 0, dp(6), 0)
             }
 
             info.addView(
-                text(song.title, 16f, Color.BLACK, Typeface.BOLD)
+                text(
+                    song.title,
+                    15f,
+                    Color.rgb(20, 20, 20),
+                    Typeface.BOLD
+                ).apply {
+                    maxLines = 1
+                    ellipsize =
+                        android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
+                }
             )
 
             info.addView(
-                text(song.artist, 13f, Color.GRAY, Typeface.NORMAL)
+                text(
+                    song.artist,
+                    12f,
+                    Color.rgb(115, 115, 115),
+                    Typeface.NORMAL
+                ).apply {
+                    maxLines = 1
+                    ellipsize =
+                        android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
+                    setPadding(0, dp(5), 0, 0)
+                }
             )
 
             row.addView(
                 info,
-                LinearLayout.LayoutParams(0, -2, 1f)
+                LinearLayout.LayoutParams(0, dp(62), 1f)
             )
 
+            // More button
             val more = text(
-                "⋮",
-                25f,
-                Color.BLACK,
+                "⋯",
+                24f,
+                Color.rgb(80, 80, 80),
                 Typeface.BOLD
-            )
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
 
-            more.gravity = Gravity.CENTER
-
-            more.setOnClickListener { view ->
-                showSongMenu(view, song)
+                setOnClickListener { view ->
+                    showSongMenu(view, song)
+                }
             }
 
             row.addView(
                 more,
-                LinearLayout.LayoutParams(42, 60)
+                LinearLayout.LayoutParams(
+                    dp(38),
+                    dp(58)
+                )
             )
 
             list.addView(row)
+
+            // Apple-style subtle separator
+            list.addView(
+                View(this).apply {
+                    setBackgroundColor(Color.rgb(235, 235, 235))
+                },
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(1)
+                )
+            )
         }
 
         scroll.addView(list)
@@ -671,23 +756,20 @@ class MainActivity : ComponentActivity() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(8, 7, 10, 7)
+            setPadding(dp(6), dp(5), dp(8), dp(5))
 
             background = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 cornerRadius = dp(14).toFloat()
-                setColor(Color.rgb(245, 245, 245))
-                setStroke(1, Color.rgb(225, 225, 225))
+                setColor(Color.rgb(247, 247, 247))
             }
-
-            elevation = 3f
         }
 
         // Album artwork
         miniCover = ImageView(this).apply {
-
             scaleType = ImageView.ScaleType.CENTER_CROP
             clipToOutline = true
+
             outlineProvider = object : android.view.ViewOutlineProvider() {
                 override fun getOutline(
                     view: android.view.View,
@@ -698,7 +780,7 @@ class MainActivity : ComponentActivity() {
                         0,
                         view.width,
                         view.height,
-                        dp(10).toFloat()
+                        dp(7).toFloat()
                     )
                 }
             }
@@ -706,30 +788,30 @@ class MainActivity : ComponentActivity() {
             background = android.graphics.drawable.GradientDrawable(
                 android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
                 intArrayOf(
-                    Color.rgb(80, 80, 80),
-                    Color.rgb(20, 20, 20)
+                    Color.rgb(90, 90, 90),
+                    Color.rgb(25, 25, 25)
                 )
             ).apply {
-                cornerRadius = dp(18).toFloat()
+                cornerRadius = dp(7).toFloat()
             }
         }
 
         layout.addView(
             miniCover,
-            LinearLayout.LayoutParams(dp(52), dp(52))
+            LinearLayout.LayoutParams(dp(50), dp(50))
         )
 
         // Song information
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(12, 0, 8, 0)
+            setPadding(dp(11), 0, dp(6), 0)
         }
 
         miniTitle = text(
             "Nothing Playing",
-            14f,
-            Color.BLACK,
+            13f,
+            Color.rgb(20, 20, 20),
             Typeface.BOLD
         ).apply {
             maxLines = 1
@@ -739,32 +821,37 @@ class MainActivity : ComponentActivity() {
         miniArtist = text(
             "Choose a song",
             11f,
-            Color.rgb(100, 100, 100),
+            Color.rgb(115, 115, 115),
             Typeface.NORMAL
         ).apply {
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
         }
 
-        info.addView(miniTitle)
-        info.addView(miniArtist)
+        info.addView(
+            miniTitle,
+            LinearLayout.LayoutParams(-1, dp(21))
+        )
+
+        info.addView(
+            miniArtist,
+            LinearLayout.LayoutParams(-1, dp(20))
+        )
 
         layout.addView(
             info,
-            LinearLayout.LayoutParams(0, -2, 1f)
+            LinearLayout.LayoutParams(0, -1, 1f)
         )
 
-        // Play / Pause button
+        // Play / Pause
         playButton = TextView(this).apply {
             text = "▶"
-            textSize = 17f
+            textSize = 19f
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER
+            includeFontPadding = false
 
-            background = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.OVAL
-                setColor(Color.rgb(235, 235, 235))
-            }
+            background = null
 
             setOnClickListener {
                 mediaPlayer?.let {
@@ -781,10 +868,26 @@ class MainActivity : ComponentActivity() {
 
         layout.addView(
             playButton,
-            LinearLayout.LayoutParams(50, 50).apply {
-                leftMargin = 4
-            }
+            LinearLayout.LayoutParams(dp(42), dp(50))
         )
+
+        miniCover.setOnClickListener {
+            if (currentSong != null) {
+                showNowPlaying()
+            }
+        }
+
+        miniTitle.setOnClickListener {
+            if (currentSong != null) {
+                showNowPlaying()
+            }
+        }
+
+        miniArtist.setOnClickListener {
+            if (currentSong != null) {
+                showNowPlaying()
+            }
+        }
 
         return layout
     }
@@ -794,31 +897,23 @@ class MainActivity : ComponentActivity() {
         val nav = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(dp(6), dp(4), dp(6), dp(4))
-
-            background = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                cornerRadius = dp(18).toFloat()
-                setColor(Color.rgb(248, 248, 248))
-                setStroke(1, Color.rgb(225, 225, 225))
-            }
-
-            elevation = 4f
+            setPadding(dp(8), dp(0), dp(8), dp(0))
+            setBackgroundColor(Color.WHITE)
         }
 
         nav.addView(
             navItem("⌂", "Home") { showHome() },
-            LinearLayout.LayoutParams(0, dp(60), 1f)
+            LinearLayout.LayoutParams(0, dp(62), 1f)
         )
 
         nav.addView(
             navItem("♫", "Library") { showLibrary() },
-            LinearLayout.LayoutParams(0, dp(60), 1f)
+            LinearLayout.LayoutParams(0, dp(62), 1f)
         )
 
         nav.addView(
             navItem("⚙", "Settings") { showSettings() },
-            LinearLayout.LayoutParams(0, dp(60), 1f)
+            LinearLayout.LayoutParams(0, dp(62), 1f)
         )
 
         return nav
@@ -833,7 +928,7 @@ class MainActivity : ComponentActivity() {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(4), dp(1), dp(4), dp(1))
+            setPadding(dp(4), dp(2), dp(4), dp(0))
 
             setOnClickListener {
                 action()
@@ -842,12 +937,14 @@ class MainActivity : ComponentActivity() {
             addView(
                 text(
                     icon,
-                    28f,
-                    Color.BLACK,
+                    21f,
+                    Color.rgb(35, 35, 35),
                     Typeface.NORMAL
                 ).apply {
                     gravity = Gravity.CENTER
-                }
+                    includeFontPadding = false
+                },
+                LinearLayout.LayoutParams(-1, dp(34))
             )
 
             addView(
@@ -858,7 +955,9 @@ class MainActivity : ComponentActivity() {
                     Typeface.BOLD
                 ).apply {
                     gravity = Gravity.CENTER
-                }
+                    includeFontPadding = false
+                },
+                LinearLayout.LayoutParams(-1, dp(20))
             )
         }
     }
@@ -1079,6 +1178,538 @@ class MainActivity : ComponentActivity() {
             }
             .show()
     }
+
+    private fun showNowPlaying() {
+
+        val song = currentSong ?: return
+
+        val dialog = android.app.Dialog(this)
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+            setPadding(dp(22), dp(12), dp(22), dp(18))
+        }
+
+        // ---------- TOP BAR ----------
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val close = TextView(this).apply {
+            text = "⌄"
+            textSize = 30f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+
+            setOnClickListener {
+                dialog.dismiss()
+            }
+        }
+
+        topBar.addView(
+            close,
+            LinearLayout.LayoutParams(dp(48), dp(48))
+        )
+
+        val topTitle = text(
+            "NOW PLAYING",
+            11f,
+            Color.rgb(90, 90, 90),
+            Typeface.BOLD
+        ).apply {
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            letterSpacing = 0.12f
+        }
+
+        topBar.addView(
+            topTitle,
+            LinearLayout.LayoutParams(0, dp(48), 1f)
+        )
+
+        val more = TextView(this).apply {
+            text = "•••"
+            textSize = 18f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+
+            setOnClickListener {
+                showSongMenu(this, song)
+            }
+        }
+
+        topBar.addView(
+            more,
+            LinearLayout.LayoutParams(dp(48), dp(48))
+        )
+
+        root.addView(
+            topBar,
+            LinearLayout.LayoutParams(-1, dp(48))
+        )
+
+        // ---------- ALBUM ART ----------
+        val cover = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            clipToOutline = true
+
+            outlineProvider =
+                object : android.view.ViewOutlineProvider() {
+                    override fun getOutline(
+                        view: android.view.View,
+                        outline: android.graphics.Outline
+                    ) {
+                        outline.setRoundRect(
+                            0,
+                            0,
+                            view.width,
+                            view.height,
+                            dp(18).toFloat()
+                        )
+                    }
+                }
+
+            background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(18).toFloat()
+                    setColor(Color.rgb(30, 30, 30))
+                }
+
+            getAlbumArt(song)?.let {
+                setImageBitmap(it)
+            }
+        }
+
+        val screenWidth =
+            resources.displayMetrics.widthPixels
+
+        val coverSize =
+            (screenWidth - dp(44))
+                .coerceAtMost(dp(390))
+                .coerceAtLeast(dp(250))
+
+        val coverContainer = FrameLayout(this).apply {
+            gravity = Gravity.CENTER
+
+            addView(
+                cover,
+                FrameLayout.LayoutParams(
+                    coverSize,
+                    coverSize
+                ).apply {
+                    gravity = Gravity.CENTER
+                }
+            )
+        }
+
+        root.addView(
+            coverContainer,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(10)
+            }
+        )
+
+        // ---------- SONG INFO ----------
+        val songInfo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val songTitle = text(
+            song.title,
+            22f,
+            Color.BLACK,
+            Typeface.BOLD
+        ).apply {
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
+            includeFontPadding = false
+        }
+
+        val songArtist = text(
+            song.artist,
+            15f,
+            Color.rgb(105, 105, 105),
+            Typeface.NORMAL
+        ).apply {
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
+            includeFontPadding = false
+            setPadding(0, dp(6), 0, 0)
+        }
+
+        songInfo.addView(songTitle)
+        songInfo.addView(songArtist)
+
+        root.addView(
+            songInfo,
+            LinearLayout.LayoutParams(-1, dp(58))
+        )
+
+        // ---------- SEEK BAR ----------
+        val seekBar = SeekBar(this).apply {
+            max = 1000
+            progress = 0
+            setPadding(0, 0, 0, 0)
+
+            setOnSeekBarChangeListener(
+                object :
+                    SeekBar.OnSeekBarChangeListener {
+
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        if (fromUser) {
+                            mediaPlayer?.let {
+                                try {
+                                    if (it.duration > 0) {
+                                        val position =
+                                            (
+                                                it.duration.toLong() *
+                                                    progress
+                                            ) / 1000L
+
+                                        it.seekTo(
+                                            position.toInt()
+                                        )
+                                    }
+                                } catch (_: Exception) {
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onStartTrackingTouch(
+                        seekBar: SeekBar?
+                    ) {}
+
+                    override fun onStopTrackingTouch(
+                        seekBar: SeekBar?
+                    ) {}
+                }
+            )
+        }
+
+        root.addView(
+            seekBar,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(28)
+            )
+        )
+
+        // ---------- TIME ----------
+        val timeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+
+        val elapsed = text(
+            "0:00",
+            11f,
+            Color.rgb(105, 105, 105),
+            Typeface.NORMAL
+        ).apply {
+            includeFontPadding = false
+        }
+
+        val remaining = text(
+            "-0:00",
+            11f,
+            Color.rgb(105, 105, 105),
+            Typeface.NORMAL
+        ).apply {
+            gravity = Gravity.RIGHT
+            includeFontPadding = false
+        }
+
+        timeRow.addView(
+            elapsed,
+            LinearLayout.LayoutParams(0, dp(20), 1f)
+        )
+
+        timeRow.addView(
+            remaining,
+            LinearLayout.LayoutParams(0, dp(20), 1f)
+        )
+
+        root.addView(
+            timeRow,
+            LinearLayout.LayoutParams(-1, dp(20))
+        )
+
+        // ---------- MAIN CONTROLS ----------
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
+        val previous = TextView(this).apply {
+            text = "⏮"
+            textSize = 26f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+
+            setOnClickListener {
+                val index =
+                    songs.indexOfFirst {
+                        it.id == currentSong?.id
+                    }
+
+                if (index > 0) {
+                    playSong(songs[index - 1])
+                    dialog.dismiss()
+                    showNowPlaying()
+                }
+            }
+        }
+
+        val play = TextView(this).apply {
+            text =
+                if (mediaPlayer?.isPlaying == true)
+                    "Ⅱ"
+                else
+                    "▶"
+
+            textSize = 34f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+
+            setOnClickListener {
+                mediaPlayer?.let {
+                    try {
+                        if (it.isPlaying) {
+                            it.pause()
+                            text = "▶"
+                            playButton.text = "▶"
+                        } else {
+                            it.start()
+                            text = "Ⅱ"
+                            playButton.text = "Ⅱ"
+                        }
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
+
+        val next = TextView(this).apply {
+            text = "⏭"
+            textSize = 26f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+
+            setOnClickListener {
+                val index =
+                    songs.indexOfFirst {
+                        it.id == currentSong?.id
+                    }
+
+                if (
+                    index >= 0 &&
+                    index < songs.lastIndex
+                ) {
+                    playSong(songs[index + 1])
+                    dialog.dismiss()
+                    showNowPlaying()
+                }
+            }
+        }
+
+        controls.addView(
+            previous,
+            LinearLayout.LayoutParams(
+                dp(72),
+                dp(64)
+            )
+        )
+
+        controls.addView(
+            play,
+            LinearLayout.LayoutParams(
+                dp(82),
+                dp(64)
+            )
+        )
+
+        controls.addView(
+            next,
+            LinearLayout.LayoutParams(
+                dp(72),
+                dp(64)
+            )
+        )
+
+        root.addView(
+            controls,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(70)
+            )
+        )
+
+        // ---------- SECONDARY CONTROLS ----------
+        val secondary = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
+        val shuffle = text(
+            "⤨",
+            22f,
+            Color.rgb(90, 90, 90),
+            Typeface.NORMAL
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        val repeat = text(
+            "↻",
+            22f,
+            Color.rgb(90, 90, 90),
+            Typeface.NORMAL
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        secondary.addView(
+            shuffle,
+            LinearLayout.LayoutParams(
+                dp(70),
+                dp(42)
+            )
+        )
+
+        secondary.addView(
+            repeat,
+            LinearLayout.LayoutParams(
+                dp(70),
+                dp(42)
+            )
+        )
+
+        root.addView(
+            secondary,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(42)
+            )
+        )
+
+        // ---------- PROGRESS UPDATER ----------
+        val handler =
+            android.os.Handler(
+                android.os.Looper.getMainLooper()
+            )
+
+        fun formatTime(ms: Int): String {
+            val totalSeconds =
+                (ms / 1000).coerceAtLeast(0)
+
+            val minutes =
+                totalSeconds / 60
+
+            val seconds =
+                totalSeconds % 60
+
+            return String.format(
+                "%d:%02d",
+                minutes,
+                seconds
+            )
+        }
+
+        val updater = object : Runnable {
+
+            override fun run() {
+
+                mediaPlayer?.let { player ->
+
+                    try {
+                        val duration =
+                            player.duration
+
+                        val position =
+                            player.currentPosition
+
+                        if (duration > 0) {
+
+                            seekBar.progress =
+                                (
+                                    position.toLong() *
+                                        1000L /
+                                        duration.toLong()
+                                ).toInt()
+
+                            elapsed.text =
+                                formatTime(position)
+
+                            remaining.text =
+                                "-" + formatTime(
+                                    duration - position
+                                )
+
+                            play.text =
+                                if (player.isPlaying)
+                                    "Ⅱ"
+                                else
+                                    "▶"
+
+                            playButton.text =
+                                if (player.isPlaying)
+                                    "Ⅱ"
+                                else
+                                    "▶"
+                        }
+
+                    } catch (_: Exception) {
+                    }
+                }
+
+                handler.postDelayed(
+                    this,
+                    500
+                )
+            }
+        }
+
+        handler.post(updater)
+
+        // ---------- SHOW ----------
+        dialog.setContentView(root)
+
+        dialog.window?.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.WHITE
+            )
+        )
+
+        dialog.setOnDismissListener {
+            handler.removeCallbacks(updater)
+        }
+
+        dialog.show()
+
+        dialog.window?.setLayout(
+            -1,
+            -1
+        )
+    }
+
 
     private fun playSong(song: Song) {
 
