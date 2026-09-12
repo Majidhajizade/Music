@@ -1,0 +1,6 @@
+.gradle/
+build/
+tools/
+.thumbnails/
+*.mp3
+*.pom
