@@ -293,7 +293,9 @@ class MainActivity : ComponentActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(56)
-            )
+            ).apply {
+                topMargin = dp(6)
+            }
         )
 
         // ---------- TOP PICKS ----------
@@ -384,16 +386,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-            val screenWidth =
-                resources.displayMetrics.widthPixels
+            val screenWidthDp =
+                resources.displayMetrics.widthPixels /
+                    resources.displayMetrics.density
+
+            // Base size: 6.3cm × 7.3cm at 360dp screen width.
+            // Scale proportionally for every screen size.
+            val screenScale =
+                screenWidthDp / 360f
 
             val featuredWidth =
-                ((screenWidth - dp(40)) * 0.86f)
-                    .toInt()
-                    .coerceAtMost(dp(390))
+                (dp(238) * screenScale).toInt()
 
             val featuredHeight =
-                (featuredWidth * 0.64f).toInt()
+                (dp(276) * screenScale).toInt()
 
             val featuredWrap =
                 LinearLayout(this).apply {
@@ -475,10 +481,11 @@ class MainActivity : ComponentActivity() {
             content.addView(
                 featuredWrap,
                 LinearLayout.LayoutParams(
-                    -1,
+                    featuredWidth,
                     featuredHeight + dp(46)
                 ).apply {
                     topMargin = dp(6)
+                    gravity = Gravity.CENTER_HORIZONTAL
                 }
             )
         }
@@ -1276,12 +1283,13 @@ class MainActivity : ComponentActivity() {
 
         val iconView = text(
             icon,
-            24f,
-            Color.rgb(25, 25, 25),
+            28f,
+            Color.rgb(15, 15, 15),
             Typeface.BOLD
         ).apply {
             gravity = Gravity.CENTER
             includeFontPadding = false
+            paint.isFakeBoldText = true
         }
 
         val labelView = text(
