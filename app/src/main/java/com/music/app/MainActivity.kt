@@ -781,9 +781,9 @@ class MainActivity : ComponentActivity() {
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(
-                dp(18),
+                0,
                 dp(12),
-                dp(18),
+                0,
                 dp(10)
             )
         }
@@ -799,21 +799,10 @@ class MainActivity : ComponentActivity() {
 
         header.addView(
             title,
-            LinearLayout.LayoutParams(-1, dp(40))
-        )
-
-        val count = text(
-            "${songs.size} Songs",
-            13f,
-            Color.rgb(125, 125, 125),
-            Typeface.NORMAL
-        ).apply {
-            includeFontPadding = false
-        }
-
-        header.addView(
-            count,
-            LinearLayout.LayoutParams(-1, dp(20))
+            LinearLayout.LayoutParams(-1, dp(40)).apply {
+                leftMargin = dp(18)
+                rightMargin = dp(18)
+            }
         )
 
         // ---------- SEARCH ----------
@@ -845,8 +834,8 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(48)
             ).apply {
-                leftMargin = dp(12)
-                rightMargin = dp(12)
+                leftMargin = 0
+                rightMargin = 0
                 bottomMargin = dp(12)
             }
         )
@@ -1009,6 +998,8 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(48)
             ).apply {
+                leftMargin = 0
+                rightMargin = 0
                 bottomMargin = dp(18)
             }
         )
