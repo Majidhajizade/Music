@@ -2423,7 +2423,7 @@ class MainActivity : ComponentActivity() {
                 1f
             ).apply {
                 topMargin = dp(2)
-                bottomMargin = dp(8)
+                bottomMargin = dp(2)
             }
         )
 
@@ -2432,7 +2432,6 @@ class MainActivity : ComponentActivity() {
         val bottomPanel =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                translationY = -dp(16).toFloat()
             }
 
         // ---------- SONG INFO ----------
@@ -2492,7 +2491,7 @@ class MainActivity : ComponentActivity() {
             info,
             LinearLayout.LayoutParams(
                 -1,
-                dp(39)
+                dp(55)
             )
         )
 
@@ -2624,7 +2623,7 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(18)
             ).apply {
-                topMargin = dp(1)
+                topMargin = dp(2)
             }
         )
 
@@ -2895,7 +2894,7 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(64)
             ).apply {
-                topMargin = dp(-1)
+                topMargin = dp(4)
             }
         )
 
