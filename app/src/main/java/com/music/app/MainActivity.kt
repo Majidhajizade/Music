@@ -2480,6 +2480,8 @@ class MainActivity : ComponentActivity() {
             )
         )
 
+        info.translationY = -dp(16)
+
         root.addView(
             info,
             LinearLayout.LayoutParams(
@@ -2610,6 +2612,8 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        seekBar.translationY = -dp(16)
+
         root.addView(
             seekBar,
             LinearLayout.LayoutParams(
@@ -2666,6 +2670,8 @@ class MainActivity : ComponentActivity() {
                 1f
             )
         )
+
+        timeRow.translationY = -dp(16)
 
         root.addView(
             timeRow,
@@ -2880,6 +2886,8 @@ class MainActivity : ComponentActivity() {
                 marginEnd = dp(14)
             }
         )
+
+        controls.translationY = -dp(16)
 
         root.addView(
             controls,
