@@ -3642,10 +3642,14 @@ class MainActivity : ComponentActivity() {
         var repeatEnabled = false
         var infinityEnabled = true
 
-        val shuffle =
+        lateinit var shuffleButton: TextView
+        lateinit var repeatButton: TextView
+        lateinit var infinityButton: TextView
+
+        shuffleButton =
             modeButton("⇄") {
                 shuffleEnabled = !shuffleEnabled
-                shuffle.alpha =
+                shuffleButton.alpha =
                     if (shuffleEnabled) 1f else 0.72f
 
                 if (shuffleEnabled) {
@@ -3653,22 +3657,22 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-        val repeat =
+        repeatButton =
             modeButton("↻") {
                 repeatEnabled = !repeatEnabled
-                repeat.alpha =
+                repeatButton.alpha =
                     if (repeatEnabled) 1f else 0.72f
             }
 
-        val infinity =
+        infinityButton =
             modeButton("∞") {
                 infinityEnabled = !infinityEnabled
-                infinity.alpha =
+                infinityButton.alpha =
                     if (infinityEnabled) 1f else 0.72f
             }
 
         queueModes.addView(
-            shuffle,
+            shuffleButton,
             LinearLayout.LayoutParams(
                 0,
                 dp(42),
@@ -3677,7 +3681,7 @@ class MainActivity : ComponentActivity() {
         )
 
         queueModes.addView(
-            repeat,
+            repeatButton,
             LinearLayout.LayoutParams(
                 0,
                 dp(42),
@@ -3686,7 +3690,7 @@ class MainActivity : ComponentActivity() {
         )
 
         queueModes.addView(
-            infinity,
+            infinityButton,
             LinearLayout.LayoutParams(
                 0,
                 dp(42),
