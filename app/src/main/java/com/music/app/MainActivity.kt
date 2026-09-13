@@ -3714,4 +3714,20 @@ class MainActivity : ComponentActivity() {
 
         super.onDestroy()
     }
+
+    private fun text(
+        value: String,
+        size: Float,
+        color: Int,
+        typeface: Int = Typeface.NORMAL
+    ): TextView {
+        return TextView(this).apply {
+            text = value
+            textSize = size
+            setTextColor(color)
+            setTypeface(Typeface.DEFAULT, typeface)
+            includeFontPadding = false
+        }
+    }
+
 }
