@@ -823,7 +823,7 @@ class MainActivity : ComponentActivity() {
             )
 
             background = GradientDrawable().apply {
-                cornerRadius = dp(12).toFloat()
+                cornerRadius = dp(18).toFloat()
                 setColor(Color.rgb(232, 232, 232))
             }
         }
@@ -964,9 +964,9 @@ class MainActivity : ComponentActivity() {
         }
 
         actions.setPadding(
-            dp(12),
             0,
-            dp(12),
+            0,
+            0,
             0
         )
 
@@ -976,9 +976,15 @@ class MainActivity : ComponentActivity() {
                 0,
                 dp(48),
                 1f
-            ).apply {
-                rightMargin = dp(5)
-            }
+            )
+        )
+
+        actions.addView(
+            Space(this),
+            LinearLayout.LayoutParams(
+                dp(10),
+                dp(48)
+            )
         )
 
         actions.addView(
@@ -987,9 +993,7 @@ class MainActivity : ComponentActivity() {
                 0,
                 dp(48),
                 1f
-            ).apply {
-                leftMargin = dp(5)
-            }
+            )
         )
 
         header.addView(
@@ -1082,7 +1086,7 @@ class MainActivity : ComponentActivity() {
                                     0,
                                     view.width,
                                     view.height,
-                                    dp(8).toFloat()
+                                    dp(10).toFloat()
                                 )
                             }
                         }
@@ -1090,7 +1094,7 @@ class MainActivity : ComponentActivity() {
                     background =
                         GradientDrawable().apply {
                             cornerRadius =
-                                dp(8).toFloat()
+                                dp(10).toFloat()
                             setColor(
                                 Color.rgb(
                                     235,
@@ -1108,8 +1112,8 @@ class MainActivity : ComponentActivity() {
                 row.addView(
                     cover,
                     LinearLayout.LayoutParams(
-                        dp(56),
-                        dp(56)
+                        dp(48),
+                        dp(48)
                     )
                 )
 
@@ -1431,7 +1435,7 @@ class MainActivity : ComponentActivity() {
 
         addAppleSettingTo(
             page,
-            "♫",
+            "LIBRARY_ICON",
             "Music Library",
             "${songs.size} Songs"
         ) {
@@ -1523,11 +1527,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val icon = TextView(this).apply {
-            text = iconValue
-            textSize = 21f
-            gravity = Gravity.CENTER
-            setTextColor(Color.rgb(45, 45, 48))
+        val icon = if (iconValue == "LIBRARY_ICON") {
+            ImageView(this).apply {
+                setImageResource(R.drawable.ic_library)
+                scaleType = ImageView.ScaleType.CENTER
+            }
+        } else {
+            TextView(this).apply {
+                text = iconValue
+                textSize = 21f
+                gravity = Gravity.CENTER
+                setTextColor(Color.rgb(45, 45, 48))
+            }
         }
 
         row.addView(
