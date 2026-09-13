@@ -3514,7 +3514,9 @@ class MainActivity : ComponentActivity() {
                     isFocusable = true
                     isOutsideTouchable = true
                     setBackgroundDrawable(
-                        ColorDrawable(Color.TRANSPARENT)
+                        android.graphics.drawable.ColorDrawable(
+                            Color.TRANSPARENT
+                        )
                     )
                     elevation = dp(12).toFloat()
                 }
