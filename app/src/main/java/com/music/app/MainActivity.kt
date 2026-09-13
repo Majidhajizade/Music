@@ -237,6 +237,19 @@ class MainActivity : ComponentActivity() {
 
         content.removeAllViews()
 
+        // ---------- HOME CONTAINER ----------
+        val homeContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        content.addView(
+            homeContainer,
+            LinearLayout.LayoutParams(
+                -1,
+                -1
+            )
+        )
+
         // ---------- HEADER ----------
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -303,14 +316,47 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        content.addView(
+        homeContainer.addView(
             header,
             LinearLayout.LayoutParams(
                 -1,
-                dp(56)
+                dp(62)
             ).apply {
-                topMargin = dp(6)
+                topMargin = dp(18)
             }
+        )
+
+        // ---------- HOME SCROLL CONTENT ----------
+        val homeScroll = ScrollView(this).apply {
+            isFillViewport = true
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
+
+        val homeScrollContent = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(
+                0,
+                0,
+                0,
+                dp(24)
+            )
+        }
+
+        homeScroll.addView(
+            homeScrollContent,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        homeContainer.addView(
+            homeScroll,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
         )
 
         // ---------- TOP PICKS ----------
@@ -323,7 +369,7 @@ class MainActivity : ComponentActivity() {
             includeFontPadding = false
         }
 
-        content.addView(
+        homeScrollContent.addView(
             picksTitle,
             LinearLayout.LayoutParams(
                 -1,
@@ -342,7 +388,7 @@ class MainActivity : ComponentActivity() {
             includeFontPadding = false
         }
 
-        content.addView(
+        homeScrollContent.addView(
             picksSubtitle,
             LinearLayout.LayoutParams(
                 -1,
@@ -547,7 +593,7 @@ class MainActivity : ComponentActivity() {
                 )
             )
 
-            content.addView(
+            homeScrollContent.addView(
                 featuredScroll,
                 LinearLayout.LayoutParams(
                     -1,
@@ -568,7 +614,7 @@ class MainActivity : ComponentActivity() {
             includeFontPadding = false
         }
 
-        content.addView(
+        homeScrollContent.addView(
             recentTitle,
             LinearLayout.LayoutParams(
                 -1,
@@ -697,7 +743,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        content.addView(
+        homeScrollContent.addView(
             recentScroll,
             LinearLayout.LayoutParams(
                 -1,
