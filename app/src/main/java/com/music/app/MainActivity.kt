@@ -2810,14 +2810,14 @@ class MainActivity : ComponentActivity() {
             max = 1000
             progress = 0
 
-            minHeight = dp(8)
-            minimumHeight = dp(8)
+            minHeight = dp(5)
+            minimumHeight = dp(5)
 
             setPadding(
                 0,
-                dp(3),
+                dp(1),
                 0,
-                dp(3)
+                dp(1)
             )
 
             thumb = null
@@ -2881,9 +2881,9 @@ class MainActivity : ComponentActivity() {
                                 try {
                                     val position =
                                         (
-                                            it.duration *
-                                            progress
-                                        ) / 1000
+                                            it.duration.toLong() *
+                                            progress.toLong()
+                                        ) / 1000L
 
                                     it.seekTo(position)
                                 } catch (_: Exception) {
@@ -2911,7 +2911,7 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(10)
             ).apply {
-                topMargin = dp(5)
+                topMargin = dp(1)
             }
         )
 
@@ -2984,7 +2984,7 @@ class MainActivity : ComponentActivity() {
             ImageView(this).apply {
 
                 setImageResource(
-                    com.music.app.R.drawable.ic_player_previous
+                    com.music.app.R.drawable.ic_player_next
                 )
 
                 scaleType =
@@ -3105,7 +3105,7 @@ class MainActivity : ComponentActivity() {
             ImageView(this).apply {
 
                 setImageResource(
-                    com.music.app.R.drawable.ic_player_next
+                    com.music.app.R.drawable.ic_player_previous
                 )
 
                 scaleType =
@@ -3189,7 +3189,7 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(72)
             ).apply {
-                topMargin = dp(2)
+                topMargin = dp(-6)
             }
         )
 
@@ -3776,6 +3776,15 @@ class MainActivity : ComponentActivity() {
             )
         )
 
+        root.setBackgroundColor(Color.TRANSPARENT)
+        root.fitsSystemWindows = false
+
+        dialog.window?.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.TRANSPARENT
+            )
+        )
+
         dialog.window?.navigationBarColor =
             Color.TRANSPARENT
 
@@ -3810,7 +3819,10 @@ class MainActivity : ComponentActivity() {
 
         dialog.window?.let { window ->
 
-            window.setLayout(-1, -1)
+            window.setLayout(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+            )
 
             window.setBackgroundDrawable(
                 android.graphics.drawable.ColorDrawable(
