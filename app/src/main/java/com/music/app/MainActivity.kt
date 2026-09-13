@@ -2480,7 +2480,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        info.translationY = -dp(16)
+        info.translationY = -dp(16).toFloat()
 
         root.addView(
             info,
@@ -2612,7 +2612,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        seekBar.translationY = -dp(16)
+        seekBar.translationY = -dp(16).toFloat()
 
         root.addView(
             seekBar,
@@ -2671,7 +2671,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        timeRow.translationY = -dp(16)
+        timeRow.translationY = -dp(16).toFloat()
 
         root.addView(
             timeRow,
@@ -2887,7 +2887,7 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = -dp(16)
+        controls.translationY = -dp(16).toFloat()
 
         root.addView(
             controls,
