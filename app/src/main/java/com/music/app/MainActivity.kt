@@ -2885,7 +2885,7 @@ class MainActivity : ComponentActivity() {
                                             progress.toLong()
                                         ) / 1000L
 
-                                    it.seekTo(position)
+                                    it.seekTo(position.toInt())
                                 } catch (_: Exception) {
                                 }
                             }
