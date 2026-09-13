@@ -2333,14 +2333,6 @@ class MainActivity : ComponentActivity() {
 
         applyBackground(currentColors)
 
-        root.addView(
-            topBar,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(48)
-            )
-        )
-
         // ---------- ARTWORK ----------
 
         val screenWidth =
@@ -2692,10 +2684,6 @@ class MainActivity : ComponentActivity() {
                 contentDescription =
                     "Previous"
 
-                gravity = Gravity.CENTER
-
-                includeFontPadding = false
-
                 setPadding(
                     0,
                     0,
@@ -2750,10 +2738,6 @@ class MainActivity : ComponentActivity() {
                         "Pause"
                     else
                         "Play"
-
-                gravity = Gravity.CENTER
-
-                includeFontPadding = false
 
                 background = null
 
@@ -2813,10 +2797,6 @@ class MainActivity : ComponentActivity() {
 
                 contentDescription =
                     "Next"
-
-                gravity = Gravity.CENTER
-
-                includeFontPadding = false
 
                 setPadding(
                     0,
@@ -3039,13 +3019,14 @@ class MainActivity : ComponentActivity() {
                                                 position
                                         )
 
-                                play.text =
+                                play.setImageResource(
                                     if (
                                         player.isPlaying
                                     )
-                                        "Ⅱ"
+                                        com.music.app.R.drawable.ic_player_pause
                                     else
-                                        "▶"
+                                        com.music.app.R.drawable.ic_player_play
+                                )
 
                                 playButton.text =
                                     if (
