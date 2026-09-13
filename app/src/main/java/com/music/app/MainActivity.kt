@@ -2427,6 +2427,14 @@ class MainActivity : ComponentActivity() {
             }
         )
 
+        // ---------- LOWER PLAYER PANEL ----------
+
+        val bottomPanel =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                translationY = -dp(16).toFloat()
+            }
+
         // ---------- SONG INFO ----------
 
         val info = LinearLayout(this).apply {
@@ -2480,13 +2488,11 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        info.translationY = -dp(16).toFloat()
-
-        root.addView(
+        bottomPanel.addView(
             info,
             LinearLayout.LayoutParams(
                 -1,
-                dp(55)
+                dp(39)
             )
         )
 
@@ -2612,15 +2618,13 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        seekBar.translationY = -dp(16).toFloat()
-
-        root.addView(
+        bottomPanel.addView(
             seekBar,
             LinearLayout.LayoutParams(
                 -1,
                 dp(18)
             ).apply {
-                topMargin = dp(5)
+                topMargin = dp(1)
             }
         )
 
@@ -2671,9 +2675,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        timeRow.translationY = -dp(16).toFloat()
-
-        root.addView(
+        bottomPanel.addView(
             timeRow,
             LinearLayout.LayoutParams(
                 -1,
@@ -2887,15 +2889,13 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = -dp(16).toFloat()
-
-        root.addView(
+        bottomPanel.addView(
             controls,
             LinearLayout.LayoutParams(
                 -1,
                 dp(64)
             ).apply {
-                topMargin = dp(1)
+                topMargin = dp(-1)
             }
         )
 
@@ -2983,11 +2983,20 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        root.addView(
+        bottomPanel.addView(
             secondary,
             LinearLayout.LayoutParams(
                 -1,
                 dp(46)
+            )
+        )
+
+
+        root.addView(
+            bottomPanel,
+            LinearLayout.LayoutParams(
+                -1,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
         )
 
