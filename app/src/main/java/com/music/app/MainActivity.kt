@@ -104,6 +104,10 @@ class MainActivity : ComponentActivity() {
     // FIRST RUN ONBOARDING
     // ============================================================
 
+    // ============================================================
+    // FIRST RUN ONBOARDING
+    // ============================================================
+
     private fun onboardingText(
         text: String,
         size: Float,
@@ -114,7 +118,7 @@ class MainActivity : ComponentActivity() {
             this.text = text
             setTextSize(size)
             setTextColor(color)
-            gravity = Gravity.CENTER
+            gravity = Gravity.START
             if (bold) {
                 setTypeface(Typeface.DEFAULT, Typeface.BOLD)
             }
@@ -133,7 +137,6 @@ class MainActivity : ComponentActivity() {
             setTypeface(Typeface.DEFAULT, Typeface.BOLD)
             isClickable = true
             isFocusable = true
-            setPadding(dp(24), 0, dp(24), 0)
 
             background = GradientDrawable().apply {
                 setColor(Color.BLACK)
@@ -146,92 +149,235 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun onboardingPage(
-        title: String,
-        body: String,
-        footer: String,
-        buttonAction: () -> Unit
-    ): LinearLayout {
+    private fun onboardingIcon(
+        type: String
+    ): ImageView {
+        return ImageView(this).apply {
+            setColorFilter(Color.BLACK)
+
+            val drawable = when (type) {
+                "music" -> android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(Color.BLACK)
+                }
+
+                "notification" -> android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(Color.BLACK)
+                }
+
+                else -> null
+            }
+
+            if (drawable != null) {
+                background = drawable
+            }
+
+            setPadding(dp(9), dp(9), dp(9), dp(9))
+
+            // Simple monochrome vector-like glyph drawn directly on the ImageView.
+            setImageDrawable(object : android.graphics.drawable.Drawable() {
+
+                private val paint = android.graphics.Paint(
+                    android.graphics.Paint.ANTI_ALIAS_FLAG
+                ).apply {
+                    color = Color.WHITE
+                    style = android.graphics.Paint.Style.STROKE
+                    strokeWidth = dp(2).toFloat()
+                    strokeCap = android.graphics.Paint.Cap.ROUND
+                    strokeJoin = android.graphics.Paint.Join.ROUND
+                }
+
+                override fun draw(canvas: android.graphics.Canvas) {
+                    val w = bounds.width().toFloat()
+                    val h = bounds.height().toFloat()
+
+                    if (type == "music") {
+                        val noteX = w * 0.62f
+                        val top = h * 0.22f
+                        val bottom = h * 0.68f
+
+                        canvas.drawLine(
+                            noteX,
+                            top,
+                            noteX,
+                            bottom,
+                            paint
+                        )
+
+                        canvas.drawLine(
+                            noteX,
+                            top,
+                            w * 0.80f,
+                            top,
+                            paint
+                        )
+
+                        canvas.drawLine(
+                            w * 0.80f,
+                            top,
+                            w * 0.80f,
+                            h * 0.57f,
+                            paint
+                        )
+
+                        canvas.drawCircle(
+                            w * 0.48f,
+                            h * 0.72f,
+                            w * 0.13f,
+                            paint
+                        )
+
+                        canvas.drawCircle(
+                            w * 0.68f,
+                            h * 0.61f,
+                            w * 0.13f,
+                            paint
+                        )
+                    } else {
+                        val cx = w / 2f
+                        val top = h * 0.22f
+                        val bottom = h * 0.70f
+
+                        val path = android.graphics.Path()
+
+                        path.moveTo(w * 0.28f, bottom)
+                        path.lineTo(w * 0.72f, bottom)
+                        path.moveTo(w * 0.34f, bottom)
+                        path.quadTo(cx, h * 0.88f, w * 0.66f, bottom)
+                        path.moveTo(w * 0.30f, bottom)
+                        path.quadTo(cx, h * 0.15f, w * 0.70f, bottom)
+
+                        canvas.drawPath(path, paint)
+
+                        canvas.drawCircle(
+                            cx,
+                            top,
+                            w * 0.055f,
+                            paint
+                        )
+                    }
+                }
+
+                override fun setAlpha(alpha: Int) {
+                    paint.alpha = alpha
+                }
+
+                override fun setColorFilter(
+                    colorFilter: android.graphics.ColorFilter?
+                ) {
+                    paint.colorFilter = colorFilter
+                }
+
+                override fun getOpacity(): Int =
+                    android.graphics.PixelFormat.TRANSLUCENT
+            })
+        }
+    }
+
+    private fun showOnboardingWelcome() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
             setBackgroundColor(Color.WHITE)
             setPadding(
                 dp(28),
-                dp(34),
+                dp(38),
                 dp(28),
                 dp(28)
             )
         }
 
-        val topSpacer = Space(this)
-
         root.addView(
-            topSpacer,
+            Space(this),
             LinearLayout.LayoutParams(
                 -1,
                 0,
-                0.18f
+                0.08f
             )
         )
 
-        val appName = onboardingText(
-            "Music",
-            36f,
-            Color.BLACK,
-            true
-        )
-
         root.addView(
-            appName,
+            onboardingText(
+                "Music",
+                36f,
+                Color.BLACK,
+                true
+            ),
             LinearLayout.LayoutParams(
                 -1,
                 -2
             )
         )
 
-        val titleView = onboardingText(
-            title,
-            25f,
-            Color.BLACK,
-            true
-        ).apply {
-            setPadding(
-                dp(10),
-                dp(24),
-                dp(10),
-                0
+        root.addView(
+            Space(this),
+            LinearLayout.LayoutParams(
+                -1,
+                dp(46)
             )
-        }
+        )
+
+        // ---------- FIRST SECTION ----------
 
         root.addView(
-            titleView,
+            onboardingText(
+                "Play your own tracks",
+                25f,
+                Color.BLACK,
+                true
+            ),
             LinearLayout.LayoutParams(
                 -1,
                 -2
             )
         )
 
-        val bodyView = onboardingText(
-            body,
-            17f,
-            Color.rgb(80, 80, 80)
-        ).apply {
-            setLineSpacing(
-                0f,
-                1.18f
+        root.addView(
+            onboardingText(
+                "Listen to FLACs and other audio files on your phone",
+                15f,
+                Color.rgb(105, 105, 105)
+            ).apply {
+                setPadding(0, dp(8), 0, 0)
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
             )
-            setPadding(
-                dp(8),
-                dp(18),
-                dp(8),
-                0
-            )
-        }
+        )
 
         root.addView(
-            bodyView,
+            Space(this),
+            LinearLayout.LayoutParams(
+                -1,
+                dp(42)
+            )
+        )
+
+        // ---------- SECOND SECTION ----------
+
+        root.addView(
+            onboardingText(
+                "Easily browse through your music",
+                25f,
+                Color.BLACK,
+                true
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            onboardingText(
+                "Sort by album, artist, genre, and more",
+                15f,
+                Color.rgb(105, 105, 105)
+            ).apply {
+                setPadding(0, dp(8), 0, 0)
+            },
             LinearLayout.LayoutParams(
                 -1,
                 -2
@@ -247,19 +393,14 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        val footerView = onboardingText(
-            footer,
-            12f,
-            Color.rgb(120, 120, 120)
-        ).apply {
-            setLineSpacing(
-                0f,
-                1.15f
-            )
-        }
-
         root.addView(
-            footerView,
+            onboardingText(
+                "By continuing, you agree to the Terms and conditions",
+                12f,
+                Color.rgb(120, 120, 120)
+            ).apply {
+                gravity = Gravity.START
+            },
             LinearLayout.LayoutParams(
                 -1,
                 -2
@@ -268,44 +409,232 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        val button = onboardingButton(
-            "continue",
-            buttonAction
-        )
-
         root.addView(
-            button,
+            onboardingButton(
+                "Continue"
+            ) {
+                showOnboardingPermissions()
+            },
             LinearLayout.LayoutParams(
                 -1,
                 dp(54)
             )
         )
 
-        return root
-    }
-
-    private fun showOnboardingWelcome() {
-
-        val root = onboardingPage(
-            title = "Play your own tracks",
-            body = "Listen to FLACs, MP3, and other audio files on your phone.\n\nEasily browse through your music\nsort by album, artist, genre, and more",
-            footer = "by continuing, you agree to the Terms and conditions"
-        ) {
-            showOnboardingPermissions()
-        }
-
         setContentView(root)
     }
 
     private fun showOnboardingPermissions() {
 
-        val root = onboardingPage(
-            title = "Music player uses these permissions",
-            body = "Required permissions\n\nMusic and audio\n(Used to play audio files stored on your phone)\n\nOptional permissions\n(Used to continue and control playback when app is in background and to show notifications about track downloads)\n\nYou can still use the app's basic functions without allowing the optional permissions.",
-            footer = ""
-        ) {
-            requestOnboardingPermissions()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+            setPadding(
+                dp(28),
+                dp(38),
+                dp(28),
+                dp(28)
+            )
         }
+
+        root.addView(
+            onboardingText(
+                "Music player uses these permissions",
+                28f,
+                Color.BLACK,
+                true
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            Space(this),
+            LinearLayout.LayoutParams(
+                -1,
+                dp(54)
+            )
+        )
+
+        // ---------- REQUIRED PERMISSIONS ----------
+
+        root.addView(
+            onboardingText(
+                "Required permissions",
+                16f,
+                Color.rgb(85, 85, 85),
+                true
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            Space(this),
+            LinearLayout.LayoutParams(
+                -1,
+                dp(22)
+            )
+        )
+
+        val musicRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        musicRow.addView(
+            onboardingIcon("music"),
+            LinearLayout.LayoutParams(
+                dp(40),
+                dp(40)
+            ).apply {
+                rightMargin = dp(12)
+            }
+        )
+
+        musicRow.addView(
+            onboardingText(
+                "Music and audio",
+                20f,
+                Color.BLACK,
+                true
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        root.addView(
+            musicRow,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            onboardingText(
+                "Used to play audio files stored on your phone",
+                14f,
+                Color.rgb(105, 105, 105)
+            ).apply {
+                setPadding(dp(52), dp(7), 0, 0)
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            Space(this),
+            LinearLayout.LayoutParams(
+                -1,
+                dp(42)
+            )
+        )
+
+        // ---------- OPTIONAL PERMISSIONS ----------
+
+        root.addView(
+            onboardingText(
+                "Optional permissions",
+                16f,
+                Color.rgb(85, 85, 85),
+                true
+            ),
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            Space(this),
+            LinearLayout.LayoutParams(
+                -1,
+                dp(22)
+            )
+        )
+
+        val notificationRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        notificationRow.addView(
+            onboardingIcon("notification"),
+            LinearLayout.LayoutParams(
+                dp(40),
+                dp(40)
+            ).apply {
+                rightMargin = dp(12)
+            }
+        )
+
+        notificationRow.addView(
+            onboardingText(
+                "Notifications",
+                20f,
+                Color.BLACK,
+                true
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        root.addView(
+            notificationRow,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            onboardingText(
+                "Used to continue and control playback when app is in background and to show notifications about track downloads",
+                14f,
+                Color.rgb(105, 105, 105)
+            ).apply {
+                setPadding(dp(52), dp(7), 0, 0)
+                setLineSpacing(0f, 1.15f)
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            Space(this),
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
+
+        root.addView(
+            onboardingButton(
+                "Continue"
+            ) {
+                requestOnboardingPermissions()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(54)
+            )
+        )
 
         setContentView(root)
     }
