@@ -4006,7 +4006,7 @@ class MainActivity : ComponentActivity() {
 
         queueScroll.addView(
             queueList,
-            android.widget.ScrollView.LayoutParams(
+            android.view.ViewGroup.LayoutParams(
                 -1,
                 -2
             )
