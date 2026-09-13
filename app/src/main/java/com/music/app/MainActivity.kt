@@ -4553,6 +4553,17 @@ class MainActivity : ComponentActivity() {
 
         // ---------- SHOW ----------
 
+        // ---------- ATTACH SECONDARY CONTROLS ----------
+        bottomPanel.addView(
+            secondary,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(52)
+            ).apply {
+                topMargin = dp(2)
+            }
+        )
+
         dialog.setContentView(root)
 
         dialog.window?.setBackgroundDrawable(
