@@ -2406,8 +2406,8 @@ class MainActivity : ComponentActivity() {
                 0,
                 1f
             ).apply {
-                topMargin = dp(8)
-                bottomMargin = dp(16)
+                topMargin = dp(2)
+                bottomMargin = dp(8)
             }
         )
 
@@ -3274,19 +3274,28 @@ class MainActivity : ComponentActivity() {
 
             window.setLayout(-1, -1)
 
-            window.statusBarColor =
-                Color.TRANSPARENT
+            window.setBackgroundDrawable(
+                android.graphics.drawable.ColorDrawable(
+                    Color.TRANSPARENT
+                )
+            )
 
-            window.navigationBarColor =
-                Color.TRANSPARENT
+            window.statusBarColor = Color.TRANSPARENT
+            window.navigationBarColor = Color.TRANSPARENT
+
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                window.isStatusBarContrastEnforced = false
+                window.isNavigationBarContrastEnforced = false
+            }
 
             window.decorView.systemUiVisibility =
-                android.view.View
-                    .SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                android.view.View
-                    .SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                android.view.View
-                    .SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                window.setDecorFitsSystemWindows(false)
+            }
 
             window.addFlags(
                 android.view.WindowManager
