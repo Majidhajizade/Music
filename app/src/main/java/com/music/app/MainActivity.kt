@@ -845,8 +845,8 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(48)
             ).apply {
-                leftMargin = dp(18)
-                rightMargin = dp(18)
+                leftMargin = dp(12)
+                rightMargin = dp(12)
                 bottomMargin = dp(12)
             }
         )
@@ -882,23 +882,42 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val iconView = text(
-                icon,
-                19f,
-                Color.rgb(25, 25, 25),
-                Typeface.NORMAL
-            ).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-            }
+            if (icon == "SHUFFLE_ICON") {
 
-            button.addView(
-                iconView,
-                LinearLayout.LayoutParams(
-                    dp(25),
-                    -1
+                val iconView = ImageView(this).apply {
+                    setImageResource(R.drawable.ic_player_shuffle)
+                    scaleType = ImageView.ScaleType.CENTER
+                    alpha = 0.92f
+                }
+
+                button.addView(
+                    iconView,
+                    LinearLayout.LayoutParams(
+                        dp(25),
+                        -1
+                    )
                 )
-            )
+
+            } else {
+
+                val iconView = text(
+                    icon,
+                    19f,
+                    Color.rgb(25, 25, 25),
+                    Typeface.NORMAL
+                ).apply {
+                    gravity = Gravity.CENTER
+                    includeFontPadding = false
+                }
+
+                button.addView(
+                    iconView,
+                    LinearLayout.LayoutParams(
+                        dp(25),
+                        -1
+                    )
+                )
+            }
 
             val labelView = text(
                 label,
@@ -939,7 +958,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val shuffleAction = actionButton(
-            "🔀",
+            "SHUFFLE_ICON",
             "Shuffle"
         ) {
             if (songs.isNotEmpty()) {
@@ -981,8 +1000,8 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(48)
             ).apply {
-                leftMargin = dp(18)
-                rightMargin = dp(18)
+                leftMargin = dp(12)
+                rightMargin = dp(12)
                 bottomMargin = dp(18)
             }
         )
