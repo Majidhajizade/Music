@@ -2199,73 +2199,180 @@ class MainActivity : ComponentActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.WHITE)
             setPadding(dp(20), dp(8), dp(20), dp(20))
+            clipToPadding = false
         }
 
+        // ---------- DYNAMIC BACKGROUND ----------
+
+        fun mixColor(a: Int, b: Int, fraction: Float): Int {
+            val f = fraction.coerceIn(0f, 1f)
+
+            val ar = Color.red(a)
+            val ag = Color.green(a)
+            val ab = Color.blue(a)
+
+            val br = Color.red(b)
+            val bg = Color.green(b)
+            val bb = Color.blue(b)
+
+            return Color.rgb(
+                (ar + (br - ar) * f).toInt(),
+                (ag + (bg - ag) * f).toInt(),
+                (ab + (bb - ab) * f).toInt()
+            )
+        }
+
+        fun extractColors(bitmap: android.graphics.Bitmap): IntArray {
+
+            val w = bitmap.width
+            val h = bitmap.height
+
+            if (w <= 0 || h <= 0) {
+                return intArrayOf(
+                    Color.rgb(245, 245, 247),
+                    Color.rgb(225, 225, 230),
+                    Color.rgb(205, 205, 210)
+                )
+            }
+
+            val points = arrayOf(
+                intArrayOf(w / 4, h / 4),
+                intArrayOf(3 * w / 4, h / 4),
+                intArrayOf(w / 4, 3 * h / 4),
+                intArrayOf(3 * w / 4, 3 * h / 4)
+            )
+
+            var r1 = 0
+            var g1 = 0
+            var b1 = 0
+
+            var r2 = 0
+            var g2 = 0
+            var b2 = 0
+
+            var r3 = 0
+            var g3 = 0
+            var b3 = 0
+
+            points.forEachIndexed { index, point ->
+
+                val x = point[0].coerceIn(0, w - 1)
+                val y = point[1].coerceIn(0, h - 1)
+
+                val c = bitmap.getPixel(x, y)
+
+                if (index < 2) {
+                    r1 += Color.red(c)
+                    g1 += Color.green(c)
+                    b1 += Color.blue(c)
+                }
+
+                if (index >= 1) {
+                    r2 += Color.red(c)
+                    g2 += Color.green(c)
+                    b2 += Color.blue(c)
+                }
+
+                r3 += Color.red(c)
+                g3 += Color.green(c)
+                b3 += Color.blue(c)
+            }
+
+            val color1 = Color.rgb(
+                (r1 / 2).coerceIn(0, 255),
+                (g1 / 2).coerceIn(0, 255),
+                (b1 / 2).coerceIn(0, 255)
+            )
+
+            val color2 = Color.rgb(
+                (r2 / 3).coerceIn(0, 255),
+                (g2 / 3).coerceIn(0, 255),
+                (b2 / 3).coerceIn(0, 255)
+            )
+
+            val color3 = Color.rgb(
+                (r3 / 4).coerceIn(0, 255),
+                (g3 / 4).coerceIn(0, 255),
+                (b3 / 4).coerceIn(0, 255)
+            )
+
+            return intArrayOf(
+                color1,
+                color2,
+                color3
+            )
+        }
+
+        var currentColors = intArrayOf(
+            Color.rgb(245, 245, 247),
+            Color.rgb(225, 225, 230),
+            Color.rgb(205, 205, 210)
+        )
+
+        fun applyBackground(colors: IntArray) {
+
+            val drawable =
+                android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                    intArrayOf(
+                        colors[0],
+                        colors[1],
+                        colors[2]
+                    )
+                ).apply {
+                    cornerRadius = 0f
+                }
+
+            root.background = drawable
+        }
+
+        getAlbumArt(song)?.let {
+            currentColors = extractColors(it)
+        }
+
+        applyBackground(currentColors)
+
         // ---------- TOP BAR ----------
+
         val topBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        val close = TextView(this).apply {
-            text = "⌄"
-            textSize = 30f
-            setTextColor(Color.rgb(25, 25, 25))
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-
-            setOnClickListener {
-                dialog.dismiss()
-            }
-        }
-
-        topBar.addView(
-            close,
-            LinearLayout.LayoutParams(dp(48), dp(48))
-        )
-
         val topTitle = text(
             "NOW PLAYING",
             10f,
-            Color.rgb(120, 120, 125),
+            Color.WHITE,
             Typeface.BOLD
         ).apply {
             gravity = Gravity.CENTER
             includeFontPadding = false
             letterSpacing = 0.18f
+            alpha = 0.78f
         }
 
         topBar.addView(
             topTitle,
-            LinearLayout.LayoutParams(0, dp(48), 1f)
-        )
-
-        val more = TextView(this).apply {
-            text = "•••"
-            textSize = 18f
-            setTextColor(Color.rgb(30, 30, 30))
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-
-            setOnClickListener {
-                showSongMenu(this, song)
-            }
-        }
-
-        topBar.addView(
-            more,
-            LinearLayout.LayoutParams(dp(48), dp(48))
+            LinearLayout.LayoutParams(
+                0,
+                dp(48),
+                1f
+            )
         )
 
         root.addView(
             topBar,
-            LinearLayout.LayoutParams(-1, dp(48))
+            LinearLayout.LayoutParams(
+                -1,
+                dp(48)
+            )
         )
 
         // ---------- ARTWORK ----------
-        val screenWidth = resources.displayMetrics.widthPixels
+
+        val screenWidth =
+            resources.displayMetrics.widthPixels
 
         val coverSize =
             (screenWidth - dp(40))
@@ -2273,17 +2380,29 @@ class MainActivity : ComponentActivity() {
                 .coerceAtLeast(dp(250))
 
         val cover = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
+
+            scaleType =
+                ImageView.ScaleType.CENTER_CROP
+
             clipToOutline = true
 
             background =
                 android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = dp(18).toFloat()
-                    setColor(Color.rgb(238, 238, 240))
+                    cornerRadius = dp(20).toFloat()
+                    setColor(
+                        Color.argb(
+                            45,
+                            255,
+                            255,
+                            255
+                        )
+                    )
                 }
 
             outlineProvider =
-                object : android.view.ViewOutlineProvider() {
+                object :
+                    android.view.ViewOutlineProvider() {
+
                     override fun getOutline(
                         view: android.view.View,
                         outline: android.graphics.Outline
@@ -2293,7 +2412,7 @@ class MainActivity : ComponentActivity() {
                             0,
                             view.width,
                             view.height,
-                            dp(18).toFloat()
+                            dp(20).toFloat()
                         )
                     }
                 }
@@ -2304,6 +2423,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val coverContainer = FrameLayout(this).apply {
+
             addView(
                 cover,
                 FrameLayout.LayoutParams(
@@ -2323,25 +2443,20 @@ class MainActivity : ComponentActivity() {
                 1f
             ).apply {
                 topMargin = dp(8)
-                bottomMargin = dp(18)
+                bottomMargin = dp(16)
             }
         )
 
         // ---------- SONG INFO ----------
-        val infoRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
 
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
         }
 
         val title = text(
             song.title,
             21f,
-            Color.rgb(15, 15, 15),
+            Color.WHITE,
             Typeface.BOLD
         ).apply {
             maxLines = 1
@@ -2353,54 +2468,75 @@ class MainActivity : ComponentActivity() {
         val artist = text(
             song.artist,
             15f,
-            Color.rgb(105, 105, 110),
+            Color.WHITE,
             Typeface.NORMAL
         ).apply {
             maxLines = 1
             ellipsize =
                 android.text.TextUtils.TruncateAt.END
             includeFontPadding = false
-            setPadding(0, dp(5), 0, 0)
+            alpha = 0.75f
+            setPadding(
+                0,
+                dp(5),
+                0,
+                0
+            )
         }
 
         info.addView(
             title,
-            LinearLayout.LayoutParams(-1, dp(27))
+            LinearLayout.LayoutParams(
+                -1,
+                dp(27)
+            )
         )
 
         info.addView(
             artist,
-            LinearLayout.LayoutParams(-1, dp(23))
-        )
-
-        infoRow.addView(
-            info,
-            LinearLayout.LayoutParams(0, dp(58), 1f)
-        )
-
-        val favorite = TextView(this).apply {
-            text = "♡"
-            textSize = 30f
-            setTextColor(Color.rgb(30, 30, 30))
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-        }
-
-        infoRow.addView(
-            favorite,
-            LinearLayout.LayoutParams(dp(48), dp(58))
+            LinearLayout.LayoutParams(
+                -1,
+                dp(23)
+            )
         )
 
         root.addView(
-            infoRow,
-            LinearLayout.LayoutParams(-1, dp(62))
+            info,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(55)
+            )
         )
 
         // ---------- SEEK BAR ----------
+
         val seekBar = SeekBar(this).apply {
+
             max = 1000
             progress = 0
-            setPadding(0, 0, 0, 0)
+
+            setPadding(
+                0,
+                0,
+                0,
+                0
+            )
+
+            // Remove circular thumb completely.
+            thumb = null
+
+            progressDrawable =
+                android.graphics.drawable.GradientDrawable().apply {
+                    shape =
+                        android.graphics.drawable.GradientDrawable.RECTANGLE
+
+                    cornerRadius =
+                        dp(6).toFloat()
+
+                    setColor(
+                        Color.WHITE
+                    )
+                }
 
             setOnSeekBarChangeListener(
                 object :
@@ -2412,9 +2548,13 @@ class MainActivity : ComponentActivity() {
                         fromUser: Boolean
                     ) {
                         if (fromUser) {
+
                             mediaPlayer?.let {
+
                                 try {
+
                                     if (it.duration > 0) {
+
                                         val position =
                                             (
                                                 it.duration.toLong() *
@@ -2425,6 +2565,7 @@ class MainActivity : ComponentActivity() {
                                             position.toInt()
                                         )
                                     }
+
                                 } catch (_: Exception) {
                                 }
                             }
@@ -2444,222 +2585,368 @@ class MainActivity : ComponentActivity() {
 
         root.addView(
             seekBar,
-            LinearLayout.LayoutParams(-1, dp(30)).apply {
-                topMargin = dp(2)
+            LinearLayout.LayoutParams(
+                -1,
+                dp(18)
+            ).apply {
+                topMargin = dp(5)
             }
         )
 
         // ---------- TIME ----------
-        val timeRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
+
+        val timeRow =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+            }
 
         val elapsed = text(
             "0:00",
             11f,
-            Color.rgb(120, 120, 125),
+            Color.WHITE,
             Typeface.NORMAL
         ).apply {
             includeFontPadding = false
+            alpha = 0.72f
         }
 
         val remaining = text(
             "-0:00",
             11f,
-            Color.rgb(120, 120, 125),
+            Color.WHITE,
             Typeface.NORMAL
         ).apply {
             gravity = Gravity.RIGHT
             includeFontPadding = false
+            alpha = 0.72f
         }
 
         timeRow.addView(
             elapsed,
-            LinearLayout.LayoutParams(0, dp(18), 1f)
+            LinearLayout.LayoutParams(
+                0,
+                dp(18),
+                1f
+            )
         )
 
         timeRow.addView(
             remaining,
-            LinearLayout.LayoutParams(0, dp(18), 1f)
+            LinearLayout.LayoutParams(
+                0,
+                dp(18),
+                1f
+            )
         )
 
         root.addView(
             timeRow,
-            LinearLayout.LayoutParams(-1, dp(18))
+            LinearLayout.LayoutParams(
+                -1,
+                dp(18)
+            )
         )
 
         // ---------- MAIN CONTROLS ----------
-        val controls = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
 
-        val previous = TextView(this).apply {
-            text = "⏮"
-            textSize = 26f
-            setTextColor(Color.rgb(25, 25, 25))
-            gravity = Gravity.CENTER
-            includeFontPadding = false
+        val controls =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
 
-            setOnClickListener {
-                val index =
-                    songs.indexOfFirst {
-                        it.id == currentSong?.id
-                    }
-
-                if (index > 0) {
-                    playSong(songs[index - 1])
-                    dialog.dismiss()
-                    showNowPlaying()
-                }
+                gravity = Gravity.CENTER
             }
-        }
 
-        val play = TextView(this).apply {
-            text =
-                if (mediaPlayer?.isPlaying == true)
-                    "Ⅱ"
-                else
-                    "▶"
+        val previous =
+            TextView(this).apply {
 
-            textSize = 30f
-            setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER
-            includeFontPadding = false
+                text = "‹‹"
 
-            background =
-                android.graphics.drawable.GradientDrawable().apply {
-                    shape =
-                        android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(Color.rgb(20, 20, 20))
-                }
+                textSize = 65f
 
-            setOnClickListener {
-                mediaPlayer?.let {
-                    try {
-                        if (it.isPlaying) {
-                            it.pause()
-                            text = "▶"
-                            playButton.text = "▶"
-                        } else {
-                            it.start()
-                            text = "Ⅱ"
-                            playButton.text = "Ⅱ"
+                setTextColor(
+                    Color.WHITE
+                )
+
+                typeface =
+                    Typeface.create(
+                        Typeface.DEFAULT,
+                        Typeface.BOLD
+                    )
+
+                gravity = Gravity.CENTER
+
+                includeFontPadding = false
+
+                setPadding(
+                    0,
+                    0,
+                    0,
+                    0
+                )
+
+                setOnClickListener {
+
+                    val index =
+                        songs.indexOfFirst {
+                            it.id ==
+                                currentSong?.id
                         }
-                    } catch (_: Exception) {
+
+                    if (index > 0) {
+
+                        playSong(
+                            songs[index - 1]
+                        )
+
+                        dialog.dismiss()
+
+                        showNowPlaying()
                     }
                 }
             }
-        }
 
-        val next = TextView(this).apply {
-            text = "⏭"
-            textSize = 26f
-            setTextColor(Color.rgb(25, 25, 25))
-            gravity = Gravity.CENTER
-            includeFontPadding = false
+        val play =
+            TextView(this).apply {
 
-            setOnClickListener {
-                val index =
-                    songs.indexOfFirst {
-                        it.id == currentSong?.id
+                text =
+                    if (
+                        mediaPlayer?.isPlaying ==
+                        true
+                    )
+                        "Ⅱ"
+                    else
+                        "▶"
+
+                textSize = 75f
+
+                setTextColor(
+                    Color.WHITE
+                )
+
+                typeface =
+                    Typeface.create(
+                        Typeface.DEFAULT,
+                        Typeface.BOLD
+                    )
+
+                gravity = Gravity.CENTER
+
+                includeFontPadding = false
+
+                background = null
+
+                setPadding(
+                    0,
+                    0,
+                    0,
+                    0
+                )
+
+                setOnClickListener {
+
+                    mediaPlayer?.let {
+
+                        try {
+
+                            if (it.isPlaying) {
+
+                                it.pause()
+
+                                text = "▶"
+
+                                playButton.text =
+                                    "▶"
+
+                            } else {
+
+                                it.start()
+
+                                text = "Ⅱ"
+
+                                playButton.text =
+                                    "Ⅱ"
+                            }
+
+                        } catch (_: Exception) {
+                        }
                     }
-
-                if (
-                    index >= 0 &&
-                    index < songs.lastIndex
-                ) {
-                    playSong(songs[index + 1])
-                    dialog.dismiss()
-                    showNowPlaying()
                 }
             }
-        }
+
+        val next =
+            TextView(this).apply {
+
+                text = "››"
+
+                textSize = 65f
+
+                setTextColor(
+                    Color.WHITE
+                )
+
+                typeface =
+                    Typeface.create(
+                        Typeface.DEFAULT,
+                        Typeface.BOLD
+                    )
+
+                gravity = Gravity.CENTER
+
+                includeFontPadding = false
+
+                setPadding(
+                    0,
+                    0,
+                    0,
+                    0
+                )
+
+                setOnClickListener {
+
+                    val index =
+                        songs.indexOfFirst {
+                            it.id ==
+                                currentSong?.id
+                        }
+
+                    if (
+                        index >= 0 &&
+                        index < songs.lastIndex
+                    ) {
+
+                        playSong(
+                            songs[index + 1]
+                        )
+
+                        dialog.dismiss()
+
+                        showNowPlaying()
+                    }
+                }
+            }
 
         controls.addView(
             previous,
-            LinearLayout.LayoutParams(dp(82), dp(70))
+            LinearLayout.LayoutParams(
+                dp(90),
+                dp(90)
+            )
         )
 
         controls.addView(
             play,
-            LinearLayout.LayoutParams(dp(72), dp(72))
+            LinearLayout.LayoutParams(
+                dp(100),
+                dp(100)
+            )
         )
 
         controls.addView(
             next,
-            LinearLayout.LayoutParams(dp(82), dp(70))
+            LinearLayout.LayoutParams(
+                dp(90),
+                dp(90)
+            )
         )
 
         root.addView(
             controls,
-            LinearLayout.LayoutParams(-1, dp(82)).apply {
+            LinearLayout.LayoutParams(
+                -1,
+                dp(100)
+            ).apply {
                 topMargin = dp(4)
             }
         )
 
         // ---------- SECONDARY ----------
-        val secondary = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
+
+        val secondary =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
 
         val shuffle = text(
             "⤨",
-            23f,
-            Color.rgb(90, 90, 95),
-            Typeface.NORMAL
+            25f,
+            Color.WHITE,
+            Typeface.BOLD
         ).apply {
             gravity = Gravity.CENTER
+            alpha = 0.72f
         }
 
         val queue = text(
             "☷",
-            23f,
-            Color.rgb(90, 90, 95),
-            Typeface.NORMAL
+            25f,
+            Color.WHITE,
+            Typeface.BOLD
         ).apply {
             gravity = Gravity.CENTER
+            alpha = 0.72f
         }
 
         val repeat = text(
             "↻",
-            23f,
-            Color.rgb(90, 90, 95),
-            Typeface.NORMAL
+            25f,
+            Color.WHITE,
+            Typeface.BOLD
         ).apply {
             gravity = Gravity.CENTER
+            alpha = 0.72f
         }
 
         secondary.addView(
             shuffle,
-            LinearLayout.LayoutParams(0, dp(44), 1f)
+            LinearLayout.LayoutParams(
+                0,
+                dp(44),
+                1f
+            )
         )
 
         secondary.addView(
             queue,
-            LinearLayout.LayoutParams(0, dp(44), 1f)
+            LinearLayout.LayoutParams(
+                0,
+                dp(44),
+                1f
+            )
         )
 
         secondary.addView(
             repeat,
-            LinearLayout.LayoutParams(0, dp(44), 1f)
+            LinearLayout.LayoutParams(
+                0,
+                dp(44),
+                1f
+            )
         )
 
         root.addView(
             secondary,
-            LinearLayout.LayoutParams(-1, dp(46))
+            LinearLayout.LayoutParams(
+                -1,
+                dp(46)
+            )
         )
 
-        // ---------- PROGRESS UPDATER ----------
+        // ---------- PROGRESS ----------
+
         val handler =
             android.os.Handler(
                 android.os.Looper.getMainLooper()
             )
 
         fun formatTime(ms: Int): String {
+
             val totalSeconds =
-                (ms / 1000).coerceAtLeast(0)
+                (ms / 1000)
+                    .coerceAtLeast(0)
 
             val minutes =
                 totalSeconds / 60
@@ -2674,72 +2961,318 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        val updater = object : Runnable {
+        // ---------- PLAYER PROGRESS ----------
 
-            override fun run() {
+        val updater =
+            object : Runnable {
 
-                mediaPlayer?.let { player ->
+                override fun run() {
 
-                    try {
-                        val duration = player.duration
-                        val position = player.currentPosition
+                    mediaPlayer?.let { player ->
 
-                        if (duration > 0) {
+                        try {
 
-                            seekBar.progress =
-                                (
-                                    position.toLong() *
-                                        1000L /
-                                        duration.toLong()
-                                ).toInt()
+                            val duration =
+                                player.duration
 
-                            elapsed.text =
-                                formatTime(position)
+                            val position =
+                                player.currentPosition
 
-                            remaining.text =
-                                "-" + formatTime(
-                                    duration - position
-                                )
+                            if (duration > 0) {
 
-                            play.text =
-                                if (player.isPlaying)
-                                    "Ⅱ"
-                                else
-                                    "▶"
+                                seekBar.progress =
+                                    (
+                                        position.toLong() *
+                                            1000L /
+                                            duration.toLong()
+                                    ).toInt()
 
-                            playButton.text =
-                                if (player.isPlaying)
-                                    "Ⅱ"
-                                else
-                                    "▶"
+                                elapsed.text =
+                                    formatTime(
+                                        position
+                                    )
+
+                                remaining.text =
+                                    "-" +
+                                        formatTime(
+                                            duration -
+                                                position
+                                        )
+
+                                play.text =
+                                    if (
+                                        player.isPlaying
+                                    )
+                                        "Ⅱ"
+                                    else
+                                        "▶"
+
+                                playButton.text =
+                                    if (
+                                        player.isPlaying
+                                    )
+                                        "Ⅱ"
+                                    else
+                                        "▶"
+                            }
+
+                        } catch (_: Exception) {
                         }
-
-                    } catch (_: Exception) {
                     }
+
+                    handler.postDelayed(
+                        this,
+                        500
+                    )
+                }
+            }
+
+        // ---------- DYNAMIC COLOR ANIMATION ----------
+
+        val colorUpdater =
+            object : Runnable {
+
+                override fun run() {
+
+                    val bitmap =
+                        getAlbumArt(song)
+
+                    if (bitmap != null) {
+
+                        val targetColors =
+                            extractColors(bitmap)
+
+                        val startColors =
+                            currentColors.copyOf()
+
+                        val animator =
+                            android.animation.ValueAnimator.ofFloat(
+                                0f,
+                                1f
+                            ).apply {
+
+                                duration = 1800L
+
+                                addUpdateListener {
+
+                                    val f =
+                                        it.animatedValue
+                                            as Float
+
+                                    val colors =
+                                        IntArray(3)
+
+                                    for (
+                                        i in 0..2
+                                    ) {
+                                        colors[i] =
+                                            mixColor(
+                                                startColors[i],
+                                                targetColors[i],
+                                                f
+                                            )
+                                    }
+
+                                    applyBackground(
+                                        colors
+                                    )
+                                }
+
+                                addListener(
+                                    object :
+                                        android.animation.Animator.AnimatorListener {
+
+                                        override fun onAnimationStart(
+                                            animation:
+                                                android.animation.Animator
+                                        ) {}
+
+                                        override fun onAnimationEnd(
+                                            animation:
+                                                android.animation.Animator
+                                        ) {
+                                            currentColors =
+                                                targetColors
+                                        }
+
+                                        override fun onAnimationCancel(
+                                            animation:
+                                                android.animation.Animator
+                                        ) {}
+
+                                        override fun onAnimationRepeat(
+                                            animation:
+                                                android.animation.Animator
+                                        ) {}
+                                    }
+                                )
+                            }
+
+                        animator.start()
+                    }
+
+                    handler.postDelayed(
+                        this,
+                        2000L
+                    )
+                }
+            }
+
+        handler.post(updater)
+        handler.post(colorUpdater)
+
+        // ---------- SWIPE DOWN TO MINI PLAYER ----------
+
+        var downY = 0f
+        var dragging = false
+
+        root.setOnTouchListener { view, event ->
+
+            when (event.actionMasked) {
+
+                android.view.MotionEvent.ACTION_DOWN -> {
+
+                    downY = event.rawY
+                    dragging = false
+
+                    true
                 }
 
-                handler.postDelayed(this, 500)
+                android.view.MotionEvent.ACTION_MOVE -> {
+
+                    val delta =
+                        event.rawY - downY
+
+                    if (delta > dp(8)) {
+
+                        dragging = true
+
+                        val limited =
+                            delta.coerceAtLeast(0f)
+
+                        view.translationY =
+                            limited
+
+                        view.alpha =
+                            (
+                                1f -
+                                    limited /
+                                    (view.height
+                                        .toFloat()
+                                        .coerceAtLeast(1f))
+                            ).coerceIn(
+                                0.35f,
+                                1f
+                            )
+                    }
+
+                    true
+                }
+
+                android.view.MotionEvent.ACTION_UP -> {
+
+                    val delta =
+                        event.rawY - downY
+
+                    if (
+                        dragging &&
+                        delta > dp(120)
+                    ) {
+
+                        view.animate()
+                            .translationY(
+                                view.height
+                                    .toFloat()
+                            )
+                            .alpha(0f)
+                            .setDuration(260L)
+                            .setInterpolator(
+                                android.view.animation
+                                    .AccelerateDecelerateInterpolator()
+                            )
+                            .withEndAction {
+                                dialog.dismiss()
+                            }
+                            .start()
+
+                    } else {
+
+                        view.animate()
+                            .translationY(0f)
+                            .alpha(1f)
+                            .setDuration(240L)
+                            .setInterpolator(
+                                android.view.animation
+                                    .OvershootInterpolator(0.7f)
+                            )
+                            .start()
+                    }
+
+                    true
+                }
+
+                android.view.MotionEvent.ACTION_CANCEL -> {
+
+                    view.animate()
+                        .translationY(0f)
+                        .alpha(1f)
+                        .setDuration(220L)
+                        .start()
+
+                    true
+                }
+
+                else -> false
             }
         }
 
-        handler.post(updater)
-
         // ---------- SHOW ----------
+
         dialog.setContentView(root)
 
         dialog.window?.setBackgroundDrawable(
             android.graphics.drawable.ColorDrawable(
-                Color.WHITE
+                Color.TRANSPARENT
             )
         )
 
         dialog.setOnDismissListener {
-            handler.removeCallbacks(updater)
+
+            handler.removeCallbacks(
+                updater
+            )
+
+            handler.removeCallbacks(
+                colorUpdater
+            )
         }
 
         dialog.show()
 
-        dialog.window?.setLayout(-1, -1)
+        dialog.window?.let { window ->
+
+            window.setLayout(-1, -1)
+
+            window.statusBarColor =
+                Color.TRANSPARENT
+
+            window.navigationBarColor =
+                Color.TRANSPARENT
+
+            window.decorView.systemUiVisibility =
+                android.view.View
+                    .SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                android.view.View
+                    .SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                android.view.View
+                    .SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+
+            window.addFlags(
+                android.view.WindowManager
+                    .LayoutParams
+                    .FLAG_LAYOUT_NO_LIMITS
+            )
+        }
     }
 
     private fun playSong(song: Song) {
