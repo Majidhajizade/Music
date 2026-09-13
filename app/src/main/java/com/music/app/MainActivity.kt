@@ -3469,81 +3469,172 @@ class MainActivity : ComponentActivity() {
 
         queueMore.setOnClickListener {
 
-            val popup =
-                android.widget.PopupMenu(
-                    this,
-                    queueMore
-                )
+            val popupRoot =
+                LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(
+                        dp(8),
+                        dp(8),
+                        dp(8),
+                        dp(8)
+                    )
 
-            popup.menu.add("Share")
-            popup.menu.add("View Credits")
-            popup.menu.add("Favorite")
-            popup.menu.add("Suggest Less")
-
-            popup.setOnMenuItemClickListener { item ->
-
-                when (item.title.toString()) {
-
-                    "Share" -> {
-                        val share =
-                            android.content.Intent(
-                                android.content.Intent.ACTION_SEND
-                            ).apply {
-                                type = "text/plain"
-                                putExtra(
-                                    android.content.Intent.EXTRA_TEXT,
-                                    "${song.title} — ${song.artist}"
+                    background =
+                        GradientDrawable().apply {
+                            cornerRadius = dp(18).toFloat()
+                            setColor(
+                                Color.argb(
+                                    248,
+                                    35,
+                                    35,
+                                    38
                                 )
+                            )
+                            setStroke(
+                                dp(1),
+                                Color.argb(
+                                    40,
+                                    255,
+                                    255,
+                                    255
+                                )
+                            )
+                        }
+
+                    elevation = dp(12).toFloat()
+                }
+
+            val popupWindow =
+                android.widget.PopupWindow(
+                    popupRoot,
+                    dp(190),
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                    true
+                ).apply {
+                    isFocusable = true
+                    isOutsideTouchable = true
+                    setBackgroundDrawable(
+                        ColorDrawable(Color.TRANSPARENT)
+                    )
+                    elevation = dp(12).toFloat()
+                }
+
+            fun addPopupItem(
+                title: String,
+                action: () -> Unit
+            ) {
+
+                val item =
+                    TextView(this).apply {
+                        text = title
+                        textSize = 15f
+                        setTextColor(Color.WHITE)
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(
+                            dp(14),
+                            0,
+                            dp(14),
+                            0
+                        )
+                        isClickable = true
+
+                        setOnTouchListener { view, event ->
+
+                            when (
+                                event.actionMasked
+                            ) {
+
+                                android.view.MotionEvent
+                                    .ACTION_DOWN -> {
+                                    view.alpha = 0.55f
+                                }
+
+                                android.view.MotionEvent
+                                    .ACTION_UP,
+                                android.view.MotionEvent
+                                    .ACTION_CANCEL -> {
+                                    view.alpha = 1f
+                                }
                             }
 
-                        startActivity(
-                            android.content.Intent.createChooser(
-                                share,
-                                "Share"
-                            )
+                            false
+                        }
+
+                        setOnClickListener {
+                            action()
+                            popupWindow.dismiss()
+                        }
+                    }
+
+                popupRoot.addView(
+                    item,
+                    LinearLayout.LayoutParams(
+                        -1,
+                        dp(44)
+                    )
+                )
+            }
+
+            addPopupItem("Share") {
+
+                val share =
+                    android.content.Intent(
+                        android.content.Intent.ACTION_SEND
+                    ).apply {
+                        type = "text/plain"
+                        putExtra(
+                            android.content.Intent.EXTRA_TEXT,
+                            "${song.title} — ${song.artist}"
                         )
                     }
 
-                    "View Credits" -> {
-                        android.app.AlertDialog.Builder(this)
-                            .setTitle("View Credits")
-                            .setMessage(
-                                "${song.title}\n\nArtist: ${song.artist}"
-                            )
-                            .setPositiveButton("OK", null)
-                            .show()
-                    }
-
-                    "Favorite" -> {
-                        android.widget.Toast.makeText(
-                            this,
-                            "Added to Favorites",
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
-                    }
-
-                    "Suggest Less" -> {
-                        android.widget.Toast.makeText(
-                            this,
-                            "Suggest Less enabled",
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-
-                true
+                startActivity(
+                    android.content.Intent.createChooser(
+                        share,
+                        "Share"
+                    )
+                )
             }
 
-            popup.show()
-        }
+            addPopupItem("View Credits") {
 
-        queueHeader.addView(
-            queueCover,
-            LinearLayout.LayoutParams(
-                dp(52),
-                dp(52)
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("View Credits")
+                    .setMessage(
+                        "${song.title}\n${song.artist}"
+                    )
+                    .setPositiveButton(
+                        "OK",
+                        null
+                    )
+                    .show()
+            }
+
+            addPopupItem("Favorite") {
+
+                android.widget.Toast.makeText(
+                    this,
+                    "Added to Favorites",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            addPopupItem("Suggest Less") {
+
+                android.widget.Toast.makeText(
+                    this,
+                    "We'll suggest less like this",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            // Open inward, toward the center of the player.
+            popupWindow.showAsDropDown(
+                queueMore,
+                -dp(154),
+                dp(2)
             )
-        )
+        }
 
         queueHeader.addView(
             queueSongTitle,
@@ -3639,7 +3730,19 @@ class MainActivity : ComponentActivity() {
 
             return TextView(this).apply {
 
-                text = icon
+                if (icon == "SHUFFLE_DRAWABLE") {
+                    text = ""
+                    setCompoundDrawablesWithIntrinsicBounds(
+                        R.drawable.ic_player_shuffle,
+                        0,
+                        0,
+                        0
+                    )
+                    compoundDrawablePadding = 0
+                } else {
+                    text = icon
+                }
+
                 textSize = 21f
                 setTextColor(Color.WHITE)
                 gravity = Gravity.CENTER
@@ -3711,7 +3814,7 @@ class MainActivity : ComponentActivity() {
         }
 
         shuffleButton =
-            modeCard("⇄") {
+            modeCard("SHUFFLE_DRAWABLE") {
 
                 shuffleEnabled =
                     !shuffleEnabled
@@ -4021,7 +4124,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        var queueChromeHidden = false
+        var playbackControlsHidden = false
 
         queueScroll.setOnScrollChangeListener(
             android.view.View.OnScrollChangeListener {
@@ -4034,201 +4137,55 @@ class MainActivity : ComponentActivity() {
                 val delta =
                     scrollY - oldScrollY
 
+                // Scrolling DOWN:
+                // hide only Previous / Play / Next.
                 if (
                     delta > dp(2) &&
                     scrollY > dp(18) &&
-                    !queueChromeHidden
+                    !playbackControlsHidden
                 ) {
 
-                    queueChromeHidden = true
+                    playbackControlsHidden = true
 
-                    queueHeader.animate()
+                    controls.animate()
                         .alpha(0f)
                         .translationY(
-                            -dp(28).toFloat()
+                            dp(12).toFloat()
                         )
                         .setDuration(220L)
+                        .withEndAction {
+                            controls.visibility =
+                                View.GONE
+                        }
                         .start()
 
-                    queueModes.animate()
-                        .alpha(0f)
-                        .translationY(
-                            -dp(20).toFloat()
-                        )
-                        .setDuration(190L)
-                        .start()
-
-                    queueActions.animate()
-                        .alpha(0f)
-                        .translationY(
-                            -dp(16).toFloat()
-                        )
-                        .setDuration(180L)
-                        .start()
-
+                // Scrolling UP:
+                // bring Previous / Play / Next back.
                 } else if (
                     delta < -dp(2) &&
-                    queueChromeHidden
+                    playbackControlsHidden
                 ) {
 
-                    queueChromeHidden = false
+                    playbackControlsHidden = false
 
-                    queueHeader.animate()
+                    controls.visibility =
+                        View.VISIBLE
+
+                    controls.alpha = 0f
+                    controls.translationY =
+                        dp(12).toFloat()
+
+                    controls.animate()
                         .alpha(1f)
-                        .translationY(0f)
+                        .translationY(
+                            -dp(14).toFloat()
+                        )
                         .setDuration(240L)
-                        .start()
-
-                    queueModes.animate()
-                        .alpha(1f)
-                        .translationY(0f)
-                        .setDuration(220L)
-                        .start()
-
-                    queueActions.animate()
-                        .alpha(1f)
-                        .translationY(0f)
-                        .setDuration(210L)
                         .start()
                 }
             }
         )
 
-        // Queue opens inside the player instead of an AlertDialog.
-        queue.setOnClickListener {
-
-            if (playbackQueue.isEmpty()) {
-                android.widget.Toast.makeText(
-                    this,
-                    "Queue is empty",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-                return@setOnClickListener
-            }
-
-            queueExpanded = !queueExpanded
-
-            if (queueExpanded) {
-
-                queue.alpha = 1f
-
-                queuePanel.visibility = View.VISIBLE
-                queuePanel.alpha = 0f
-                queuePanel.translationY =
-                    dp(18).toFloat()
-
-                queueScroll.smoothScrollTo(
-                    0,
-                    0
-                )
-
-                queueChromeHidden = false
-
-                queueHeader.alpha = 1f
-                queueHeader.translationY = 0f
-
-                queueModes.alpha = 1f
-                queueModes.translationY = 0f
-
-                queueActions.alpha = 1f
-                queueActions.translationY = 0f
-
-                cover.animate()
-                    .alpha(0f)
-                    .scaleX(0.94f)
-                    .scaleY(0.94f)
-                    .setDuration(220L)
-                    .start()
-
-                queuePanel.animate()
-                    .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(280L)
-                    .setInterpolator(
-                        android.view.animation
-                            .DecelerateInterpolator()
-                    )
-                    .start()
-
-            } else {
-
-                queuePanel.animate()
-                    .alpha(0f)
-                    .translationY(
-                        dp(18).toFloat()
-                    )
-                    .setDuration(220L)
-                    .setInterpolator(
-                        android.view.animation
-                            .DecelerateInterpolator()
-                    )
-                    .withEndAction {
-
-                        queuePanel.visibility =
-                            View.GONE
-
-                        cover.animate()
-                            .alpha(1f)
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(220L)
-                            .start()
-                    }
-                    .start()
-            }
-        }
-
-        secondary.addView(
-            lyrics,
-            LinearLayout.LayoutParams(
-                0,
-                dp(40),
-                1f
-            ).apply {
-                marginEnd = dp(4)
-            }
-        )
-
-        secondary.addView(
-            cast,
-            LinearLayout.LayoutParams(
-                0,
-                dp(40),
-                1f
-            ).apply {
-                marginStart = dp(4)
-                marginEnd = dp(4)
-            }
-        )
-
-        secondary.addView(
-            queue,
-            LinearLayout.LayoutParams(
-                0,
-                dp(40),
-                1f
-            ).apply {
-                marginStart = dp(4)
-            }
-        )
-
-        bottomPanel.addView(
-            secondary,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(44)
-            ).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        root.addView(
-            bottomPanel,
-            LinearLayout.LayoutParams(
-                -1,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
 
         // ---------- PROGRESS ----------
 
