@@ -3199,6 +3199,16 @@ class MainActivity : ComponentActivity() {
             }
         )
 
+        // ---------- ATTACH LOWER PLAYER PANEL ----------
+
+        root.addView(
+            bottomPanel,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
         // ---------- SECONDARY ----------
         val secondary =
             LinearLayout(this).apply {
