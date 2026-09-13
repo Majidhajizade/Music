@@ -2848,34 +2848,46 @@ class MainActivity : ComponentActivity() {
         controls.addView(
             next,
             LinearLayout.LayoutParams(
-                dp(64),
-                dp(64)
-            )
+                dp(48),
+                dp(48)
+            ).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                marginStart = dp(14)
+                marginEnd = dp(10)
+            }
         )
 
         controls.addView(
             play,
             LinearLayout.LayoutParams(
-                dp(72),
-                dp(72)
-            )
+                dp(68),
+                dp(68)
+            ).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                marginStart = dp(10)
+                marginEnd = dp(10)
+            }
         )
 
         controls.addView(
             previous,
             LinearLayout.LayoutParams(
-                dp(64),
-                dp(64)
-            )
+                dp(48),
+                dp(48)
+            ).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                marginStart = dp(10)
+                marginEnd = dp(14)
+            }
         )
 
         root.addView(
             controls,
             LinearLayout.LayoutParams(
                 -1,
-                dp(76)
+                dp(64)
             ).apply {
-                topMargin = dp(2)
+                topMargin = dp(1)
             }
         )
 
