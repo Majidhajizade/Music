@@ -2830,26 +2830,26 @@ class MainActivity : ComponentActivity() {
             }
 
         controls.addView(
-            previous,
+            next,
             LinearLayout.LayoutParams(
-                dp(90),
-                dp(90)
+                dp(64),
+                dp(64)
             )
         )
 
         controls.addView(
             play,
             LinearLayout.LayoutParams(
-                dp(100),
-                dp(100)
+                dp(72),
+                dp(72)
             )
         )
 
         controls.addView(
-            next,
+            previous,
             LinearLayout.LayoutParams(
-                dp(90),
-                dp(90)
+                dp(64),
+                dp(64)
             )
         )
 
@@ -2857,9 +2857,9 @@ class MainActivity : ComponentActivity() {
             controls,
             LinearLayout.LayoutParams(
                 -1,
-                dp(100)
+                dp(76)
             ).apply {
-                topMargin = dp(4)
+                topMargin = dp(2)
             }
         )
 
