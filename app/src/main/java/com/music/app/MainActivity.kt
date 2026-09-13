@@ -824,7 +824,6 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.rgb(35, 35, 35))
             setHintTextColor(Color.rgb(105, 105, 105))
 
-            singleLine = true
             maxLines = 1
 
             setPadding(
