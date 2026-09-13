@@ -3395,7 +3395,10 @@ class MainActivity : ComponentActivity() {
                 0,
                 dp(44),
                 1f
-            )
+            ).apply {
+                marginStart = dp(4)
+                marginEnd = dp(4)
+            }
         )
 
         secondary.addView(
@@ -3404,7 +3407,10 @@ class MainActivity : ComponentActivity() {
                 0,
                 dp(44),
                 1f
-            )
+            ).apply {
+                marginStart = dp(4)
+                marginEnd = dp(4)
+            }
         )
 
         secondary.addView(
@@ -3413,7 +3419,10 @@ class MainActivity : ComponentActivity() {
                 0,
                 dp(44),
                 1f
-            )
+            ).apply {
+                marginStart = dp(4)
+                marginEnd = dp(4)
+            }
         )
 
         var queueExpanded = false
@@ -3726,13 +3735,24 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        // ---------- QUEUE HEADER COVER ----------
+        queueHeader.addView(
+            queueCover,
+            LinearLayout.LayoutParams(
+                dp(52),
+                dp(52)
+            )
+        )
+
         queueHeader.addView(
             queueSongTitle,
             LinearLayout.LayoutParams(
                 0,
                 dp(52),
                 1f
-            )
+            ).apply {
+                marginStart = dp(8)
+            }
         )
 
         queueHeader.addView(
@@ -3740,7 +3760,9 @@ class MainActivity : ComponentActivity() {
             LinearLayout.LayoutParams(
                 dp(40),
                 dp(52)
-            )
+            ).apply {
+                gravity = Gravity.CENTER_VERTICAL
+            }
         )
 
         // ---------- QUEUE MODES ----------
@@ -3822,12 +3844,21 @@ class MainActivity : ComponentActivity() {
 
                 if (icon == "SHUFFLE_DRAWABLE") {
                     text = ""
+                    val shuffleDrawable =
+                        androidx.core.content.ContextCompat.getDrawable(
+                            this@MainActivity,
+                            R.drawable.ic_player_shuffle
+                        )?.mutate()
+
+                    shuffleDrawable?.setTint(Color.WHITE)
+
                     setCompoundDrawablesWithIntrinsicBounds(
-                        R.drawable.ic_player_shuffle,
-                        0,
-                        0,
-                        0
+                        shuffleDrawable,
+                        null,
+                        null,
+                        null
                     )
+
                     compoundDrawablePadding = 0
                 } else {
                     text = icon
@@ -4214,383 +4245,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        var playbackControlsHidden = false
-
-        queueScroll.setOnScrollChangeListener(
-            android.view.View.OnScrollChangeListener {
-                    _,
-                    _,
-                    scrollY,
-                    _,
-                    oldScrollY ->
-
-                val delta =
-                    scrollY - oldScrollY
-
-                // Scrolling DOWN:
-                // hide only Previous / Play / Next.
-                if (
-                    delta > dp(2) &&
-                    scrollY > dp(18) &&
-                    !playbackControlsHidden
-                ) {
-
-                    playbackControlsHidden = true
-
-                    controls.animate()
-                        .alpha(0f)
-                        .translationY(
-                            dp(12).toFloat()
-                        )
-                        .setDuration(220L)
-                        .withEndAction {
-                            controls.visibility =
-                                View.GONE
-                        }
-                        .start()
-
-                // Scrolling UP:
-                // bring Previous / Play / Next back.
-                } else if (
-                    delta < -dp(2) &&
-                    playbackControlsHidden
-                ) {
-
-                    playbackControlsHidden = false
-
-                    controls.visibility =
-                        View.VISIBLE
-
-                    controls.alpha = 0f
-                    controls.translationY =
-                        dp(12).toFloat()
-
-                    controls.animate()
-                        .alpha(1f)
-                        .translationY(
-                            -dp(14).toFloat()
-                        )
-                        .setDuration(240L)
-                        .start()
-                }
-            }
-        )
-
-
-        // ---------- PROGRESS ----------
-
-        val handler =
-            android.os.Handler(
-                android.os.Looper.getMainLooper()
-            )
-
-        fun formatTime(ms: Int): String {
-
-            val totalSeconds =
-                (ms / 1000)
-                    .coerceAtLeast(0)
-
-            val minutes =
-                totalSeconds / 60
-
-            val seconds =
-                totalSeconds % 60
-
-            return String.format(
-                "%d:%02d",
-                minutes,
-                seconds
-            )
-        }
-
-        // ---------- PLAYER PROGRESS ----------
-
-        val updater =
-            object : Runnable {
-
-                override fun run() {
-
-                    mediaPlayer?.let { player ->
-
-                        try {
-
-                            val duration =
-                                player.duration
-
-                            val position =
-                                player.currentPosition
-
-                            if (duration > 0) {
-
-                                seekBar.progress =
-                                    (
-                                        position.toLong() *
-                                            1000L /
-                                            duration.toLong()
-                                    ).toInt()
-
-                                elapsed.text =
-                                    formatTime(
-                                        position
-                                    )
-
-                                remaining.text =
-                                    "-" +
-                                        formatTime(
-                                            duration -
-                                                position
-                                        )
-
-                                play.setImageResource(
-                                    if (
-                                        player.isPlaying
-                                    )
-                                        com.music.app.R.drawable.ic_player_pause
-                                    else
-                                        com.music.app.R.drawable.ic_player_play
-                                )
-
-                                playButton.text =
-                                    if (
-                                        player.isPlaying
-                                    )
-                                        "Ⅱ"
-                                    else
-                                        "▶"
-                            }
-
-                        } catch (_: Exception) {
-                        }
-                    }
-
-                    handler.postDelayed(
-                        this,
-                        500
-                    )
-                }
-            }
-
-        // ---------- DYNAMIC COLOR ANIMATION ----------
-
-        val colorUpdater =
-            object : Runnable {
-
-                override fun run() {
-
-                    val bitmap =
-                        getAlbumArt(song)
-
-                    if (bitmap != null) {
-
-                        val targetColors =
-                            extractColors(bitmap)
-
-                        val startColors =
-                            currentColors.copyOf()
-
-                        val animator =
-                            android.animation.ValueAnimator.ofFloat(
-                                0f,
-                                1f
-                            ).apply {
-
-                                duration = 1800L
-
-                                addUpdateListener {
-
-                                    val f =
-                                        it.animatedValue
-                                            as Float
-
-                                    val colors =
-                                        IntArray(3)
-
-                                    for (
-                                        i in 0..2
-                                    ) {
-                                        colors[i] =
-                                            mixColor(
-                                                startColors[i],
-                                                targetColors[i],
-                                                f
-                                            )
-                                    }
-
-                                    applyBackground(
-                                        colors
-                                    )
-                                }
-
-                                addListener(
-                                    object :
-                                        android.animation.Animator.AnimatorListener {
-
-                                        override fun onAnimationStart(
-                                            animation:
-                                                android.animation.Animator
-                                        ) {}
-
-                                        override fun onAnimationEnd(
-                                            animation:
-                                                android.animation.Animator
-                                        ) {
-                                            currentColors =
-                                                targetColors
-                                        }
-
-                                        override fun onAnimationCancel(
-                                            animation:
-                                                android.animation.Animator
-                                        ) {}
-
-                                        override fun onAnimationRepeat(
-                                            animation:
-                                                android.animation.Animator
-                                        ) {}
-                                    }
-                                )
-                            }
-
-                        animator.start()
-                    }
-
-                    handler.postDelayed(
-                        this,
-                        2000L
-                    )
-                }
-            }
-
-        handler.post(updater)
-        handler.post(colorUpdater)
-
-        // ---------- SWIPE DOWN TO MINI PLAYER ----------
-
-        var downY = 0f
-        var dragging = false
-
-        root.setOnTouchListener { view, event ->
-
-            when (event.actionMasked) {
-
-                android.view.MotionEvent.ACTION_DOWN -> {
-
-                    downY = event.rawY
-                    dragging = false
-
-                    true
-                }
-
-                android.view.MotionEvent.ACTION_MOVE -> {
-
-                    val delta =
-                        event.rawY - downY
-
-                    if (delta > dp(8)) {
-
-                        dragging = true
-
-                        val limited =
-                            delta.coerceAtLeast(0f)
-
-                        view.translationY =
-                            limited
-
-                        view.alpha =
-                            (
-                                1f -
-                                    limited /
-                                    (view.height
-                                        .toFloat()
-                                        .coerceAtLeast(1f))
-                            ).coerceIn(
-                                0.35f,
-                                1f
-                            )
-                    }
-
-                    true
-                }
-
-                android.view.MotionEvent.ACTION_UP -> {
-
-                    val delta =
-                        event.rawY - downY
-
-                    if (
-                        dragging &&
-                        delta > dp(120)
-                    ) {
-
-                        view.animate()
-                            .translationY(
-                                view.height
-                                    .toFloat()
-                            )
-                            .alpha(0f)
-                            .setDuration(260L)
-                            .setInterpolator(
-                                android.view.animation
-                                    .AccelerateDecelerateInterpolator()
-                            )
-                            .withEndAction {
-                                dialog.dismiss()
-                            }
-                            .start()
-
-                    } else {
-
-                        view.animate()
-                            .translationY(0f)
-                            .alpha(1f)
-                            .setDuration(240L)
-                            .setInterpolator(
-                                android.view.animation
-                                    .OvershootInterpolator(0.7f)
-                            )
-                            .start()
-                    }
-
-                    true
-                }
-
-                android.view.MotionEvent.ACTION_CANCEL -> {
-
-                    view.animate()
-                        .translationY(0f)
-                        .alpha(1f)
-                        .setDuration(220L)
-                        .start()
-
-                    true
-                }
-
-                else -> false
-            }
-        }
-
-        // ---------- SHOW ----------
-
-        // ---------- ATTACH SECONDARY TO PLAYER PANEL ----------
-        bottomPanel.addView(
-            secondary,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(52)
-            ).apply {
-                topMargin = dp(2)
-            }
-        )
-
-        // ---------- ATTACH LOWER PLAYER PANEL ----------
-        root.addView(
-            bottomPanel,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
+        // Queue scrolling is independent from the main playback controls.
         dialog.setContentView(root)
 
         dialog.window?.setBackgroundDrawable(
