@@ -1862,7 +1862,10 @@ class MainActivity : ComponentActivity() {
         box.addView(change)
         box.addView(remove)
 
-        val dialog = android.app.Dialog(this)
+        val dialog = android.app.Dialog(
+            this,
+            android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen
+        )
 
         dialog.setContentView(box)
 
