@@ -2825,7 +2825,7 @@ class MainActivity : ComponentActivity() {
             val backgroundTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(1.5f).toFloat()
+                    cornerRadius = dp(2).toFloat()
                     setColor(
                         Color.argb(
                             70,
@@ -2839,19 +2839,19 @@ class MainActivity : ComponentActivity() {
             val progressTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(1.5f).toFloat()
+                    cornerRadius = dp(2).toFloat()
                     setColor(Color.WHITE)
                 }
 
             val progressClip =
-                ClipDrawable(
+                android.graphics.drawable.ClipDrawable(
                     progressTrack,
                     Gravity.START,
                     1
                 )
 
             progressDrawable =
-                LayerDrawable(
+                android.graphics.drawable.LayerDrawable(
                     arrayOf(
                         backgroundTrack,
                         progressClip
@@ -3214,16 +3214,22 @@ class MainActivity : ComponentActivity() {
 
             val box =
                 LinearLayout(this).apply {
+
                     orientation =
                         LinearLayout.HORIZONTAL
+
                     gravity =
                         Gravity.CENTER
+
                     background =
                         GradientDrawable().apply {
+
                             shape =
                                 GradientDrawable.RECTANGLE
+
                             cornerRadius =
                                 dp(16).toFloat()
+
                             setColor(
                                 Color.argb(
                                     38,
@@ -3232,6 +3238,7 @@ class MainActivity : ComponentActivity() {
                                     255
                                 )
                             )
+
                             setStroke(
                                 dp(1),
                                 Color.argb(
@@ -3242,8 +3249,10 @@ class MainActivity : ComponentActivity() {
                                 )
                             )
                         }
-                    )
-                    elevation = dp(2).toFloat()
+
+                    elevation =
+                        dp(2).toFloat()
+
                     isClickable = true
                     isFocusable = true
 
@@ -3255,8 +3264,11 @@ class MainActivity : ComponentActivity() {
                     )
 
                     setOnTouchListener { view, event ->
+
                         when (event.action) {
+
                             android.view.MotionEvent.ACTION_DOWN -> {
+
                                 view.animate()
                                     .scaleX(0.94f)
                                     .scaleY(0.94f)
@@ -3266,6 +3278,7 @@ class MainActivity : ComponentActivity() {
 
                             android.view.MotionEvent.ACTION_UP,
                             android.view.MotionEvent.ACTION_CANCEL -> {
+
                                 view.animate()
                                     .scaleX(1f)
                                     .scaleY(1f)
@@ -3273,28 +3286,41 @@ class MainActivity : ComponentActivity() {
                                     .start()
                             }
                         }
+
                         false
                     }
                 }
 
             val image =
                 ImageView(this).apply {
+
                     setImageResource(icon)
+
                     scaleType =
                         ImageView.ScaleType.CENTER_INSIDE
+
                     alpha = 0.95f
                 }
 
             val text =
                 TextView(this).apply {
+
                     this.text = label
-                    setTextColor(Color.WHITE)
+
+                    setTextColor(
+                        Color.WHITE
+                    )
+
                     textSize = 11f
+
                     setTypeface(
                         null,
                         Typeface.BOLD
                     )
-                    gravity = Gravity.CENTER
+
+                    gravity =
+                        Gravity.CENTER
+
                     setPadding(
                         dp(5),
                         0,
