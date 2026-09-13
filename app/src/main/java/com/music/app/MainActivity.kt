@@ -2718,18 +2718,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        queuePanel.visibility = View.GONE
-        queuePanel.alpha = 0f
-
-        coverContainer.addView(
-            queuePanel,
-            FrameLayout.LayoutParams(
-                -1,
-                -1
-            ).apply {
-                gravity = Gravity.CENTER
-            }
-        )
+        // Queue panel is attached after its declaration below.
 
         root.addView(
             coverContainer,
@@ -3414,6 +3403,20 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
+
+        queuePanel.visibility = View.GONE
+        queuePanel.alpha = 0f
+
+        coverContainer.addView(
+            queuePanel,
+            FrameLayout.LayoutParams(
+                -1,
+                -1
+            ).apply {
+                gravity = Gravity.CENTER
+            }
+        )
+
         val queueHeader =
             LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -4011,7 +4014,7 @@ class MainActivity : ComponentActivity() {
 
         queuePanel.addView(
             queueScroll,
-            LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams(
                 -1,
                 0,
                 1f
