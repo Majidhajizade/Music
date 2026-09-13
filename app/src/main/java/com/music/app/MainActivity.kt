@@ -4246,6 +4246,191 @@ class MainActivity : ComponentActivity() {
         )
 
         // Queue scrolling is independent from the main playback controls.
+        val handler =
+            android.os.Handler(
+                android.os.Looper.getMainLooper()
+            )
+
+        fun formatTime(ms: Int): String {
+
+            val totalSeconds =
+                (ms / 1000)
+                    .coerceAtLeast(0)
+
+            val minutes =
+                totalSeconds / 60
+
+            val seconds =
+                totalSeconds % 60
+
+            return String.format(
+                "%d:%02d",
+                minutes,
+                seconds
+            )
+        }
+
+        // ---------- PLAYER PROGRESS ----------
+
+        val updater =
+            object : Runnable {
+
+                override fun run() {
+
+                    mediaPlayer?.let { player ->
+
+                        try {
+
+                            val duration =
+                                player.duration
+
+                            val position =
+                                player.currentPosition
+
+                            if (duration > 0) {
+
+                                seekBar.progress =
+                                    (
+                                        position.toLong() *
+                                            1000L /
+                                            duration.toLong()
+                                    ).toInt()
+
+                                elapsed.text =
+                                    formatTime(
+                                        position
+                                    )
+
+                                remaining.text =
+                                    "-" +
+                                        formatTime(
+                                            duration -
+                                                position
+                                        )
+
+                                play.setImageResource(
+                                    if (
+                                        player.isPlaying
+                                    )
+                                        com.music.app.R.drawable.ic_player_pause
+                                    else
+                                        com.music.app.R.drawable.ic_player_play
+                                )
+
+                                playButton.text =
+                                    if (
+                                        player.isPlaying
+                                    )
+                                        "Ⅱ"
+                                    else
+                                        "▶"
+                            }
+
+                        } catch (_: Exception) {
+                        }
+                    }
+
+                    handler.postDelayed(
+                        this,
+                        500
+                    )
+                }
+            }
+
+        // ---------- DYNAMIC COLOR ANIMATION ----------
+
+        val colorUpdater =
+            object : Runnable {
+
+                override fun run() {
+
+                    val bitmap =
+                        getAlbumArt(song)
+
+                    if (bitmap != null) {
+
+                        val targetColors =
+                            extractColors(bitmap)
+
+                        val startColors =
+                            currentColors.copyOf()
+
+                        val animator =
+                            android.animation.ValueAnimator.ofFloat(
+                                0f,
+                                1f
+                            ).apply {
+
+                                duration = 1800L
+
+                                addUpdateListener {
+
+                                    val f =
+                                        it.animatedValue
+                                            as Float
+
+                                    val colors =
+                                        IntArray(3)
+
+                                    for (
+                                        i in 0..2
+                                    ) {
+                                        colors[i] =
+                                            mixColor(
+                                                startColors[i],
+                                                targetColors[i],
+                                                f
+                                            )
+                                    }
+
+                                    applyBackground(
+                                        colors
+                                    )
+                                }
+
+                                addListener(
+                                    object :
+                                        android.animation.Animator.AnimatorListener {
+
+                                        override fun onAnimationStart(
+                                            animation:
+                                                android.animation.Animator
+                                        ) {}
+
+                                        override fun onAnimationEnd(
+                                            animation:
+                                                android.animation.Animator
+                                        ) {
+                                            currentColors =
+                                                targetColors
+                                        }
+
+                                        override fun onAnimationCancel(
+                                            animation:
+                                                android.animation.Animator
+                                        ) {}
+
+                                        override fun onAnimationRepeat(
+                                            animation:
+                                                android.animation.Animator
+                                        ) {}
+                                    }
+                                )
+                            }
+
+                        animator.start()
+                    }
+
+                    handler.postDelayed(
+                        this,
+                        2000L
+                    )
+                }
+            }
+
+        handler.post(updater)
+        handler.post(colorUpdater)
+
         dialog.setContentView(root)
 
         dialog.window?.setBackgroundDrawable(
