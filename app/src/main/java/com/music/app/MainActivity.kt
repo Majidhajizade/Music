@@ -2805,36 +2805,30 @@ class MainActivity : ComponentActivity() {
         )
 
         // ---------- SEEK BAR ----------
-
         val seekBar = SeekBar(this).apply {
 
             max = 1000
             progress = 0
 
-            minHeight = dp(14)
-            minimumHeight = dp(14)
+            minHeight = dp(8)
+            minimumHeight = dp(8)
 
             setPadding(
                 0,
-                dp(1),
+                dp(3),
                 0,
-                dp(1)
+                dp(3)
             )
 
-            // No circular thumb.
             thumb = null
 
             val backgroundTrack =
-                android.graphics.drawable.GradientDrawable().apply {
-                    shape =
-                        android.graphics.drawable.GradientDrawable.RECTANGLE
-
-                    cornerRadius =
-                        dp(5).toFloat()
-
+                GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(1.5f).toFloat()
                     setColor(
                         Color.argb(
-                            75,
+                            70,
                             255,
                             255,
                             255
@@ -2843,38 +2837,30 @@ class MainActivity : ComponentActivity() {
                 }
 
             val progressTrack =
-                android.graphics.drawable.GradientDrawable().apply {
-                    shape =
-                        android.graphics.drawable.GradientDrawable.RECTANGLE
-
-                    cornerRadius =
-                        dp(5).toFloat()
-
-                    setColor(
-                        Color.WHITE
-                    )
+                GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(1.5f).toFloat()
+                    setColor(Color.WHITE)
                 }
 
             val progressClip =
-                android.graphics.drawable.ClipDrawable(
+                ClipDrawable(
                     progressTrack,
                     Gravity.START,
                     1
                 )
 
             progressDrawable =
-                android.graphics.drawable.LayerDrawable(
+                LayerDrawable(
                     arrayOf(
                         backgroundTrack,
                         progressClip
                     )
                 ).apply {
-
                     setId(
                         0,
                         android.R.id.background
                     )
-
                     setId(
                         1,
                         android.R.id.progress
@@ -2891,24 +2877,15 @@ class MainActivity : ComponentActivity() {
                         fromUser: Boolean
                     ) {
                         if (fromUser) {
-
                             mediaPlayer?.let {
-
                                 try {
+                                    val position =
+                                        (
+                                            it.duration *
+                                            progress
+                                        ) / 1000
 
-                                    if (it.duration > 0) {
-
-                                        val position =
-                                            (
-                                                it.duration.toLong() *
-                                                    progress
-                                            ) / 1000L
-
-                                        it.seekTo(
-                                            position.toInt()
-                                        )
-                                    }
-
+                                    it.seekTo(position)
                                 } catch (_: Exception) {
                                 }
                             }
@@ -2917,11 +2894,13 @@ class MainActivity : ComponentActivity() {
 
                     override fun onStartTrackingTouch(
                         seekBar: SeekBar?
-                    ) {}
+                    ) {
+                    }
 
                     override fun onStopTrackingTouch(
                         seekBar: SeekBar?
-                    ) {}
+                    ) {
+                    }
                 }
             )
         }
@@ -2930,9 +2909,9 @@ class MainActivity : ComponentActivity() {
             seekBar,
             LinearLayout.LayoutParams(
                 -1,
-                dp(16)
+                dp(10)
             ).apply {
-                topMargin = dp(3)
+                topMargin = dp(5)
             }
         )
 
@@ -3048,10 +3027,7 @@ class MainActivity : ComponentActivity() {
             ImageView(this).apply {
 
                 setImageResource(
-                    if (
-                        mediaPlayer?.isPlaying ==
-                        true
-                    )
+                    if (mediaPlayer?.isPlaying == true)
                         com.music.app.R.drawable.ic_player_pause
                     else
                         com.music.app.R.drawable.ic_player_play
@@ -3060,25 +3036,33 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                background = null
+                background =
+                    GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(Color.WHITE)
+                    }
 
                 contentDescription =
-                    if (
-                        mediaPlayer?.isPlaying ==
-                        true
-                    )
+                    if (mediaPlayer?.isPlaying == true)
                         "Pause"
                     else
                         "Play"
 
-                background = null
-
                 setPadding(
-                    0,
-                    0,
-                    0,
-                    0
+                    dp(18),
+                    dp(18),
+                    dp(18),
+                    dp(18)
                 )
+
+                setColorFilter(
+                    android.graphics.PorterDuffColorFilter(
+                        Color.BLACK,
+                        android.graphics.PorterDuff.Mode.SRC_IN
+                    )
+                )
+
+                elevation = dp(4).toFloat()
 
                 setOnClickListener {
 
@@ -3094,8 +3078,9 @@ class MainActivity : ComponentActivity() {
                                     com.music.app.R.drawable.ic_player_play
                                 )
 
-                                playButton.text =
-                                    "▶"
+                                contentDescription = "Play"
+
+                                playButton.text = "▶"
 
                             } else {
 
@@ -3105,8 +3090,9 @@ class MainActivity : ComponentActivity() {
                                     com.music.app.R.drawable.ic_player_pause
                                 )
 
-                                playButton.text =
-                                    "▮▮"
+                                contentDescription = "Pause"
+
+                                playButton.text = "▮▮"
                             }
 
                         } catch (_: Exception) {
@@ -3162,7 +3148,7 @@ class MainActivity : ComponentActivity() {
             }
 
         controls.addView(
-            next,
+            previous,
             LinearLayout.LayoutParams(
                 dp(50),
                 dp(50)
@@ -3186,7 +3172,7 @@ class MainActivity : ComponentActivity() {
         )
 
         controls.addView(
-            previous,
+            next,
             LinearLayout.LayoutParams(
                 dp(50),
                 dp(50)
@@ -3208,60 +3194,206 @@ class MainActivity : ComponentActivity() {
         )
 
         // ---------- SECONDARY ----------
-
         val secondary =
             LinearLayout(this).apply {
                 orientation =
                     LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
+                setPadding(
+                    dp(4),
+                    0,
+                    dp(4),
+                    0
+                )
             }
 
-        val lyrics = ImageView(this).apply {
-            setImageResource(
-                com.music.app.R.drawable.ic_player_lyrics
+        fun secondaryButton(
+            icon: Int,
+            label: String
+        ): LinearLayout {
+
+            val box =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                    gravity =
+                        Gravity.CENTER
+                    background =
+                        GradientDrawable().apply {
+                            shape =
+                                GradientDrawable.RECTANGLE
+                            cornerRadius =
+                                dp(16).toFloat()
+                            setColor(
+                                Color.argb(
+                                    38,
+                                    255,
+                                    255,
+                                    255
+                                )
+                            )
+                            setStroke(
+                                dp(1),
+                                Color.argb(
+                                    55,
+                                    255,
+                                    255,
+                                    255
+                                )
+                            )
+                        }
+                    )
+                    elevation = dp(2).toFloat()
+                    isClickable = true
+                    isFocusable = true
+
+                    setPadding(
+                        dp(10),
+                        0,
+                        dp(10),
+                        0
+                    )
+
+                    setOnTouchListener { view, event ->
+                        when (event.action) {
+                            android.view.MotionEvent.ACTION_DOWN -> {
+                                view.animate()
+                                    .scaleX(0.94f)
+                                    .scaleY(0.94f)
+                                    .setDuration(80)
+                                    .start()
+                            }
+
+                            android.view.MotionEvent.ACTION_UP,
+                            android.view.MotionEvent.ACTION_CANCEL -> {
+                                view.animate()
+                                    .scaleX(1f)
+                                    .scaleY(1f)
+                                    .setDuration(100)
+                                    .start()
+                            }
+                        }
+                        false
+                    }
+                }
+
+            val image =
+                ImageView(this).apply {
+                    setImageResource(icon)
+                    scaleType =
+                        ImageView.ScaleType.CENTER_INSIDE
+                    alpha = 0.95f
+                }
+
+            val text =
+                TextView(this).apply {
+                    this.text = label
+                    setTextColor(Color.WHITE)
+                    textSize = 11f
+                    setTypeface(
+                        null,
+                        Typeface.BOLD
+                    )
+                    gravity = Gravity.CENTER
+                    setPadding(
+                        dp(5),
+                        0,
+                        0,
+                        0
+                    )
+                }
+
+            box.addView(
+                image,
+                LinearLayout.LayoutParams(
+                    dp(20),
+                    dp(20)
+                )
             )
 
-            scaleType =
-                ImageView.ScaleType.CENTER_INSIDE
+            box.addView(
+                text,
+                LinearLayout.LayoutParams(
+                    -2,
+                    -1
+                )
+            )
 
-            background = null
+            return box
+        }
 
-            alpha = 0.78f
-
-            contentDescription =
+        val lyrics =
+            secondaryButton(
+                com.music.app.R.drawable.ic_player_lyrics,
                 "Lyrics"
-        }
-
-        val cast = ImageView(this).apply {
-            setImageResource(
-                com.music.app.R.drawable.ic_player_cast
             )
 
-            scaleType =
-                ImageView.ScaleType.CENTER_INSIDE
+        lyrics.setOnClickListener {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Lyrics")
+                .setMessage(
+                    "${song.title}\n\nLyrics are not available for this song."
+                )
+                .setPositiveButton("OK", null)
+                .show()
+        }
 
-            background = null
-
-            alpha = 0.78f
-
-            contentDescription =
+        val cast =
+            secondaryButton(
+                com.music.app.R.drawable.ic_player_cast,
                 "Cast"
-        }
-
-        val queue = ImageView(this).apply {
-            setImageResource(
-                com.music.app.R.drawable.ic_player_queue
             )
 
-            scaleType =
-                ImageView.ScaleType.CENTER_INSIDE
+        cast.setOnClickListener {
+            android.widget.Toast
+                .makeText(
+                    this,
+                    "Cast device is not available",
+                    android.widget.Toast.LENGTH_SHORT
+                )
+                .show()
+        }
 
-            background = null
-
-            alpha = 0.78f
-
-            contentDescription =
+        val queue =
+            secondaryButton(
+                com.music.app.R.drawable.ic_player_queue,
                 "Queue"
+            )
+
+        queue.setOnClickListener {
+
+            if (playbackQueue.isEmpty()) {
+                android.widget.Toast
+                    .makeText(
+                        this,
+                        "Queue is empty",
+                        android.widget.Toast.LENGTH_SHORT
+                    )
+                    .show()
+                return@setOnClickListener
+            }
+
+            val titles =
+                playbackQueue.map { it.title }.toTypedArray()
+
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Queue")
+                .setItems(titles) { _, which ->
+
+                    if (which in playbackQueue.indices) {
+
+                        playbackIndex = which
+
+                        playSong(
+                            playbackQueue[which]
+                        )
+                    }
+                }
+                .setNegativeButton(
+                    "Close",
+                    null
+                )
+                .show()
         }
 
         secondary.addView(
@@ -3270,7 +3402,9 @@ class MainActivity : ComponentActivity() {
                 0,
                 dp(40),
                 1f
-            )
+            ).apply {
+                marginEnd = dp(4)
+            }
         )
 
         secondary.addView(
@@ -3279,7 +3413,10 @@ class MainActivity : ComponentActivity() {
                 0,
                 dp(40),
                 1f
-            )
+            ).apply {
+                marginStart = dp(4)
+                marginEnd = dp(4)
+            }
         )
 
         secondary.addView(
@@ -3288,15 +3425,19 @@ class MainActivity : ComponentActivity() {
                 0,
                 dp(40),
                 1f
-            )
+            ).apply {
+                marginStart = dp(4)
+            }
         )
 
         bottomPanel.addView(
             secondary,
             LinearLayout.LayoutParams(
                 -1,
-                dp(42)
-            )
+                dp(44)
+            ).apply {
+                topMargin = dp(3)
+            }
         )
 
         root.addView(
@@ -3608,6 +3749,25 @@ class MainActivity : ComponentActivity() {
                 Color.TRANSPARENT
             )
         )
+
+        dialog.window?.navigationBarColor =
+            Color.TRANSPARENT
+
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            dialog.window?.isNavigationBarContrastEnforced =
+                false
+            dialog.window?.isStatusBarContrastEnforced =
+                false
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            dialog.window?.setDecorFitsSystemWindows(false)
+        } else {
+            dialog.window?.decorView?.systemUiVisibility =
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        }
 
         dialog.setOnDismissListener {
 
