@@ -3417,6 +3417,66 @@ class MainActivity : ComponentActivity() {
             }
         )
 
+        queue.setOnClickListener {
+
+            queueExpanded = !queueExpanded
+
+            if (queueExpanded) {
+
+                // Restore Previous / Play / Next.
+                controls.visibility = View.VISIBLE
+                controls.alpha = 1f
+                controls.translationY = -dp(14).toFloat()
+
+                queuePanel.visibility = View.VISIBLE
+                queuePanel.alpha = 0f
+                queuePanel.translationY = dp(18).toFloat()
+
+                cover.animate()
+                    .alpha(0f)
+                    .scaleX(0.94f)
+                    .scaleY(0.94f)
+                    .setDuration(220L)
+                    .start()
+
+                queuePanel.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(280L)
+                    .setInterpolator(
+                        android.view.animation.DecelerateInterpolator()
+                    )
+                    .start()
+
+            } else {
+
+                queuePanel.animate()
+                    .alpha(0f)
+                    .translationY(dp(18).toFloat())
+                    .setDuration(220L)
+                    .setInterpolator(
+                        android.view.animation.DecelerateInterpolator()
+                    )
+                    .withEndAction {
+
+                        queuePanel.visibility = View.GONE
+
+                        cover.animate()
+                            .alpha(1f)
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(220L)
+                            .start()
+                    }
+                    .start()
+
+                // Always restore Previous / Play / Next.
+                controls.visibility = View.VISIBLE
+                controls.alpha = 1f
+                controls.translationY = -dp(14).toFloat()
+            }
+        }
+
         val queueHeader =
             LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
