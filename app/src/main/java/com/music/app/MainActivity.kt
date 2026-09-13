@@ -974,13 +974,22 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        actions.setPadding(
+            dp(12),
+            0,
+            dp(12),
+            0
+        )
+
         actions.addView(
             playAction,
             LinearLayout.LayoutParams(
                 0,
                 dp(48),
                 1f
-            )
+            ).apply {
+                rightMargin = dp(5)
+            }
         )
 
         actions.addView(
@@ -1000,8 +1009,6 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(48)
             ).apply {
-                leftMargin = dp(12)
-                rightMargin = dp(12)
                 bottomMargin = dp(18)
             }
         )
