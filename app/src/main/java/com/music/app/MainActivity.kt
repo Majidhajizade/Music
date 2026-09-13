@@ -3388,6 +3388,34 @@ class MainActivity : ComponentActivity() {
                 "Queue"
             )
 
+        // ---------- ADD SECONDARY PLAYER BUTTONS ----------
+        secondary.addView(
+            lyrics,
+            LinearLayout.LayoutParams(
+                0,
+                dp(44),
+                1f
+            )
+        )
+
+        secondary.addView(
+            cast,
+            LinearLayout.LayoutParams(
+                0,
+                dp(44),
+                1f
+            )
+        )
+
+        secondary.addView(
+            queue,
+            LinearLayout.LayoutParams(
+                0,
+                dp(44),
+                1f
+            )
+        )
+
         var queueExpanded = false
 
         val queuePanel =
