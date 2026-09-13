@@ -2438,11 +2438,17 @@ class MainActivity : ComponentActivity() {
 
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setPadding(
+                dp(4),
+                0,
+                dp(4),
+                0
+            )
         }
 
         val title = text(
             song.title,
-            21f,
+            22f,
             Color.WHITE,
             Typeface.BOLD
         ).apply {
@@ -2454,7 +2460,7 @@ class MainActivity : ComponentActivity() {
 
         val artist = text(
             song.artist,
-            15f,
+            14f,
             Color.WHITE,
             Typeface.NORMAL
         ).apply {
@@ -2462,10 +2468,10 @@ class MainActivity : ComponentActivity() {
             ellipsize =
                 android.text.TextUtils.TruncateAt.END
             includeFontPadding = false
-            alpha = 0.75f
+            alpha = 0.68f
             setPadding(
                 0,
-                dp(5),
+                dp(3),
                 0,
                 0
             )
@@ -2475,7 +2481,7 @@ class MainActivity : ComponentActivity() {
             title,
             LinearLayout.LayoutParams(
                 -1,
-                dp(27)
+                dp(28)
             )
         )
 
@@ -2483,7 +2489,7 @@ class MainActivity : ComponentActivity() {
             artist,
             LinearLayout.LayoutParams(
                 -1,
-                dp(23)
+                dp(21)
             )
         )
 
@@ -2502,14 +2508,14 @@ class MainActivity : ComponentActivity() {
             max = 1000
             progress = 0
 
-            minHeight = dp(16)
-            minimumHeight = dp(16)
+            minHeight = dp(14)
+            minimumHeight = dp(14)
 
             setPadding(
                 0,
-                dp(2),
+                dp(1),
                 0,
-                dp(2)
+                dp(1)
             )
 
             // No circular thumb.
@@ -2521,7 +2527,7 @@ class MainActivity : ComponentActivity() {
                         android.graphics.drawable.GradientDrawable.RECTANGLE
 
                     cornerRadius =
-                        dp(7).toFloat()
+                        dp(5).toFloat()
 
                     setColor(
                         Color.argb(
@@ -2539,7 +2545,7 @@ class MainActivity : ComponentActivity() {
                         android.graphics.drawable.GradientDrawable.RECTANGLE
 
                     cornerRadius =
-                        dp(7).toFloat()
+                        dp(5).toFloat()
 
                     setColor(
                         Color.WHITE
@@ -2621,9 +2627,9 @@ class MainActivity : ComponentActivity() {
             seekBar,
             LinearLayout.LayoutParams(
                 -1,
-                dp(18)
+                dp(16)
             ).apply {
-                topMargin = dp(2)
+                topMargin = dp(3)
             }
         )
 
@@ -2637,23 +2643,23 @@ class MainActivity : ComponentActivity() {
 
         val elapsed = text(
             "0:00",
-            11f,
+            10.5f,
             Color.WHITE,
             Typeface.NORMAL
         ).apply {
             includeFontPadding = false
-            alpha = 0.72f
+            alpha = 0.62f
         }
 
         val remaining = text(
             "-0:00",
-            11f,
+            10.5f,
             Color.WHITE,
             Typeface.NORMAL
         ).apply {
             gravity = Gravity.RIGHT
             includeFontPadding = false
-            alpha = 0.72f
+            alpha = 0.62f
         }
 
         timeRow.addView(
@@ -2855,36 +2861,36 @@ class MainActivity : ComponentActivity() {
         controls.addView(
             next,
             LinearLayout.LayoutParams(
-                dp(48),
-                dp(48)
+                dp(50),
+                dp(50)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(14)
-                marginEnd = dp(10)
+                marginStart = dp(10)
+                marginEnd = dp(8)
             }
         )
 
         controls.addView(
             play,
             LinearLayout.LayoutParams(
-                dp(68),
-                dp(68)
+                dp(72),
+                dp(72)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(10)
-                marginEnd = dp(10)
+                marginStart = dp(8)
+                marginEnd = dp(8)
             }
         )
 
         controls.addView(
             previous,
             LinearLayout.LayoutParams(
-                dp(48),
-                dp(48)
+                dp(50),
+                dp(50)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(10)
-                marginEnd = dp(14)
+                marginStart = dp(8)
+                marginEnd = dp(10)
             }
         )
 
@@ -2892,9 +2898,9 @@ class MainActivity : ComponentActivity() {
             controls,
             LinearLayout.LayoutParams(
                 -1,
-                dp(64)
+                dp(72)
             ).apply {
-                topMargin = dp(4)
+                topMargin = dp(2)
             }
         )
 
@@ -2917,7 +2923,7 @@ class MainActivity : ComponentActivity() {
 
             background = null
 
-            alpha = 0.86f
+            alpha = 0.78f
 
             contentDescription =
                 "Lyrics"
@@ -2933,7 +2939,7 @@ class MainActivity : ComponentActivity() {
 
             background = null
 
-            alpha = 0.86f
+            alpha = 0.78f
 
             contentDescription =
                 "Cast"
@@ -2949,7 +2955,7 @@ class MainActivity : ComponentActivity() {
 
             background = null
 
-            alpha = 0.86f
+            alpha = 0.78f
 
             contentDescription =
                 "Queue"
@@ -2959,7 +2965,7 @@ class MainActivity : ComponentActivity() {
             lyrics,
             LinearLayout.LayoutParams(
                 0,
-                dp(44),
+                dp(40),
                 1f
             )
         )
@@ -2968,7 +2974,7 @@ class MainActivity : ComponentActivity() {
             cast,
             LinearLayout.LayoutParams(
                 0,
-                dp(44),
+                dp(40),
                 1f
             )
         )
@@ -2977,7 +2983,7 @@ class MainActivity : ComponentActivity() {
             queue,
             LinearLayout.LayoutParams(
                 0,
-                dp(44),
+                dp(40),
                 1f
             )
         )
@@ -2986,10 +2992,9 @@ class MainActivity : ComponentActivity() {
             secondary,
             LinearLayout.LayoutParams(
                 -1,
-                dp(46)
+                dp(42)
             )
         )
-
 
         root.addView(
             bottomPanel,
