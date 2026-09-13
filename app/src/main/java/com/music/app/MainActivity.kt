@@ -2718,6 +2718,19 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        queuePanel.visibility = View.GONE
+        queuePanel.alpha = 0f
+
+        coverContainer.addView(
+            queuePanel,
+            FrameLayout.LayoutParams(
+                -1,
+                -1
+            ).apply {
+                gravity = Gravity.CENTER
+            }
+        )
+
         root.addView(
             coverContainer,
             LinearLayout.LayoutParams(
@@ -3550,35 +3563,14 @@ class MainActivity : ComponentActivity() {
 
         val queueModes =
             LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
+                orientation =
+                    LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
-                background =
-                    GradientDrawable().apply {
-                        shape = GradientDrawable.RECTANGLE
-                        cornerRadius = dp(18).toFloat()
-                        setColor(
-                            Color.argb(
-                                42,
-                                255,
-                                255,
-                                255
-                            )
-                        )
-                        setStroke(
-                            dp(1),
-                            Color.argb(
-                                45,
-                                255,
-                                255,
-                                255
-                            )
-                        )
-                    }
                 setPadding(
-                    dp(5),
-                    dp(4),
-                    dp(5),
-                    dp(4)
+                    dp(2),
+                    dp(2),
+                    dp(2),
+                    dp(2)
                 )
             }
 
@@ -3637,57 +3629,149 @@ class MainActivity : ComponentActivity() {
         lateinit var repeatButton: TextView
         lateinit var infinityButton: TextView
 
+        fun modeCard(
+            icon: String,
+            action: () -> Unit
+        ): TextView {
+
+            return TextView(this).apply {
+
+                text = icon
+                textSize = 21f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                setTypeface(null, Typeface.BOLD)
+
+                background =
+                    GradientDrawable().apply {
+                        shape =
+                            GradientDrawable.RECTANGLE
+                        cornerRadius =
+                            dp(14).toFloat()
+                        setColor(
+                            Color.argb(
+                                48,
+                                255,
+                                255,
+                                255
+                            )
+                        )
+                        setStroke(
+                            dp(1),
+                            Color.argb(
+                                55,
+                                255,
+                                255,
+                                255
+                            )
+                        )
+                    }
+
+                alpha = 0.78f
+
+                setOnClickListener {
+                    action()
+                }
+
+                setOnTouchListener { view, event ->
+
+                    when (
+                        event.actionMasked
+                    ) {
+
+                        android.view.MotionEvent
+                            .ACTION_DOWN -> {
+
+                            view.animate()
+                                .scaleX(0.91f)
+                                .scaleY(0.91f)
+                                .setDuration(70L)
+                                .start()
+                        }
+
+                        android.view.MotionEvent
+                            .ACTION_UP,
+                        android.view.MotionEvent
+                            .ACTION_CANCEL -> {
+
+                            view.animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(110L)
+                                .start()
+                        }
+                    }
+
+                    false
+                }
+            }
+        }
+
         shuffleButton =
-            modeButton("⇄") {
-                shuffleEnabled = !shuffleEnabled
+            modeCard("⇄") {
+
+                shuffleEnabled =
+                    !shuffleEnabled
+
                 shuffleButton.alpha =
-                    if (shuffleEnabled) 1f else 0.72f
+                    if (shuffleEnabled)
+                        1f
+                    else
+                        0.78f
 
                 if (shuffleEnabled) {
                     playbackQueue.shuffle()
                 }
             }
 
+        // Apple Music-style repeat symbol:
+        // two curved arrows facing opposite directions.
         repeatButton =
-            modeButton("↻") {
-                repeatEnabled = !repeatEnabled
+            modeCard("↻") {
+
+                repeatEnabled =
+                    !repeatEnabled
+
                 repeatButton.alpha =
-                    if (repeatEnabled) 1f else 0.72f
+                    if (repeatEnabled)
+                        1f
+                    else
+                        0.78f
             }
 
         infinityButton =
-            modeButton("∞") {
-                infinityEnabled = !infinityEnabled
+            modeCard("∞") {
+
+                infinityEnabled =
+                    !infinityEnabled
+
                 infinityButton.alpha =
-                    if (infinityEnabled) 1f else 0.72f
+                    if (infinityEnabled)
+                        1f
+                    else
+                        0.78f
             }
 
-        queueModes.addView(
-            shuffleButton,
-            LinearLayout.LayoutParams(
-                0,
-                dp(42),
-                1f
-            )
-        )
+        fun addModeCard(
+            button: TextView
+        ) {
 
-        queueModes.addView(
-            repeatButton,
-            LinearLayout.LayoutParams(
-                0,
-                dp(42),
-                1f
+            queueModes.addView(
+                button,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(48),
+                    1f
+                ).apply {
+                    marginStart = dp(3)
+                    marginEnd = dp(3)
+                }
             )
-        )
+        }
 
-        queueModes.addView(
-            infinityButton,
-            LinearLayout.LayoutParams(
-                0,
-                dp(42),
-                1f
-            )
-        )
+        addModeCard(shuffleButton)
+        addModeCard(repeatButton)
+        addModeCard(infinityButton)
 
         // ---------- HISTORY / CLEAR ----------
 
@@ -3899,8 +3983,34 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        queuePanel.addView(
+        val queueScroll =
+            android.widget.ScrollView(this).apply {
+
+                isFillViewport = true
+
+                overScrollMode =
+                    View.OVER_SCROLL_IF_CONTENT_SCROLLS
+
+                clipToPadding = false
+
+                setPadding(
+                    0,
+                    0,
+                    0,
+                    dp(4)
+                )
+            }
+
+        queueScroll.addView(
             queueList,
+            android.widget.ScrollView.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        queuePanel.addView(
+            queueScroll,
             LinearLayout.LayoutParams(
                 -1,
                 0,
@@ -3908,13 +4018,77 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        bottomPanel.addView(
-            queuePanel,
-            LinearLayout.LayoutParams(
-                -1,
-                0,
-                1f
-            )
+        var queueChromeHidden = false
+
+        queueScroll.setOnScrollChangeListener(
+            android.view.View.OnScrollChangeListener {
+                    _,
+                    _,
+                    scrollY,
+                    _,
+                    oldScrollY ->
+
+                val delta =
+                    scrollY - oldScrollY
+
+                if (
+                    delta > dp(2) &&
+                    scrollY > dp(18) &&
+                    !queueChromeHidden
+                ) {
+
+                    queueChromeHidden = true
+
+                    queueHeader.animate()
+                        .alpha(0f)
+                        .translationY(
+                            -dp(28).toFloat()
+                        )
+                        .setDuration(220L)
+                        .start()
+
+                    queueModes.animate()
+                        .alpha(0f)
+                        .translationY(
+                            -dp(20).toFloat()
+                        )
+                        .setDuration(190L)
+                        .start()
+
+                    queueActions.animate()
+                        .alpha(0f)
+                        .translationY(
+                            -dp(16).toFloat()
+                        )
+                        .setDuration(180L)
+                        .start()
+
+                } else if (
+                    delta < -dp(2) &&
+                    queueChromeHidden
+                ) {
+
+                    queueChromeHidden = false
+
+                    queueHeader.animate()
+                        .alpha(1f)
+                        .translationY(0f)
+                        .setDuration(240L)
+                        .start()
+
+                    queueModes.animate()
+                        .alpha(1f)
+                        .translationY(0f)
+                        .setDuration(220L)
+                        .start()
+
+                    queueActions.animate()
+                        .alpha(1f)
+                        .translationY(0f)
+                        .setDuration(210L)
+                        .start()
+                }
+            }
         )
 
         // Queue opens inside the player instead of an AlertDialog.
@@ -3934,10 +4108,34 @@ class MainActivity : ComponentActivity() {
             if (queueExpanded) {
 
                 queue.alpha = 1f
+
                 queuePanel.visibility = View.VISIBLE
                 queuePanel.alpha = 0f
                 queuePanel.translationY =
                     dp(18).toFloat()
+
+                queueScroll.smoothScrollTo(
+                    0,
+                    0
+                )
+
+                queueChromeHidden = false
+
+                queueHeader.alpha = 1f
+                queueHeader.translationY = 0f
+
+                queueModes.alpha = 1f
+                queueModes.translationY = 0f
+
+                queueActions.alpha = 1f
+                queueActions.translationY = 0f
+
+                cover.animate()
+                    .alpha(0f)
+                    .scaleX(0.94f)
+                    .scaleY(0.94f)
+                    .setDuration(220L)
+                    .start()
 
                 queuePanel.animate()
                     .alpha(1f)
@@ -3956,14 +4154,22 @@ class MainActivity : ComponentActivity() {
                     .translationY(
                         dp(18).toFloat()
                     )
-                    .setDuration(240L)
+                    .setDuration(220L)
                     .setInterpolator(
                         android.view.animation
                             .DecelerateInterpolator()
                     )
                     .withEndAction {
+
                         queuePanel.visibility =
                             View.GONE
+
+                        cover.animate()
+                            .alpha(1f)
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(220L)
+                            .start()
                     }
                     .start()
             }
