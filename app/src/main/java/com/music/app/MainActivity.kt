@@ -3199,16 +3199,6 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        // ---------- ATTACH LOWER PLAYER PANEL ----------
-
-        root.addView(
-            bottomPanel,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
         // ---------- SECONDARY ----------
         val secondary =
             LinearLayout(this).apply {
@@ -4553,7 +4543,7 @@ class MainActivity : ComponentActivity() {
 
         // ---------- SHOW ----------
 
-        // ---------- ATTACH SECONDARY CONTROLS ----------
+        // ---------- ATTACH SECONDARY TO PLAYER PANEL ----------
         bottomPanel.addView(
             secondary,
             LinearLayout.LayoutParams(
@@ -4562,6 +4552,15 @@ class MainActivity : ComponentActivity() {
             ).apply {
                 topMargin = dp(2)
             }
+        )
+
+        // ---------- ATTACH LOWER PLAYER PANEL ----------
+        root.addView(
+            bottomPanel,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
         )
 
         dialog.setContentView(root)
