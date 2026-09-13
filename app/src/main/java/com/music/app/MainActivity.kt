@@ -47,11 +47,24 @@ class MainActivity : ComponentActivity() {
     private lateinit var miniArtist: TextView
     private lateinit var playButton: TextView
 
+    private var onboardingVisible = false
+
     private val permissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) {
-            loadMusic()
+            if (onboardingVisible) {
+                requestOptionalPermission()
+            } else {
+                loadMusic()
+            }
+        }
+
+    private val notificationPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) {
+            finishOnboarding()
         }
 
     private val imagePicker =
@@ -67,11 +80,274 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (hasAudioPermission()) {
-            loadMusic()
+        val prefs = getSharedPreferences(
+            "music_prefs",
+            MODE_PRIVATE
+        )
+
+        val onboardingComplete =
+            prefs.getBoolean("onboarding_complete", false)
+
+        if (!onboardingComplete) {
+            onboardingVisible = true
+            showOnboardingWelcome()
         } else {
-            requestAudioPermission()
+            if (hasAudioPermission()) {
+                loadMusic()
+            } else {
+                requestAudioPermission()
+            }
         }
+    }
+
+    // ============================================================
+    // FIRST RUN ONBOARDING
+    // ============================================================
+
+    private fun onboardingText(
+        text: String,
+        size: Float,
+        color: Int,
+        bold: Boolean = false
+    ): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextSize(size)
+            setTextColor(color)
+            gravity = Gravity.CENTER
+            if (bold) {
+                setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+            }
+        }
+    }
+
+    private fun onboardingButton(
+        text: String,
+        action: () -> Unit
+    ): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextSize(16f)
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+            isClickable = true
+            isFocusable = true
+            setPadding(dp(24), 0, dp(24), 0)
+
+            background = GradientDrawable().apply {
+                setColor(Color.BLACK)
+                cornerRadius = dp(40).toFloat()
+            }
+
+            setOnClickListener {
+                action()
+            }
+        }
+    }
+
+    private fun onboardingPage(
+        title: String,
+        body: String,
+        footer: String,
+        buttonAction: () -> Unit
+    ): LinearLayout {
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setBackgroundColor(Color.WHITE)
+            setPadding(
+                dp(28),
+                dp(34),
+                dp(28),
+                dp(28)
+            )
+        }
+
+        val topSpacer = Space(this)
+
+        root.addView(
+            topSpacer,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                0.18f
+            )
+        )
+
+        val appName = onboardingText(
+            "Music",
+            36f,
+            Color.BLACK,
+            true
+        )
+
+        root.addView(
+            appName,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        val titleView = onboardingText(
+            title,
+            25f,
+            Color.BLACK,
+            true
+        ).apply {
+            setPadding(
+                dp(10),
+                dp(24),
+                dp(10),
+                0
+            )
+        }
+
+        root.addView(
+            titleView,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        val bodyView = onboardingText(
+            body,
+            17f,
+            Color.rgb(80, 80, 80)
+        ).apply {
+            setLineSpacing(
+                0f,
+                1.18f
+            )
+            setPadding(
+                dp(8),
+                dp(18),
+                dp(8),
+                0
+            )
+        }
+
+        root.addView(
+            bodyView,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            Space(this),
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
+
+        val footerView = onboardingText(
+            footer,
+            12f,
+            Color.rgb(120, 120, 120)
+        ).apply {
+            setLineSpacing(
+                0f,
+                1.15f
+            )
+        }
+
+        root.addView(
+            footerView,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            ).apply {
+                bottomMargin = dp(18)
+            }
+        )
+
+        val button = onboardingButton(
+            "continue",
+            buttonAction
+        )
+
+        root.addView(
+            button,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(54)
+            )
+        )
+
+        return root
+    }
+
+    private fun showOnboardingWelcome() {
+
+        val root = onboardingPage(
+            title = "Play your own tracks",
+            body = "Listen to FLACs, MP3, and other audio files on your phone.\n\nEasily browse through your music\nsort by album, artist, genre, and more",
+            footer = "by continuing, you agree to the Terms and conditions"
+        ) {
+            showOnboardingPermissions()
+        }
+
+        setContentView(root)
+    }
+
+    private fun showOnboardingPermissions() {
+
+        val root = onboardingPage(
+            title = "Music player uses these permissions",
+            body = "Required permissions\n\nMusic and audio\n(Used to play audio files stored on your phone)\n\nOptional permissions\n(Used to continue and control playback when app is in background and to show notifications about track downloads)\n\nYou can still use the app's basic functions without allowing the optional permissions.",
+            footer = ""
+        ) {
+            requestOnboardingPermissions()
+        }
+
+        setContentView(root)
+    }
+
+    private fun requestOnboardingPermissions() {
+
+        if (!hasAudioPermission()) {
+            requestAudioPermission()
+        } else {
+            requestOptionalPermission()
+        }
+    }
+
+    private fun requestOptionalPermission() {
+
+        if (
+            Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+        } else {
+            finishOnboarding()
+        }
+    }
+
+    private fun finishOnboarding() {
+
+        getSharedPreferences(
+            "music_prefs",
+            MODE_PRIVATE
+        ).edit()
+            .putBoolean("onboarding_complete", true)
+            .apply()
+
+        onboardingVisible = false
+
+        loadMusic()
     }
 
     private fun hasAudioPermission(): Boolean {
