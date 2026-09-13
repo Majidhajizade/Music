@@ -2804,6 +2804,15 @@ class MainActivity : ComponentActivity() {
             )
         )
 
+        bottomPanel.addView(
+            queuePanel,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(0),
+                1f
+            )
+        )
+
         // ---------- SEEK BAR ----------
         val seekBar = SeekBar(this).apply {
 
@@ -2904,6 +2913,8 @@ class MainActivity : ComponentActivity() {
                 }
             )
         }
+
+        seekBar.translationY = -dp(7).toFloat()
 
         bottomPanel.addView(
             seekBar,
@@ -3183,13 +3194,15 @@ class MainActivity : ComponentActivity() {
             }
         )
 
+        controls.translationY = -dp(14).toFloat()
+
         bottomPanel.addView(
             controls,
             LinearLayout.LayoutParams(
                 -1,
                 dp(72)
             ).apply {
-                topMargin = dp(-6)
+                topMargin = 0
             }
         )
 
@@ -3354,15 +3367,11 @@ class MainActivity : ComponentActivity() {
                 "Lyrics"
             )
 
-        lyrics.setOnClickListener {
-            android.app.AlertDialog.Builder(this)
-                .setTitle("Lyrics")
-                .setMessage(
-                    "${song.title}\n\nLyrics are not available for this song."
-                )
-                .setPositiveButton("OK", null)
-                .show()
-        }
+        // Local songs do not provide online lyrics.
+        lyrics.alpha = 0.35f
+        lyrics.isEnabled = false
+        lyrics.isClickable = false
+        lyrics.contentDescription = "Lyrics unavailable for local music"
 
         val cast =
             secondaryButton(
@@ -3386,40 +3395,574 @@ class MainActivity : ComponentActivity() {
                 "Queue"
             )
 
+        var queueExpanded = false
+
+        val queuePanel =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                visibility = View.GONE
+                alpha = 0f
+                setPadding(
+                    dp(4),
+                    0,
+                    dp(4),
+                    0
+                )
+            }
+
+        val queueHeader =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+        val queueCover =
+            ImageView(this).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                background =
+                    GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = dp(10).toFloat()
+                    }
+                clipToOutline = true
+            }
+
+        getAlbumArt(song)?.let {
+            queueCover.setImageBitmap(it)
+        }
+
+        val queueSongTitle =
+            TextView(this).apply {
+                text = song.title
+                textSize = 16f
+                setTextColor(Color.WHITE)
+                setTypeface(null, Typeface.BOLD)
+                maxLines = 1
+                isSingleLine = true
+                ellipsize =
+                    android.text.TextUtils.TruncateAt.MARQUEE
+                marqueeRepeatLimit = -1
+                isSelected = true
+                setPadding(dp(10), 0, 0, 0)
+            }
+
+        val queueMore =
+            TextView(this).apply {
+                text = "⋮"
+                textSize = 27f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                setPadding(
+                    dp(8),
+                    0,
+                    dp(4),
+                    0
+                )
+            }
+
+        queueMore.setOnClickListener {
+
+            val popup =
+                android.widget.PopupMenu(
+                    this,
+                    queueMore
+                )
+
+            popup.menu.add("Share")
+            popup.menu.add("View Credits")
+            popup.menu.add("Favorite")
+            popup.menu.add("Suggest Less")
+
+            popup.setOnMenuItemClickListener { item ->
+
+                when (item.title.toString()) {
+
+                    "Share" -> {
+                        val share =
+                            android.content.Intent(
+                                android.content.Intent.ACTION_SEND
+                            ).apply {
+                                type = "text/plain"
+                                putExtra(
+                                    android.content.Intent.EXTRA_TEXT,
+                                    "${song.title} — ${song.artist}"
+                                )
+                            }
+
+                        startActivity(
+                            android.content.Intent.createChooser(
+                                share,
+                                "Share"
+                            )
+                        )
+                    }
+
+                    "View Credits" -> {
+                        android.app.AlertDialog.Builder(this)
+                            .setTitle("View Credits")
+                            .setMessage(
+                                "${song.title}\n\nArtist: ${song.artist}"
+                            )
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+
+                    "Favorite" -> {
+                        android.widget.Toast.makeText(
+                            this,
+                            "Added to Favorites",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    "Suggest Less" -> {
+                        android.widget.Toast.makeText(
+                            this,
+                            "Suggest Less enabled",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                true
+            }
+
+            popup.show()
+        }
+
+        queueHeader.addView(
+            queueCover,
+            LinearLayout.LayoutParams(
+                dp(52),
+                dp(52)
+            )
+        )
+
+        queueHeader.addView(
+            queueSongTitle,
+            LinearLayout.LayoutParams(
+                0,
+                dp(52),
+                1f
+            )
+        )
+
+        queueHeader.addView(
+            queueMore,
+            LinearLayout.LayoutParams(
+                dp(40),
+                dp(52)
+            )
+        )
+
+        // ---------- QUEUE MODES ----------
+
+        val queueModes =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                background =
+                    GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = dp(18).toFloat()
+                        setColor(
+                            Color.argb(
+                                42,
+                                255,
+                                255,
+                                255
+                            )
+                        )
+                        setStroke(
+                            dp(1),
+                            Color.argb(
+                                45,
+                                255,
+                                255,
+                                255
+                            )
+                        )
+                    }
+                setPadding(
+                    dp(5),
+                    dp(4),
+                    dp(5),
+                    dp(4)
+                )
+            }
+
+        fun modeButton(
+            symbol: String,
+            action: () -> Unit
+        ): TextView {
+
+            return TextView(this).apply {
+
+                text = symbol
+                textSize = 21f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                setTypeface(null, Typeface.BOLD)
+                alpha = 0.72f
+                isClickable = true
+                isFocusable = true
+
+                setOnClickListener {
+                    action()
+                }
+
+                setOnTouchListener { view, event ->
+
+                    when (event.actionMasked) {
+
+                        android.view.MotionEvent.ACTION_DOWN -> {
+                            view.animate()
+                                .scaleX(0.86f)
+                                .scaleY(0.86f)
+                                .setDuration(70L)
+                                .start()
+                        }
+
+                        android.view.MotionEvent.ACTION_UP,
+                        android.view.MotionEvent.ACTION_CANCEL -> {
+                            view.animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(110L)
+                                .start()
+                        }
+                    }
+
+                    false
+                }
+            }
+        }
+
+        var shuffleEnabled = false
+        var repeatEnabled = false
+        var infinityEnabled = true
+
+        val shuffle =
+            modeButton("⇄") {
+                shuffleEnabled = !shuffleEnabled
+                shuffle.alpha =
+                    if (shuffleEnabled) 1f else 0.72f
+
+                if (shuffleEnabled) {
+                    playbackQueue.shuffle()
+                }
+            }
+
+        val repeat =
+            modeButton("↻") {
+                repeatEnabled = !repeatEnabled
+                repeat.alpha =
+                    if (repeatEnabled) 1f else 0.72f
+            }
+
+        val infinity =
+            modeButton("∞") {
+                infinityEnabled = !infinityEnabled
+                infinity.alpha =
+                    if (infinityEnabled) 1f else 0.72f
+            }
+
+        queueModes.addView(
+            shuffle,
+            LinearLayout.LayoutParams(
+                0,
+                dp(42),
+                1f
+            )
+        )
+
+        queueModes.addView(
+            repeat,
+            LinearLayout.LayoutParams(
+                0,
+                dp(42),
+                1f
+            )
+        )
+
+        queueModes.addView(
+            infinity,
+            LinearLayout.LayoutParams(
+                0,
+                dp(42),
+                1f
+            )
+        )
+
+        // ---------- HISTORY / CLEAR ----------
+
+        val queueActions =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+        val history =
+            TextView(this).apply {
+                text = "History"
+                textSize = 13f
+                setTextColor(Color.WHITE)
+                setTypeface(null, Typeface.BOLD)
+                setPadding(
+                    dp(4),
+                    dp(5),
+                    dp(8),
+                    dp(5)
+                )
+            }
+
+        val clear =
+            TextView(this).apply {
+                text = "Clear"
+                textSize = 13f
+                setTextColor(Color.WHITE)
+                setTypeface(null, Typeface.BOLD)
+                gravity = Gravity.END
+                setPadding(
+                    dp(8),
+                    dp(5),
+                    dp(4),
+                    dp(5)
+                )
+            }
+
+        history.setOnClickListener {
+
+            val historyText =
+                playbackQueue
+                    .take(
+                        (playbackIndex + 1)
+                            .coerceAtLeast(0)
+                    )
+                    .joinToString("\n") {
+                        it.title
+                    }
+
+            android.app.AlertDialog.Builder(this)
+                .setTitle("History")
+                .setMessage(
+                    if (historyText.isBlank())
+                        "No history"
+                    else
+                        historyText
+                )
+                .setPositiveButton("OK", null)
+                .show()
+        }
+
+        clear.setOnClickListener {
+
+            playbackQueue.clear()
+            playbackIndex = -1
+
+            queueExpanded = false
+
+            queuePanel.animate()
+                .alpha(0f)
+                .setDuration(180L)
+                .withEndAction {
+                    queuePanel.visibility = View.GONE
+                }
+                .start()
+
+            queue.alpha = 0.95f
+        }
+
+        queueActions.addView(
+            history,
+            LinearLayout.LayoutParams(
+                0,
+                dp(34),
+                1f
+            )
+        )
+
+        queueActions.addView(
+            clear,
+            LinearLayout.LayoutParams(
+                0,
+                dp(34),
+                1f
+            )
+        )
+
+        // ---------- QUEUE LIST ----------
+
+        val queueList =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+
+        playbackQueue.forEachIndexed { index, queueSong ->
+
+            val row =
+                LinearLayout(this).apply {
+
+                    orientation =
+                        LinearLayout.HORIZONTAL
+
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+
+                    setPadding(
+                        dp(4),
+                        dp(4),
+                        dp(4),
+                        dp(4)
+                    )
+
+                    setOnClickListener {
+
+                        if (
+                            index in
+                            playbackQueue.indices
+                        ) {
+
+                            playbackIndex = index
+
+                            playSong(
+                                playbackQueue[index]
+                            )
+                        }
+                    }
+                }
+
+            val cover =
+                ImageView(this).apply {
+                    scaleType =
+                        ImageView.ScaleType.CENTER_CROP
+                }
+
+            getAlbumArt(queueSong)?.let {
+                cover.setImageBitmap(it)
+            }
+
+            val name =
+                TextView(this).apply {
+                    text = queueSong.title
+                    textSize = 14f
+                    setTextColor(Color.WHITE)
+                    maxLines = 1
+                    ellipsize =
+                        android.text.TextUtils.TruncateAt.END
+                    setPadding(
+                        dp(10),
+                        0,
+                        0,
+                        0
+                    )
+                }
+
+            row.addView(
+                cover,
+                LinearLayout.LayoutParams(
+                    dp(44),
+                    dp(44)
+                )
+            )
+
+            row.addView(
+                name,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(44),
+                    1f
+                )
+            )
+
+            queueList.addView(row)
+        }
+
+        queuePanel.addView(
+            queueHeader,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(56)
+            )
+        )
+
+        queuePanel.addView(
+            queueModes,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(52)
+            ).apply {
+                topMargin = dp(7)
+            }
+        )
+
+        queuePanel.addView(
+            queueActions,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(34)
+            )
+        )
+
+        queuePanel.addView(
+            queueList,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
+
+        // Queue opens inside the player instead of an AlertDialog.
         queue.setOnClickListener {
 
             if (playbackQueue.isEmpty()) {
-                android.widget.Toast
-                    .makeText(
-                        this,
-                        "Queue is empty",
-                        android.widget.Toast.LENGTH_SHORT
-                    )
-                    .show()
+                android.widget.Toast.makeText(
+                    this,
+                    "Queue is empty",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
                 return@setOnClickListener
             }
 
-            val titles =
-                playbackQueue.map { it.title }.toTypedArray()
+            queueExpanded = !queueExpanded
 
-            android.app.AlertDialog.Builder(this)
-                .setTitle("Queue")
-                .setItems(titles) { _, which ->
+            if (queueExpanded) {
 
-                    if (which in playbackQueue.indices) {
+                queue.alpha = 1f
+                queuePanel.visibility = View.VISIBLE
+                queuePanel.alpha = 0f
+                queuePanel.translationY =
+                    dp(18).toFloat()
 
-                        playbackIndex = which
+                queuePanel.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(280L)
+                    .setInterpolator(
+                        android.view.animation
+                            .DecelerateInterpolator()
+                    )
+                    .start()
 
-                        playSong(
-                            playbackQueue[which]
-                        )
+            } else {
+
+                queuePanel.animate()
+                    .alpha(0f)
+                    .translationY(
+                        dp(18).toFloat()
+                    )
+                    .setDuration(240L)
+                    .setInterpolator(
+                        android.view.animation
+                            .DecelerateInterpolator()
+                    )
+                    .withEndAction {
+                        queuePanel.visibility =
+                            View.GONE
                     }
-                }
-                .setNegativeButton(
-                    "Close",
-                    null
-                )
-                .show()
+                    .start()
+            }
         }
 
         secondary.addView(
@@ -3776,7 +4319,6 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        root.setBackgroundColor(Color.TRANSPARENT)
         root.fitsSystemWindows = false
 
         dialog.window?.setBackgroundDrawable(
