@@ -2200,7 +2200,7 @@ class MainActivity : ComponentActivity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
-            setPadding(dp(20), dp(8), dp(20), dp(18))
+            setPadding(dp(20), dp(8), dp(20), dp(20))
         }
 
         // ---------- TOP BAR ----------
@@ -2211,7 +2211,7 @@ class MainActivity : ComponentActivity() {
 
         val close = TextView(this).apply {
             text = "⌄"
-            textSize = 28f
+            textSize = 30f
             setTextColor(Color.rgb(25, 25, 25))
             gravity = Gravity.CENTER
             includeFontPadding = false
@@ -2229,12 +2229,12 @@ class MainActivity : ComponentActivity() {
         val topTitle = text(
             "NOW PLAYING",
             10f,
-            Color.rgb(110, 110, 110),
+            Color.rgb(120, 120, 125),
             Typeface.BOLD
         ).apply {
             gravity = Gravity.CENTER
             includeFontPadding = false
-            letterSpacing = 0.16f
+            letterSpacing = 0.18f
         }
 
         topBar.addView(
@@ -2244,8 +2244,8 @@ class MainActivity : ComponentActivity() {
 
         val more = TextView(this).apply {
             text = "•••"
-            textSize = 17f
-            setTextColor(Color.rgb(25, 25, 25))
+            textSize = 18f
+            setTextColor(Color.rgb(30, 30, 30))
             gravity = Gravity.CENTER
             includeFontPadding = false
 
@@ -2264,10 +2264,23 @@ class MainActivity : ComponentActivity() {
             LinearLayout.LayoutParams(-1, dp(48))
         )
 
-        // ---------- ALBUM ART ----------
+        // ---------- ARTWORK ----------
+        val screenWidth = resources.displayMetrics.widthPixels
+
+        val coverSize =
+            (screenWidth - dp(40))
+                .coerceAtMost(dp(390))
+                .coerceAtLeast(dp(250))
+
         val cover = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             clipToOutline = true
+
+            background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(18).toFloat()
+                    setColor(Color.rgb(238, 238, 240))
+                }
 
             outlineProvider =
                 object : android.view.ViewOutlineProvider() {
@@ -2280,29 +2293,15 @@ class MainActivity : ComponentActivity() {
                             0,
                             view.width,
                             view.height,
-                            dp(14).toFloat()
+                            dp(18).toFloat()
                         )
                     }
-                }
-
-            background =
-                android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = dp(14).toFloat()
-                    setColor(Color.rgb(235, 235, 235))
                 }
 
             getAlbumArt(song)?.let {
                 setImageBitmap(it)
             }
         }
-
-        val screenWidth =
-            resources.displayMetrics.widthPixels
-
-        val coverSize =
-            (screenWidth - dp(40))
-                .coerceAtMost(dp(390))
-                .coerceAtLeast(dp(240))
 
         val coverContainer = FrameLayout(this).apply {
             addView(
@@ -2323,20 +2322,25 @@ class MainActivity : ComponentActivity() {
                 0,
                 1f
             ).apply {
-                topMargin = dp(4)
-                bottomMargin = dp(12)
+                topMargin = dp(8)
+                bottomMargin = dp(18)
             }
         )
 
         // ---------- SONG INFO ----------
-        val songInfo = LinearLayout(this).apply {
+        val infoRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        val songTitle = text(
+        val title = text(
             song.title,
-            22f,
+            21f,
             Color.rgb(15, 15, 15),
             Typeface.BOLD
         ).apply {
@@ -2346,10 +2350,10 @@ class MainActivity : ComponentActivity() {
             includeFontPadding = false
         }
 
-        val songArtist = text(
+        val artist = text(
             song.artist,
             15f,
-            Color.rgb(105, 105, 105),
+            Color.rgb(105, 105, 110),
             Typeface.NORMAL
         ).apply {
             maxLines = 1
@@ -2359,25 +2363,37 @@ class MainActivity : ComponentActivity() {
             setPadding(0, dp(5), 0, 0)
         }
 
-        songInfo.addView(
-            songTitle,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(27)
-            )
+        info.addView(
+            title,
+            LinearLayout.LayoutParams(-1, dp(27))
         )
 
-        songInfo.addView(
-            songArtist,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(23)
-            )
+        info.addView(
+            artist,
+            LinearLayout.LayoutParams(-1, dp(23))
+        )
+
+        infoRow.addView(
+            info,
+            LinearLayout.LayoutParams(0, dp(58), 1f)
+        )
+
+        val favorite = TextView(this).apply {
+            text = "♡"
+            textSize = 30f
+            setTextColor(Color.rgb(30, 30, 30))
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+        }
+
+        infoRow.addView(
+            favorite,
+            LinearLayout.LayoutParams(dp(48), dp(58))
         )
 
         root.addView(
-            songInfo,
-            LinearLayout.LayoutParams(-1, dp(58))
+            infoRow,
+            LinearLayout.LayoutParams(-1, dp(62))
         )
 
         // ---------- SEEK BAR ----------
@@ -2428,10 +2444,7 @@ class MainActivity : ComponentActivity() {
 
         root.addView(
             seekBar,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(30)
-            ).apply {
+            LinearLayout.LayoutParams(-1, dp(30)).apply {
                 topMargin = dp(2)
             }
         )
@@ -2444,7 +2457,7 @@ class MainActivity : ComponentActivity() {
         val elapsed = text(
             "0:00",
             11f,
-            Color.rgb(115, 115, 115),
+            Color.rgb(120, 120, 125),
             Typeface.NORMAL
         ).apply {
             includeFontPadding = false
@@ -2453,7 +2466,7 @@ class MainActivity : ComponentActivity() {
         val remaining = text(
             "-0:00",
             11f,
-            Color.rgb(115, 115, 115),
+            Color.rgb(120, 120, 125),
             Typeface.NORMAL
         ).apply {
             gravity = Gravity.RIGHT
@@ -2483,8 +2496,8 @@ class MainActivity : ComponentActivity() {
 
         val previous = TextView(this).apply {
             text = "⏮"
-            textSize = 25f
-            setTextColor(Color.rgb(20, 20, 20))
+            textSize = 26f
+            setTextColor(Color.rgb(25, 25, 25))
             gravity = Gravity.CENTER
             includeFontPadding = false
 
@@ -2509,7 +2522,7 @@ class MainActivity : ComponentActivity() {
                 else
                     "▶"
 
-            textSize = 31f
+            textSize = 30f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
             includeFontPadding = false
@@ -2541,8 +2554,8 @@ class MainActivity : ComponentActivity() {
 
         val next = TextView(this).apply {
             text = "⏭"
-            textSize = 25f
-            setTextColor(Color.rgb(20, 20, 20))
+            textSize = 26f
+            setTextColor(Color.rgb(25, 25, 25))
             gravity = Gravity.CENTER
             includeFontPadding = false
 
@@ -2565,39 +2578,27 @@ class MainActivity : ComponentActivity() {
 
         controls.addView(
             previous,
-            LinearLayout.LayoutParams(
-                dp(72),
-                dp(64)
-            )
+            LinearLayout.LayoutParams(dp(82), dp(70))
         )
 
         controls.addView(
             play,
-            LinearLayout.LayoutParams(
-                dp(68),
-                dp(68)
-            )
+            LinearLayout.LayoutParams(dp(72), dp(72))
         )
 
         controls.addView(
             next,
-            LinearLayout.LayoutParams(
-                dp(72),
-                dp(64)
-            )
+            LinearLayout.LayoutParams(dp(82), dp(70))
         )
 
         root.addView(
             controls,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(76)
-            ).apply {
-                topMargin = dp(2)
+            LinearLayout.LayoutParams(-1, dp(82)).apply {
+                topMargin = dp(4)
             }
         )
 
-        // ---------- SECONDARY CONTROLS ----------
+        // ---------- SECONDARY ----------
         val secondary = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -2605,8 +2606,17 @@ class MainActivity : ComponentActivity() {
 
         val shuffle = text(
             "⤨",
-            22f,
-            Color.rgb(90, 90, 90),
+            23f,
+            Color.rgb(90, 90, 95),
+            Typeface.NORMAL
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        val queue = text(
+            "☷",
+            23f,
+            Color.rgb(90, 90, 95),
             Typeface.NORMAL
         ).apply {
             gravity = Gravity.CENTER
@@ -2614,8 +2624,8 @@ class MainActivity : ComponentActivity() {
 
         val repeat = text(
             "↻",
-            22f,
-            Color.rgb(90, 90, 90),
+            23f,
+            Color.rgb(90, 90, 95),
             Typeface.NORMAL
         ).apply {
             gravity = Gravity.CENTER
@@ -2623,26 +2633,22 @@ class MainActivity : ComponentActivity() {
 
         secondary.addView(
             shuffle,
-            LinearLayout.LayoutParams(
-                dp(70),
-                dp(42)
-            )
+            LinearLayout.LayoutParams(0, dp(44), 1f)
+        )
+
+        secondary.addView(
+            queue,
+            LinearLayout.LayoutParams(0, dp(44), 1f)
         )
 
         secondary.addView(
             repeat,
-            LinearLayout.LayoutParams(
-                dp(70),
-                dp(42)
-            )
+            LinearLayout.LayoutParams(0, dp(44), 1f)
         )
 
         root.addView(
             secondary,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(42)
-            )
+            LinearLayout.LayoutParams(-1, dp(46))
         )
 
         // ---------- PROGRESS UPDATER ----------
@@ -2675,11 +2681,8 @@ class MainActivity : ComponentActivity() {
                 mediaPlayer?.let { player ->
 
                     try {
-                        val duration =
-                            player.duration
-
-                        val position =
-                            player.currentPosition
+                        val duration = player.duration
+                        val position = player.currentPosition
 
                         if (duration > 0) {
 
@@ -2715,10 +2718,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                handler.postDelayed(
-                    this,
-                    500
-                )
+                handler.postDelayed(this, 500)
             }
         }
 
@@ -2739,10 +2739,7 @@ class MainActivity : ComponentActivity() {
 
         dialog.show()
 
-        dialog.window?.setLayout(
-            -1,
-            -1
-        )
+        dialog.window?.setLayout(-1, -1)
     }
 
     private fun playSong(song: Song) {
