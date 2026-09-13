@@ -2804,15 +2804,6 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        bottomPanel.addView(
-            queuePanel,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(0),
-                1f
-            )
-        )
-
         // ---------- SEEK BAR ----------
         val seekBar = SeekBar(this).apply {
 
@@ -3910,6 +3901,15 @@ class MainActivity : ComponentActivity() {
 
         queuePanel.addView(
             queueList,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
+
+        bottomPanel.addView(
+            queuePanel,
             LinearLayout.LayoutParams(
                 -1,
                 0,
