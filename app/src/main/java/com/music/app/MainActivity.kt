@@ -3425,6 +3425,18 @@ class MainActivity : ComponentActivity() {
             }
         )
 
+        // ---------- ATTACH SECONDARY PLAYER ROW ----------
+
+        bottomPanel.addView(
+            secondary,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(44)
+            ).apply {
+                topMargin = dp(2)
+            }
+        )
+
         var queueExpanded = false
 
         val queuePanel =
@@ -4430,6 +4442,16 @@ class MainActivity : ComponentActivity() {
 
         handler.post(updater)
         handler.post(colorUpdater)
+
+        // ---------- ATTACH LOWER PLAYER PANEL ----------
+
+        root.addView(
+            bottomPanel,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
 
         dialog.setContentView(root)
 
