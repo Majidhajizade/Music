@@ -1,5 +1,9 @@
 package com.music.app
 
+import android.text.TextUtils
+import android.view.ViewOutlineProvider
+import android.view.ViewGroup
+import android.graphics.drawable.GradientDrawable
 import android.app.AlertDialog
 import android.media.MediaMetadataRetriever
 
