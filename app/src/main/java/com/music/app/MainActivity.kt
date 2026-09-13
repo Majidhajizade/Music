@@ -2333,34 +2333,6 @@ class MainActivity : ComponentActivity() {
 
         applyBackground(currentColors)
 
-        // ---------- TOP BAR ----------
-
-        val topBar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        val topTitle = text(
-            "NOW PLAYING",
-            10f,
-            Color.WHITE,
-            Typeface.BOLD
-        ).apply {
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-            letterSpacing = 0.18f
-            alpha = 0.78f
-        }
-
-        topBar.addView(
-            topTitle,
-            LinearLayout.LayoutParams(
-                0,
-                dp(48),
-                1f
-            )
-        )
-
         root.addView(
             topBar,
             LinearLayout.LayoutParams(
@@ -2515,26 +2487,73 @@ class MainActivity : ComponentActivity() {
             max = 1000
             progress = 0
 
+            minHeight = dp(16)
+            minimumHeight = dp(16)
+
             setPadding(
                 0,
+                dp(2),
                 0,
-                0,
-                0
+                dp(2)
             )
 
-            // Remove circular thumb completely.
+            // No circular thumb.
             thumb = null
 
-            progressDrawable =
+            val backgroundTrack =
                 android.graphics.drawable.GradientDrawable().apply {
                     shape =
                         android.graphics.drawable.GradientDrawable.RECTANGLE
 
                     cornerRadius =
-                        dp(6).toFloat()
+                        dp(7).toFloat()
+
+                    setColor(
+                        Color.argb(
+                            75,
+                            255,
+                            255,
+                            255
+                        )
+                    )
+                }
+
+            val progressTrack =
+                android.graphics.drawable.GradientDrawable().apply {
+                    shape =
+                        android.graphics.drawable.GradientDrawable.RECTANGLE
+
+                    cornerRadius =
+                        dp(7).toFloat()
 
                     setColor(
                         Color.WHITE
+                    )
+                }
+
+            val progressClip =
+                android.graphics.drawable.ClipDrawable(
+                    progressTrack,
+                    Gravity.START,
+                    1
+                )
+
+            progressDrawable =
+                android.graphics.drawable.LayerDrawable(
+                    arrayOf(
+                        backgroundTrack,
+                        progressClip
+                    )
+                ).apply {
+
+                    setId(
+                        0,
+                        android.R.id.background
+                    )
+
+                    setId(
+                        1,
+                        android.R.id.progress
                     )
                 }
 
@@ -2659,21 +2678,19 @@ class MainActivity : ComponentActivity() {
             }
 
         val previous =
-            TextView(this).apply {
+            ImageView(this).apply {
 
-                text = "‹‹"
-
-                textSize = 65f
-
-                setTextColor(
-                    Color.WHITE
+                setImageResource(
+                    com.music.app.R.drawable.ic_player_previous
                 )
 
-                typeface =
-                    Typeface.create(
-                        Typeface.DEFAULT,
-                        Typeface.BOLD
-                    )
+                scaleType =
+                    android.widget.ImageView.ScaleType.CENTER_INSIDE
+
+                background = null
+
+                contentDescription =
+                    "Previous"
 
                 gravity = Gravity.CENTER
 
@@ -2708,28 +2725,31 @@ class MainActivity : ComponentActivity() {
             }
 
         val play =
-            TextView(this).apply {
+            ImageView(this).apply {
 
-                text =
+                setImageResource(
                     if (
                         mediaPlayer?.isPlaying ==
                         true
                     )
-                        "Ⅱ"
+                        com.music.app.R.drawable.ic_player_pause
                     else
-                        "▶"
-
-                textSize = 75f
-
-                setTextColor(
-                    Color.WHITE
+                        com.music.app.R.drawable.ic_player_play
                 )
 
-                typeface =
-                    Typeface.create(
-                        Typeface.DEFAULT,
-                        Typeface.BOLD
+                scaleType =
+                    android.widget.ImageView.ScaleType.CENTER_INSIDE
+
+                background = null
+
+                contentDescription =
+                    if (
+                        mediaPlayer?.isPlaying ==
+                        true
                     )
+                        "Pause"
+                    else
+                        "Play"
 
                 gravity = Gravity.CENTER
 
@@ -2754,7 +2774,9 @@ class MainActivity : ComponentActivity() {
 
                                 it.pause()
 
-                                text = "▶"
+                                setImageResource(
+                                    com.music.app.R.drawable.ic_player_play
+                                )
 
                                 playButton.text =
                                     "▶"
@@ -2763,10 +2785,12 @@ class MainActivity : ComponentActivity() {
 
                                 it.start()
 
-                                text = "Ⅱ"
+                                setImageResource(
+                                    com.music.app.R.drawable.ic_player_pause
+                                )
 
                                 playButton.text =
-                                    "Ⅱ"
+                                    "▮▮"
                             }
 
                         } catch (_: Exception) {
@@ -2776,21 +2800,19 @@ class MainActivity : ComponentActivity() {
             }
 
         val next =
-            TextView(this).apply {
+            ImageView(this).apply {
 
-                text = "››"
-
-                textSize = 65f
-
-                setTextColor(
-                    Color.WHITE
+                setImageResource(
+                    com.music.app.R.drawable.ic_player_next
                 )
 
-                typeface =
-                    Typeface.create(
-                        Typeface.DEFAULT,
-                        Typeface.BOLD
-                    )
+                scaleType =
+                    android.widget.ImageView.ScaleType.CENTER_INSIDE
+
+                background = null
+
+                contentDescription =
+                    "Next"
 
                 gravity = Gravity.CENTER
 
@@ -2870,38 +2892,65 @@ class MainActivity : ComponentActivity() {
                 gravity = Gravity.CENTER
             }
 
-        val shuffle = text(
-            "⤨",
-            25f,
-            Color.WHITE,
-            Typeface.BOLD
-        ).apply {
-            gravity = Gravity.CENTER
-            alpha = 0.72f
+        val lyrics = ImageView(this).apply {
+            setImageResource(
+                com.music.app.R.drawable.ic_player_lyrics
+            )
+
+            scaleType =
+                ImageView.ScaleType.CENTER_INSIDE
+
+            background = null
+
+            alpha = 0.86f
+
+            contentDescription =
+                "Lyrics"
         }
 
-        val queue = text(
-            "☷",
-            25f,
-            Color.WHITE,
-            Typeface.BOLD
-        ).apply {
-            gravity = Gravity.CENTER
-            alpha = 0.72f
+        val cast = ImageView(this).apply {
+            setImageResource(
+                com.music.app.R.drawable.ic_player_cast
+            )
+
+            scaleType =
+                ImageView.ScaleType.CENTER_INSIDE
+
+            background = null
+
+            alpha = 0.86f
+
+            contentDescription =
+                "Cast"
         }
 
-        val repeat = text(
-            "↻",
-            25f,
-            Color.WHITE,
-            Typeface.BOLD
-        ).apply {
-            gravity = Gravity.CENTER
-            alpha = 0.72f
+        val queue = ImageView(this).apply {
+            setImageResource(
+                com.music.app.R.drawable.ic_player_queue
+            )
+
+            scaleType =
+                ImageView.ScaleType.CENTER_INSIDE
+
+            background = null
+
+            alpha = 0.86f
+
+            contentDescription =
+                "Queue"
         }
 
         secondary.addView(
-            shuffle,
+            lyrics,
+            LinearLayout.LayoutParams(
+                0,
+                dp(44),
+                1f
+            )
+        )
+
+        secondary.addView(
+            cast,
             LinearLayout.LayoutParams(
                 0,
                 dp(44),
@@ -2911,15 +2960,6 @@ class MainActivity : ComponentActivity() {
 
         secondary.addView(
             queue,
-            LinearLayout.LayoutParams(
-                0,
-                dp(44),
-                1f
-            )
-        )
-
-        secondary.addView(
-            repeat,
             LinearLayout.LayoutParams(
                 0,
                 dp(44),
