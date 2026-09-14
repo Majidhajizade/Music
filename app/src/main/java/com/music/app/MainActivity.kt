@@ -3198,32 +3198,99 @@ class MainActivity : ComponentActivity() {
         val blue = Color.rgb(74, 144, 226)
         val lightGray = Color.rgb(238, 238, 238)
 
-        val seekBar = SeekBar(this).apply {
+        val seekBar = object : SeekBar(this) {
 
-            if (title == "Play speed") {
-
-                max = 15
-
-                val speed = currentValue
-                    .toFloat()
-                    .coerceIn(0.5f, 2.0f)
-
-                progress =
-                    ((speed - 0.5f) * 10f).roundToInt()
-
-                valueText.text = String.format(
-                    java.util.Locale.US,
-                    "%.1fx",
-                    speed
+            private val trackPaint =
+                android.graphics.Paint(
+                    android.graphics.Paint.ANTI_ALIAS_FLAG
                 )
 
-            } else {
+            private val activePaint =
+                android.graphics.Paint(
+                    android.graphics.Paint.ANTI_ALIAS_FLAG
+                )
 
+            override fun onDraw(
+                canvas: android.graphics.Canvas
+            ) {
+                val trackHeight = dp(8).toFloat()
+                val radius = trackHeight / 2f
+
+                val left = paddingLeft.toFloat()
+                val right =
+                    (width - paddingRight).toFloat()
+
+                val centerY = height / 2f
+                val top = centerY - radius
+                val bottom = centerY + radius
+
+                trackPaint.color = lightGray
+
+                canvas.drawRoundRect(
+                    left,
+                    top,
+                    right,
+                    bottom,
+                    radius,
+                    radius,
+                    trackPaint
+                )
+
+                val fraction =
+                    if (max > 0) {
+                        progress.toFloat() /
+                            max.toFloat()
+                    } else {
+                        0f
+                    }
+
+                val activeRight =
+                    left +
+                        ((right - left) * fraction)
+
+                if (activeRight > left) {
+                    activePaint.color = blue
+
+                    canvas.drawRoundRect(
+                        left,
+                        top,
+                        activeRight,
+                        bottom,
+                        radius,
+                        radius,
+                        activePaint
+                    )
+                }
+
+                super.onDraw(canvas)
+            }
+        }.apply {
+
+            if (title == "Play speed") {
+                max = 15
+
+                val speed =
+                    currentValue
+                        .toFloat()
+                        .coerceIn(0.5f, 2.0f)
+
+                progress =
+                    ((speed - 0.5f) * 10f)
+                        .roundToInt()
+
+                valueText.text =
+                    String.format(
+                        java.util.Locale.US,
+                        "%.1fx",
+                        speed
+                    )
+            } else {
                 max = 12
 
-                val seconds = currentValue
-                    .toInt()
-                    .coerceIn(0, 12)
+                val seconds =
+                    currentValue
+                        .toInt()
+                        .coerceIn(0, 12)
 
                 progress = seconds
 
@@ -3238,93 +3305,39 @@ class MainActivity : ComponentActivity() {
             minHeight = dp(28)
             maxHeight = dp(28)
 
-            setPadding(
-                0,
-                0,
-                0,
-                0
-            )
-
-            val backgroundTrack =
-                android.graphics.drawable.GradientDrawable().apply {
-                    shape =
-                        android.graphics.drawable.GradientDrawable.RECTANGLE
-                    cornerRadius = dp(4).toFloat()
-                    setColor(lightGray)
-                    setSize(
-                        -1,
-                        dp(8)
-                    )
-                }
-
-            val activeTrack =
-                android.graphics.drawable.GradientDrawable().apply {
-                    shape =
-                        android.graphics.drawable.GradientDrawable.RECTANGLE
-                    cornerRadius = dp(4).toFloat()
-                    setColor(blue)
-                    setSize(
-                        -1,
-                        dp(8)
-                    )
-                }
-
-            val clipActive =
-                android.graphics.drawable.ClipDrawable(
-                    activeTrack,
-                    Gravity.LEFT,
-                    android.graphics.drawable.ClipDrawable.HORIZONTAL
-                )
+            setPadding(0, 0, 0, 0)
 
             progressDrawable =
-                android.graphics.drawable.LayerDrawable(
-                    arrayOf(
-                        backgroundTrack,
-                        clipActive
-                    )
+                android.graphics.drawable.ColorDrawable(
+                    android.graphics.Color.TRANSPARENT
                 )
 
+            val thumbDrawable =
+                android.graphics.drawable.GradientDrawable()
+                    .apply {
+                        shape =
+                            android.graphics.drawable.GradientDrawable
+                                .OVAL
 
-        // Ensure the initial blue progress is rendered immediately.
-        if (title == "Play speed") {
-            post {
-                val speed = getPlaybackSpeedValue()
-                    .coerceIn(0.5f, 2.0f)
+                        setColor(Color.WHITE)
 
-                val initialProgress =
-                    ((speed - 0.5f) * 10f).roundToInt()
+                        setStroke(
+                            dp(1),
+                            blue
+                        )
 
-                progress = initialProgress
-
-                val blueLevel =
-                    ((initialProgress.toFloat() / max.toFloat()) * 10000f)
-                        .roundToInt()
-
-                clipActive.level = blueLevel
-            }
-        }
-
-        val thumbDrawable =
-                android.graphics.drawable.GradientDrawable().apply {
-                    shape =
-                        android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(Color.WHITE)
-                    setStroke(
-                        dp(1),
-                        blue
-                    )
-                    setSize(
-                        dp(20),
-                        dp(20)
-                    )
-                }
+                        setSize(
+                            dp(20),
+                            dp(20)
+                        )
+                    }
 
             thumb = thumbDrawable
-
             splitTrack = false
 
             setOnSeekBarChangeListener(
-                object : SeekBar.OnSeekBarChangeListener {
+                object :
+                    SeekBar.OnSeekBarChangeListener {
 
                     override fun onProgressChanged(
                         seekBar: SeekBar?,
@@ -3334,9 +3347,9 @@ class MainActivity : ComponentActivity() {
                         if (!fromUser) return
 
                         if (title == "Play speed") {
-
                             val speed =
-                                0.5f + (progress / 10f)
+                                0.5f +
+                                    (progress / 10f)
 
                             valueText.text =
                                 String.format(
@@ -3354,9 +3367,7 @@ class MainActivity : ComponentActivity() {
                                 .apply()
 
                             applyPlaybackSpeed()
-
                         } else {
-
                             valueText.text =
                                 if (progress == 0) {
                                     "Off"
@@ -3372,6 +3383,8 @@ class MainActivity : ComponentActivity() {
                                 )
                                 .apply()
                         }
+
+                        invalidate()
                     }
 
                     override fun onStartTrackingTouch(
@@ -3399,6 +3412,7 @@ class MainActivity : ComponentActivity() {
 
         container.addView(
             seekBar,
+
             LinearLayout.LayoutParams(
                 -1,
                 dp(20)
