@@ -3235,13 +3235,13 @@ class MainActivity : ComponentActivity() {
                     }
             }
 
-            minHeight = dp(20)
-            maxHeight = dp(20)
+            minHeight = dp(28)
+            maxHeight = dp(28)
 
             setPadding(
-                dp(2),
                 0,
-                dp(2),
+                0,
+                0,
                 0
             )
 
@@ -3249,11 +3249,11 @@ class MainActivity : ComponentActivity() {
                 android.graphics.drawable.GradientDrawable().apply {
                     shape =
                         android.graphics.drawable.GradientDrawable.RECTANGLE
-                    cornerRadius = dp(3).toFloat()
+                    cornerRadius = dp(4).toFloat()
                     setColor(lightGray)
                     setSize(
                         -1,
-                        dp(6)
+                        dp(8)
                     )
                 }
 
@@ -3261,11 +3261,11 @@ class MainActivity : ComponentActivity() {
                 android.graphics.drawable.GradientDrawable().apply {
                     shape =
                         android.graphics.drawable.GradientDrawable.RECTANGLE
-                    cornerRadius = dp(3).toFloat()
+                    cornerRadius = dp(4).toFloat()
                     setColor(blue)
                     setSize(
                         -1,
-                        dp(6)
+                        dp(8)
                     )
                 }
 
