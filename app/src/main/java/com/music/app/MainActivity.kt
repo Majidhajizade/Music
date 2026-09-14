@@ -2815,6 +2815,54 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+
+    private fun getSleepTimerLabel(): String {
+
+        val minutes =
+            getSettingsPrefs()
+                .getInt("sleep_timer_minutes", 0)
+
+        return if (minutes <= 0)
+            "Off"
+        else
+            "$minutes min"
+    }
+
+    private fun showCreatePlaylistDialog() {
+
+        val input = EditText(this).apply {
+            hint = "Playlist name"
+            setSingleLine(true)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Create playlist")
+            .setView(input)
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "Create"
+            ) { _, _ ->
+
+                val name =
+                    input.text
+                        .toString()
+                        .trim()
+
+                if (name.isNotEmpty()) {
+
+                    Toast.makeText(
+                        this,
+                        "Playlist \"$name\" created",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .show()
+    }
     private fun addSetting(
         titleValue: String,
         value: String,
