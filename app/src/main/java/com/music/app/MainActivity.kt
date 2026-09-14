@@ -6739,6 +6739,7 @@ class MainActivity : ComponentActivity() {
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT
             )
 
+            // Full Player background extends behind status bar and camera cutout
             window.setBackgroundDrawable(
                 android.graphics.drawable.ColorDrawable(
                     Color.TRANSPARENT
@@ -6748,41 +6749,39 @@ class MainActivity : ComponentActivity() {
             window.statusBarColor = Color.TRANSPARENT
             window.navigationBarColor = Color.TRANSPARENT
 
-            window.decorView.systemUiVisibility =
-                android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-
             if (android.os.Build.VERSION.SDK_INT >= 29) {
                 window.isStatusBarContrastEnforced = false
                 window.isNavigationBarContrastEnforced = false
             }
 
-            window.decorView.systemUiVisibility =
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            // Allow the window/background to occupy the display cutout area
+            if (android.os.Build.VERSION.SDK_INT >= 28) {
+                window.attributes = window.attributes.apply {
+                    layoutInDisplayCutoutMode =
+                        android.view.WindowManager.LayoutParams
+                            .LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+            }
 
             if (android.os.Build.VERSION.SDK_INT >= 30) {
+
                 window.setDecorFitsSystemWindows(false)
 
                 window.insetsController?.setSystemBarsAppearance(
                     0,
-                    android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-                    android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                    android.view.WindowInsetsController
+                        .APPEARANCE_LIGHT_STATUS_BARS or
+                    android.view.WindowInsetsController
+                        .APPEARANCE_LIGHT_NAVIGATION_BARS
                 )
-            }
 
-            if (android.os.Build.VERSION.SDK_INT >= 30) {
-                window.setDecorFitsSystemWindows(false)
-            }
+            } else {
 
-            window.addFlags(
-                android.view.WindowManager
-                    .LayoutParams
-                    .FLAG_LAYOUT_NO_LIMITS
-            )
+                window.decorView.systemUiVisibility =
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            }
         }
     }
 
