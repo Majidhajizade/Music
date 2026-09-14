@@ -1909,13 +1909,13 @@ class MainActivity : ComponentActivity() {
             isFillViewport = true
             clipToPadding = false
             overScrollMode = View.OVER_SCROLL_NEVER
-            setBackgroundColor(Color.rgb(248, 248, 248))
+            setBackgroundColor(Color.rgb(238, 238, 238))
         }
 
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, 0, 0, dp(28))
-            setBackgroundColor(Color.rgb(248, 248, 248))
+            setBackgroundColor(Color.rgb(238, 238, 238))
         }
 
         page.addView(
@@ -2213,7 +2213,7 @@ class MainActivity : ComponentActivity() {
             val title = text(
                 setting.title,
                 16f,
-                Color.rgb(28, 28, 28),
+                Color.BLACK,
                 Typeface.NORMAL
             ).apply {
                 includeFontPadding = false
@@ -2316,8 +2316,37 @@ class MainActivity : ComponentActivity() {
                         showText = false
                         minWidth = dp(48)
 
-                        scaleX = 0.78f
-                        scaleY = 0.78f
+                        scaleX = 0.82f
+                        scaleY = 0.82f
+
+                        try {
+                            val track = android.content.res.ColorStateList(
+                                arrayOf(
+                                    intArrayOf(android.R.attr.state_checked),
+                                    intArrayOf(-android.R.attr.state_checked)
+                                ),
+                                intArrayOf(
+                                    Color.BLACK,
+                                    Color.rgb(90, 90, 90)
+                                )
+                            )
+
+                            val thumb = android.content.res.ColorStateList(
+                                arrayOf(
+                                    intArrayOf(android.R.attr.state_checked),
+                                    intArrayOf(-android.R.attr.state_checked)
+                                ),
+                                intArrayOf(
+                                    Color.WHITE,
+                                    Color.WHITE
+                                )
+                            )
+
+                            if (Build.VERSION.SDK_INT >= 21) {
+                                trackTintList = track
+                                thumbTintList = thumb
+                            }
+                        } catch (_: Exception) {}
 
                         setOnCheckedChangeListener { _, checked ->
 
@@ -2398,7 +2427,11 @@ class MainActivity : ComponentActivity() {
                 )
 
                 row.setOnClickListener {
-                    setting.action()
+                    showSettingFullScreen(
+                        setting.title,
+                        setting.value,
+                        setting.action
+                    )
                 }
             }
 
@@ -2713,6 +2746,118 @@ class MainActivity : ComponentActivity() {
 
     private fun showPermissionsDialog() {
 
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+            setPadding(
+                dp(24),
+                dp(28),
+                dp(24),
+                dp(28)
+            )
+        }
+
+        val title = text(
+            "Permissions",
+            30f,
+            Color.BLACK,
+            Typeface.BOLD
+        ).apply {
+            includeFontPadding = false
+        }
+
+        root.addView(
+            title,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            ).apply {
+                bottomMargin = dp(28)
+            }
+        )
+
+        fun permissionRow(
+            titleValue: String,
+            description: String,
+            granted: Boolean
+        ) {
+
+            val box = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.START
+                setPadding(
+                    dp(18),
+                    dp(16),
+                    dp(18),
+                    dp(16)
+                )
+
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        setColor(Color.rgb(248, 248, 248))
+                        cornerRadius = dp(14).toFloat()
+                    }
+            }
+
+            box.addView(
+                text(
+                    titleValue,
+                    17f,
+                    Color.BLACK,
+                    Typeface.BOLD
+                ),
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
+            )
+
+            box.addView(
+                text(
+                    description,
+                    13f,
+                    Color.rgb(90, 90, 90),
+                    Typeface.NORMAL
+                ).apply {
+                    setPadding(0, dp(7), 0, 0)
+                    includeFontPadding = false
+                },
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
+            )
+
+            box.addView(
+                text(
+                    if (granted) "Allowed" else "Not allowed",
+                    13f,
+                    if (granted)
+                        Color.BLACK
+                    else
+                        Color.rgb(120, 120, 120),
+                    Typeface.BOLD
+                ).apply {
+                    setPadding(0, dp(10), 0, 0)
+                    includeFontPadding = false
+                },
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
+            )
+
+            root.addView(
+                box,
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                ).apply {
+                    bottomMargin = dp(12)
+                }
+            )
+        }
+
         val audioPermission =
             if (Build.VERSION.SDK_INT >= 33)
                 Manifest.permission.READ_MEDIA_AUDIO
@@ -2735,60 +2880,212 @@ class MainActivity : ComponentActivity() {
                 true
             }
 
-        AlertDialog.Builder(this)
-            .setTitle("Permissions")
-            .setMessage(
-                "Music and audio: ${
-                    if (audioGranted)
-                        "Allowed"
-                    else
-                        "Not allowed"
-                }\n\nNotifications: ${
-                    if (notificationGranted)
-                        "Allowed"
-                    else
-                        "Not allowed"
-                }"
-            )
-            .setPositiveButton(
-                "Open system settings"
-            ) {
-                _, _ ->
+        permissionRow(
+            "Music and audio",
+            "Used to read and play music files stored on your phone.",
+            audioGranted
+        )
 
-                val intent =
+        permissionRow(
+            "Notifications",
+            "Used to control playback in the background and show playback notifications.",
+            notificationGranted
+        )
+
+        root.addView(
+            View(this),
+            LinearLayout.LayoutParams(
+                1,
+                0,
+                1f
+            )
+        )
+
+        val manage = text(
+            "Open system settings",
+            16f,
+            Color.BLACK,
+            Typeface.BOLD
+        ).apply {
+            gravity = Gravity.CENTER
+            setPadding(
+                dp(18),
+                dp(14),
+                dp(18),
+                dp(14)
+            )
+
+            background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    setColor(Color.BLACK)
+                    cornerRadius = dp(14).toFloat()
+                }
+
+            setTextColor(Color.WHITE)
+
+            setOnClickListener {
+                startActivity(
                     android.content.Intent(
-                        android.provider.Settings
-                            .ACTION_APPLICATION_DETAILS_SETTINGS
-                    ).apply {
-                        data =
-                            Uri.parse(
-                                "package:$packageName"
-                            )
-                    }
-
-                startActivity(intent)
+                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:$packageName")
+                    )
+                )
             }
-            .setNegativeButton(
-                "Done",
-                null
+        }
+
+        root.addView(
+            manage,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(52)
             )
-            .show()
+        )
+
+        val dialog = android.app.Dialog(this)
+
+        dialog.window?.setBackgroundDrawableResource(
+            android.R.color.transparent
+        )
+
+        dialog.setContentView(root)
+
+        dialog.window?.setLayout(
+            -1,
+            -1
+        )
+
+        dialog.show()
+
+        dialog.window?.setLayout(
+            -1,
+            -1
+        )
     }
 
     private fun showAboutMusicDialog() {
 
-        AlertDialog.Builder(this)
-            .setTitle("About Music")
-            .setMessage(
-                "Music\n\n" +
-                "Version 1.0\n\n" +
-                "A simple music player for your local audio library."
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            setBackgroundColor(Color.WHITE)
+            setPadding(
+                dp(24),
+                dp(25),
+                dp(24),
+                dp(24)
             )
-            .setPositiveButton(
-                "Done",
-                null
+        }
+
+        root.addView(
+            View(this),
+            LinearLayout.LayoutParams(
+                1,
+                0,
+                0.25f
             )
-            .show()
+        )
+
+        root.addView(
+            text(
+                "Music",
+                34f,
+                Color.BLACK,
+                Typeface.BOLD
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        val version =
+            try {
+                packageManager
+                    .getPackageInfo(
+                        packageName,
+                        0
+                    )
+                    .versionName
+                    ?: "1.0"
+            } catch (_: Exception) {
+                "1.0"
+            }
+
+        root.addView(
+            text(
+                "Version $version",
+                14f,
+                Color.rgb(110, 110, 110),
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                setPadding(
+                    0,
+                    dp(10),
+                    0,
+                    0
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            text(
+                "You're using the latest version",
+                15f,
+                Color.BLACK,
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                setPadding(
+                    0,
+                    dp(22),
+                    0,
+                    0
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            View(this),
+            LinearLayout.LayoutParams(
+                1,
+                0,
+                0.75f
+            )
+        )
+
+        val dialog = android.app.Dialog(this)
+
+        dialog.window?.setBackgroundDrawableResource(
+            android.R.color.transparent
+        )
+
+        dialog.setContentView(root)
+
+        dialog.window?.setLayout(
+            -1,
+            -1
+        )
+
+        dialog.show()
+
+        dialog.window?.setLayout(
+            -1,
+            -1
+        )
     }
 
     private fun applyPlaybackSpeed() {
@@ -2863,6 +3160,110 @@ class MainActivity : ComponentActivity() {
             }
             .show()
     }
+    private fun showSettingFullScreen(
+        titleValue: String,
+        valueValue: String,
+        action: () -> Unit
+    ) {
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+            setPadding(
+                dp(24),
+                dp(28),
+                dp(24),
+                dp(24)
+            )
+        }
+
+        root.addView(
+            text(
+                titleValue,
+                30f,
+                Color.BLACK,
+                Typeface.BOLD
+            ).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            ).apply {
+                bottomMargin = dp(20)
+            }
+        )
+
+        if (valueValue.isNotBlank()) {
+            root.addView(
+                text(
+                    valueValue,
+                    16f,
+                    Color.rgb(85, 85, 85),
+                    Typeface.NORMAL
+                ).apply {
+                    includeFontPadding = false
+                },
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                ).apply {
+                    bottomMargin = dp(24)
+                }
+            )
+        }
+
+        root.addView(
+            View(this),
+            LinearLayout.LayoutParams(
+                1,
+                0,
+                1f
+            )
+        )
+
+        val close = text(
+            "Done",
+            16f,
+            Color.WHITE,
+            Typeface.BOLD
+        ).apply {
+            gravity = Gravity.CENTER
+            background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    setColor(Color.BLACK)
+                    cornerRadius = dp(14).toFloat()
+                }
+
+            setOnClickListener {
+                action()
+            }
+        }
+
+        root.addView(
+            close,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(52)
+            )
+        )
+
+        val dialog = android.app.Dialog(this)
+
+        dialog.window?.setBackgroundDrawableResource(
+            android.R.color.transparent
+        )
+
+        dialog.setContentView(root)
+
+        dialog.show()
+
+        dialog.window?.setLayout(
+            -1,
+            -1
+        )
+    }
+
     private fun addSetting(
         titleValue: String,
         value: String,
