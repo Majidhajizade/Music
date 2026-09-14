@@ -4728,6 +4728,277 @@ class MainActivity : ComponentActivity() {
             .show()
     }
 
+    private fun animateSongChange(
+        song: Song,
+        root: ViewGroup,
+        cover: ImageView,
+        title: TextView,
+        artist: TextView,
+        seekBar: SeekBar,
+        elapsed: TextView,
+        remaining: TextView
+    ) {
+
+        val decelerate =
+            android.view.animation.DecelerateInterpolator()
+
+        // Cancel any previous transition so rapid Next/Previous
+        // presses do not stack animations.
+        listOf<View>(
+            cover,
+            title,
+            artist,
+            seekBar,
+            elapsed,
+            remaining
+        ).forEach {
+            it.animate().cancel()
+        }
+
+        // -------------------------------------------------
+        // TITLE + ARTIST
+        // -------------------------------------------------
+
+        title.animate()
+            .alpha(0f)
+            .translationY(dp(4).toFloat())
+            .setDuration(130L)
+            .setInterpolator(decelerate)
+            .withEndAction {
+
+                title.text = song.title
+                title.translationY = -dp(4).toFloat()
+
+                title.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(240L)
+                    .setInterpolator(decelerate)
+                    .start()
+            }
+            .start()
+
+        artist.animate()
+            .alpha(0f)
+            .translationY(dp(4).toFloat())
+            .setDuration(130L)
+            .setInterpolator(decelerate)
+            .withEndAction {
+
+                artist.text = song.artist
+                artist.translationY = -dp(4).toFloat()
+
+                artist.animate()
+                    .alpha(0.68f)
+                    .translationY(0f)
+                    .setDuration(240L)
+                    .setInterpolator(decelerate)
+                    .start()
+            }
+            .start()
+
+        // -------------------------------------------------
+        // SEEK BAR + TIME
+        // -------------------------------------------------
+
+        seekBar.animate()
+            .alpha(0.35f)
+            .setDuration(110L)
+            .setInterpolator(decelerate)
+            .withEndAction {
+
+                seekBar.progress = 0
+
+                seekBar.animate()
+                    .alpha(1f)
+                    .setDuration(300L)
+                    .setInterpolator(decelerate)
+                    .start()
+            }
+            .start()
+
+        elapsed.animate()
+            .alpha(0f)
+            .setDuration(110L)
+            .setInterpolator(decelerate)
+            .withEndAction {
+
+                elapsed.text = "0:00"
+
+                elapsed.animate()
+                    .alpha(0.62f)
+                    .setDuration(260L)
+                    .setInterpolator(decelerate)
+                    .start()
+            }
+            .start()
+
+        remaining.animate()
+            .alpha(0f)
+            .setDuration(110L)
+            .setInterpolator(decelerate)
+            .withEndAction {
+
+                val duration =
+                    mediaPlayer?.duration ?: 0
+
+                val totalSeconds =
+                    (duration / 1000).coerceAtLeast(0)
+
+                val minutes =
+                    totalSeconds / 60
+
+                val seconds =
+                    totalSeconds % 60
+
+                remaining.text =
+                    "-${String.format("%d:%02d", minutes, seconds)}"
+
+                remaining.animate()
+                    .alpha(0.62f)
+                    .setDuration(260L)
+                    .setInterpolator(decelerate)
+                    .start()
+            }
+            .start()
+
+        // -------------------------------------------------
+        // COVER
+        // -------------------------------------------------
+
+        cover.animate()
+            .alpha(0.18f)
+            .scaleX(0.955f)
+            .scaleY(0.955f)
+            .setDuration(180L)
+            .setInterpolator(decelerate)
+            .withEndAction {
+
+                getAlbumArt(song)?.let {
+                    cover.setImageBitmap(it)
+                } ?: run {
+                    cover.setImageResource(R.drawable.ic_music)
+                }
+
+                cover.animate()
+                    .alpha(1f)
+                    .scaleX(
+                        if (mediaPlayer?.isPlaying == true)
+                            1f
+                        else
+                            0.94f
+                    )
+                    .scaleY(
+                        if (mediaPlayer?.isPlaying == true)
+                            1f
+                        else
+                            0.94f
+                    )
+                    .setDuration(480L)
+                    .setInterpolator(decelerate)
+                    .start()
+            }
+            .start()
+
+        // -------------------------------------------------
+        // BACKGROUND
+        // -------------------------------------------------
+
+        getAlbumArt(song)?.let { bitmap ->
+
+            val colors = run {
+
+                val w = bitmap.width.coerceAtLeast(1)
+                val h = bitmap.height.coerceAtLeast(1)
+
+                val points = arrayOf(
+                    intArrayOf(w / 2, h / 4),
+                    intArrayOf(w / 2, h / 2),
+                    intArrayOf(w / 3, (h * 3) / 4),
+                    intArrayOf((w * 2) / 3, (h * 3) / 4)
+                )
+
+                var r1 = 0
+                var g1 = 0
+                var b1 = 0
+
+                var r2 = 0
+                var g2 = 0
+                var b2 = 0
+
+                var r3 = 0
+                var g3 = 0
+                var b3 = 0
+
+                points.forEachIndexed { index, point ->
+
+                    val x = point[0].coerceIn(0, w - 1)
+                    val y = point[1].coerceIn(0, h - 1)
+
+                    val c = bitmap.getPixel(x, y)
+
+                    if (index < 2) {
+                        r1 += Color.red(c)
+                        g1 += Color.green(c)
+                        b1 += Color.blue(c)
+                    }
+
+                    if (index >= 1) {
+                        r2 += Color.red(c)
+                        g2 += Color.green(c)
+                        b2 += Color.blue(c)
+                    }
+
+                    r3 += Color.red(c)
+                    g3 += Color.green(c)
+                    b3 += Color.blue(c)
+                }
+
+                intArrayOf(
+                    Color.rgb(
+                        (r1 / 2).coerceIn(0, 255),
+                        (g1 / 2).coerceIn(0, 255),
+                        (b1 / 2).coerceIn(0, 255)
+                    ),
+                    Color.rgb(
+                        (r2 / 3).coerceIn(0, 255),
+                        (g2 / 3).coerceIn(0, 255),
+                        (b2 / 3).coerceIn(0, 255)
+                    ),
+                    Color.rgb(
+                        (r3 / 4).coerceIn(0, 255),
+                        (g3 / 4).coerceIn(0, 255),
+                        (b3 / 4).coerceIn(0, 255)
+                    )
+                )
+            }
+
+            val newBackground =
+                android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                    colors
+                )
+
+            // Briefly soften the entire surface while swapping
+            // the background, then restore it.
+            root.animate()
+                .alpha(0.88f)
+                .setDuration(150L)
+                .setInterpolator(decelerate)
+                .withEndAction {
+
+                    root.background = newBackground
+
+                    root.animate()
+                        .alpha(1f)
+                        .setDuration(360L)
+                        .setInterpolator(decelerate)
+                        .start()
+                }
+                .start()
+        }
+    }
+
     private fun showNowPlaying() {
 
         if (android.os.Build.VERSION.SDK_INT >= 30) {
@@ -5267,9 +5538,16 @@ class MainActivity : ComponentActivity() {
                             songs[index - 1]
                         )
 
-                        dialog.dismiss()
-
-                        showNowPlaying()
+                        animateSongChange(
+                            song = songs[index - 1],
+                            root = root,
+                            cover = cover,
+                            title = title,
+                            artist = artist,
+                            seekBar = seekBar,
+                            elapsed = elapsed,
+                            remaining = remaining
+                        )
                     }
                 }
             }
@@ -5453,9 +5731,16 @@ class MainActivity : ComponentActivity() {
                             songs[index + 1]
                         )
 
-                        dialog.dismiss()
-
-                        showNowPlaying()
+                        animateSongChange(
+                            song = songs[index + 1],
+                            root = root,
+                            cover = cover,
+                            title = title,
+                            artist = artist,
+                            seekBar = seekBar,
+                            elapsed = elapsed,
+                            remaining = remaining
+                        )
                     }
                 }
             }
