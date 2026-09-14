@@ -3155,16 +3155,11 @@ class MainActivity : ComponentActivity() {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(
-                dp(18),
+                dp(10),
                 dp(14),
-                dp(18),
+                dp(10),
                 dp(14)
             )
-        }
-
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
         }
 
         val titleText = TextView(this).apply {
@@ -3172,33 +3167,33 @@ class MainActivity : ComponentActivity() {
             textSize = 16f
             setTextColor(Color.BLACK)
             typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
         }
+
+        container.addView(
+            titleText,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(24)
+            )
+        )
 
         val valueText = TextView(this).apply {
             textSize = 14f
-            setTextColor(Color.DKGRAY)
+            setTextColor(Color.rgb(45, 45, 45))
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
 
-        header.addView(
-            titleText,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
-        )
-
-        header.addView(
+        container.addView(
             valueText,
             LinearLayout.LayoutParams(
-                dp(60),
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+                -1,
+                dp(24)
+            ).apply {
+                topMargin = dp(2)
+            }
         )
-
-        container.addView(header)
 
         val seekBar = SeekBar(this).apply {
 
@@ -3237,22 +3232,56 @@ class MainActivity : ComponentActivity() {
                     }
             }
 
-            progressTintList =
-                android.content.res.ColorStateList.valueOf(
-                    Color.BLACK
+            val blue =
+                Color.rgb(35, 115, 235)
+
+            val blueLight =
+                Color.rgb(215, 230, 250)
+
+            val trackDrawable =
+                android.graphics.drawable.LayerDrawable(
+                    arrayOf(
+                        android.graphics.drawable.GradientDrawable().apply {
+                            shape =
+                                android.graphics.drawable.GradientDrawable.RECTANGLE
+                            cornerRadius = dp(8).toFloat()
+                            setColor(blueLight)
+                        },
+                        android.graphics.drawable.GradientDrawable().apply {
+                            shape =
+                                android.graphics.drawable.GradientDrawable.RECTANGLE
+                            cornerRadius = dp(8).toFloat()
+                            setColor(blue)
+                        }
+                    )
                 )
 
-            thumbTintList =
-                android.content.res.ColorStateList.valueOf(
-                    Color.BLACK
-                )
+            progressDrawable = trackDrawable
+
+            val thumbDrawable =
+                android.graphics.drawable.GradientDrawable().apply {
+                    shape =
+                        android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(Color.WHITE)
+                    setStroke(
+                        dp(1),
+                        blue
+                    )
+                }
+
+            thumb = thumbDrawable
+
+            splitTrack = false
 
             setPadding(
-                dp(2),
-                dp(4),
-                dp(2),
-                dp(2)
+                0,
+                0,
+                0,
+                0
             )
+
+            minHeight = dp(32)
+            maxHeight = dp(32)
 
             setOnSeekBarChangeListener(
                 object : SeekBar.OnSeekBarChangeListener {
@@ -3319,21 +3348,22 @@ class MainActivity : ComponentActivity() {
         container.addView(
             seekBar,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(38)
+                -1,
+                dp(32)
             ).apply {
-                topMargin = dp(6)
+                topMargin = dp(4)
             }
         )
 
         parent.addView(
             container,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                -1,
+                -2
             )
         )
     }
+
 
 
     private fun showSettingFullScreen(
