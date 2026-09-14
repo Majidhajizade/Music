@@ -4952,6 +4952,17 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        val coverStoppedScale = 0.94f
+        val coverPlayingScale = 1f
+
+        cover.scaleX =
+            if (mediaPlayer?.isPlaying == true)
+                coverPlayingScale
+            else
+                coverStoppedScale
+
+        cover.scaleY = cover.scaleX
+
         // Queue panel is attached after its declaration below.
 
         root.addView(
@@ -5032,6 +5043,8 @@ class MainActivity : ComponentActivity() {
             )
         )
 
+        info.translationY = -dp(10).toFloat()
+
         bottomPanel.addView(
             info,
             LinearLayout.LayoutParams(
@@ -5061,7 +5074,7 @@ class MainActivity : ComponentActivity() {
             val backgroundTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(2).toFloat()
+                    cornerRadius = dp(20).toFloat()
                     setColor(
                         Color.argb(
                             70,
@@ -5075,7 +5088,7 @@ class MainActivity : ComponentActivity() {
             val progressTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(2).toFloat()
+                    cornerRadius = dp(20).toFloat()
                     setColor(Color.WHITE)
                 }
 
@@ -5141,7 +5154,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        seekBar.translationY = -dp(7).toFloat()
+        seekBar.translationY = -dp(16).toFloat()
 
         bottomPanel.addView(
             seekBar,
@@ -5274,11 +5287,7 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                background =
-                    GradientDrawable().apply {
-                        shape = GradientDrawable.OVAL
-                        setColor(Color.WHITE)
-                    }
+                background = null
 
                 contentDescription =
                     if (mediaPlayer?.isPlaying == true)
@@ -5300,7 +5309,55 @@ class MainActivity : ComponentActivity() {
                     )
                 )
 
-                elevation = dp(4).toFloat()
+                elevation = 0f
+
+                setOnTouchListener { view, event ->
+
+                    when (event.action) {
+
+                        android.view.MotionEvent.ACTION_DOWN -> {
+                            view.animate()
+                                .scaleX(1.08f)
+                                .scaleY(1.08f)
+                                .setDuration(120)
+                                .start()
+
+                            view.background =
+                                GradientDrawable().apply {
+                                    shape = GradientDrawable.OVAL
+                                    setColor(
+                                        Color.argb(
+                                            77,
+                                            255,
+                                            255,
+                                            255
+                                        )
+                                    )
+                                }
+                        }
+
+                        android.view.MotionEvent.ACTION_UP,
+                        android.view.MotionEvent.ACTION_CANCEL -> {
+
+                            view.animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(220)
+                                .start()
+
+                            view.animate()
+                                .alpha(0.92f)
+                                .setDuration(80)
+                                .withEndAction {
+                                    view.background = null
+                                    view.alpha = 1f
+                                }
+                                .start()
+                        }
+                    }
+
+                    false
+                }
 
                 setOnClickListener {
 
@@ -5311,6 +5368,15 @@ class MainActivity : ComponentActivity() {
                             if (it.isPlaying) {
 
                                 it.pause()
+
+                                cover.animate()
+                                    .scaleX(coverStoppedScale)
+                                    .scaleY(coverStoppedScale)
+                                    .setDuration(380)
+                                    .setInterpolator(
+                                        android.view.animation.DecelerateInterpolator()
+                                    )
+                                    .start()
 
                                 setImageResource(
                                     com.music.app.R.drawable.ic_player_play
@@ -5323,6 +5389,15 @@ class MainActivity : ComponentActivity() {
                             } else {
 
                                 it.start()
+
+                                cover.animate()
+                                    .scaleX(coverPlayingScale)
+                                    .scaleY(coverPlayingScale)
+                                    .setDuration(480)
+                                    .setInterpolator(
+                                        android.view.animation.DecelerateInterpolator()
+                                    )
+                                    .start()
 
                                 setImageResource(
                                     com.music.app.R.drawable.ic_player_pause
@@ -5421,7 +5496,7 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = -dp(14).toFloat()
+        controls.translationY = -dp(19).toFloat()
 
         bottomPanel.addView(
             controls,
@@ -5461,45 +5536,17 @@ class MainActivity : ComponentActivity() {
                     gravity =
                         Gravity.CENTER
 
-                    background =
-                        GradientDrawable().apply {
+                    background = null
 
-                            shape =
-                                GradientDrawable.RECTANGLE
-
-                            cornerRadius =
-                                dp(16).toFloat()
-
-                            setColor(
-                                Color.argb(
-                                    38,
-                                    255,
-                                    255,
-                                    255
-                                )
-                            )
-
-                            setStroke(
-                                dp(1),
-                                Color.argb(
-                                    55,
-                                    255,
-                                    255,
-                                    255
-                                )
-                            )
-                        }
-
-                    elevation =
-                        dp(2).toFloat()
+                    elevation = 0f
 
                     isClickable = true
                     isFocusable = true
 
                     setPadding(
-                        dp(10),
+                        dp(6),
                         0,
-                        dp(10),
+                        dp(6),
                         0
                     )
 
