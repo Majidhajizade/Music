@@ -3121,53 +3121,61 @@ class MainActivity : ComponentActivity() {
     }
     private fun showSettingFullScreen(
         titleValue: String,
-        valueValue: String,
+        value: String,
         action: () -> Unit
     ) {
-
         when (titleValue) {
 
             "Sleep timer" -> {
+                val options = listOf(
+                    "Off",
+                    "15 minutes",
+                    "30 minutes",
+                    "45 minutes",
+                    "60 minutes",
+                    "90 minutes"
+                )
+
+                val current = getSettingsPrefs()
+                    .getInt("sleep_timer_minutes", 0)
+
+                val selected = when (current) {
+                    15 -> 1
+                    30 -> 2
+                    45 -> 3
+                    60 -> 4
+                    90 -> 5
+                    else -> 0
+                }
+
                 showSelectionFullScreen(
                     "Sleep timer",
-                    arrayOf(
-                        "Off",
-                        "15 minutes",
-                        "30 minutes",
-                        "45 minutes",
-                        "60 minutes",
-                        "90 minutes"
-                    ),
-                    getSleepTimerLabel()
+                    options,
+                    selected
                 ) { which ->
-
-                    val minutes =
-                        when (which) {
-                            1 -> 15
-                            2 -> 30
-                            3 -> 45
-                            4 -> 60
-                            5 -> 90
-                            else -> 0
-                        }
+                    val minutes = when (which) {
+                        1 -> 15
+                        2 -> 30
+                        3 -> 45
+                        4 -> 60
+                        5 -> 90
+                        else -> 0
+                    }
 
                     getSettingsPrefs()
                         .edit()
-                        .putInt(
-                            "sleep_timer_minutes",
-                            minutes
-                        )
+                        .putInt("sleep_timer_minutes", minutes)
                         .apply()
 
                     if (minutes > 0) {
-                        android.os.Handler(
-                            android.os.Looper.getMainLooper()
-                        ).postDelayed(
-                            {
+                        android.os.Handler(mainLooper).postDelayed({
+                            if (minutes ==
+                                getSettingsPrefs()
+                                    .getInt("sleep_timer_minutes", 0)
+                            ) {
                                 mediaPlayer?.pause()
-                            },
-                            minutes * 60L * 1000L
-                        )
+                            }
+                        }, minutes * 60_000L)
                     }
 
                     showSettings()
@@ -3175,30 +3183,43 @@ class MainActivity : ComponentActivity() {
             }
 
             "Play speed" -> {
+                val options = listOf(
+                    "0.5x",
+                    "0.75x",
+                    "1.0x",
+                    "1.25x",
+                    "1.5x",
+                    "1.75x",
+                    "2.0x"
+                )
+
+                val speed = getSettingsPrefs()
+                    .getFloat("playback_speed", 1.0f)
+
+                val selected = when (speed) {
+                    0.5f -> 0
+                    0.75f -> 1
+                    1.25f -> 3
+                    1.5f -> 4
+                    1.75f -> 5
+                    2.0f -> 6
+                    else -> 2
+                }
+
                 showSelectionFullScreen(
                     "Play speed",
-                    arrayOf(
-                        "0.5x",
-                        "0.75x",
-                        "1.0x",
-                        "1.25x",
-                        "1.5x",
-                        "1.75x",
-                        "2.0x"
-                    ),
-                    getPlaybackSpeedLabel()
+                    options,
+                    selected
                 ) { which ->
-
-                    val speeds =
-                        floatArrayOf(
-                            0.5f,
-                            0.75f,
-                            1.0f,
-                            1.25f,
-                            1.5f,
-                            1.75f,
-                            2.0f
-                        )
+                    val speeds = floatArrayOf(
+                        0.5f,
+                        0.75f,
+                        1.0f,
+                        1.25f,
+                        1.5f,
+                        1.75f,
+                        2.0f
+                    )
 
                     getSettingsPrefs()
                         .edit()
@@ -3214,20 +3235,20 @@ class MainActivity : ComponentActivity() {
             }
 
             "Queue settings" -> {
+                val selected =
+                    if (
+                        getSettingsPrefs()
+                            .getBoolean(
+                                "no_duplicate_songs",
+                                false
+                            )
+                    ) 0 else -1
+
                 showSelectionFullScreen(
                     "Queue settings",
-                    arrayOf(
-                        "Don't allow duplicate songs"
-                    ),
-                    if (
-                        getSettingsPrefs().getBoolean(
-                            "no_duplicate_songs",
-                            false
-                        )
-                    ) "Don't allow duplicate songs"
-                    else ""
+                    listOf("Don't allow duplicate songs"),
+                    selected
                 ) { which ->
-
                     getSettingsPrefs()
                         .edit()
                         .putBoolean(
@@ -3241,68 +3262,48 @@ class MainActivity : ComponentActivity() {
             }
 
             "Manage tabs" -> {
+                val prefs = getSettingsPrefs()
+
                 showMultiSelectionFullScreen(
                     "Manage tabs",
-                    arrayOf(
+                    listOf(
                         "Home",
                         "Library",
                         "Settings"
                     ),
-                    booleanArrayOf(
-                        getSettingsPrefs().getBoolean(
-                            "tab_home",
-                            true
-                        ),
-                        getSettingsPrefs().getBoolean(
-                            "tab_library",
-                            true
-                        ),
-                        getSettingsPrefs().getBoolean(
-                            "tab_settings",
-                            true
-                        )
-                    ) { checked ->
+                    mutableListOf(
+                        prefs.getBoolean("tab_home", true),
+                        prefs.getBoolean("tab_library", true),
+                        prefs.getBoolean("tab_settings", true)
+                    )
+                ) { checked ->
+                    prefs.edit()
+                        .putBoolean("tab_home", checked[0])
+                        .putBoolean("tab_library", checked[1])
+                        .putBoolean("tab_settings", checked[2])
+                        .apply()
 
-                        val prefs = getSettingsPrefs()
-
-                        prefs.edit()
-                            .putBoolean(
-                                "tab_home",
-                                checked[0]
-                            )
-                            .putBoolean(
-                                "tab_library",
-                                checked[1]
-                            )
-                            .putBoolean(
-                                "tab_settings",
-                                checked[2]
-                            )
-                            .apply()
-
-                        showSettings()
-                    }
-                )
+                    showSettings()
+                }
             }
 
             "Manage Playlists" -> {
                 showSelectionFullScreen(
                     "Manage Playlists",
-                    arrayOf(
+                    listOf(
                         "Create playlist",
                         "My playlists"
                     ),
-                    ""
+                    0
                 ) { which ->
-
                     when (which) {
                         0 -> showCreatePlaylistDialog()
-                        1 ->
-                            Toast.makeText(
-                                this,
-                                "My playlists",
-                                Toast.LENGTH_SHORT
-                            ).show()
+
+                        1 -> Toast.makeText(
+                            this,
+                            "My playlists",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             }
@@ -3314,430 +3315,247 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showSelectionFullScreen(
-        titleValue: String,
-        options: Array<String>,
-        selectedValue: String,
+        title: String,
+        options: List<String>,
+        selectedIndex: Int,
         onSelected: (Int) -> Unit
     ) {
+        val dialog = android.app.Dialog(this)
 
-        val root =
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setBackgroundColor(Color.rgb(246, 246, 246))
-                setPadding(
-                    dp(20),
-                    dp(22),
-                    dp(20),
-                    dp(24)
-                )
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.rgb(246, 246, 246))
+            setPadding(dp(20), dp(18), dp(20), dp(24))
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val back = TextView(this).apply {
+            text = "←"
+            textSize = 28f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            setPadding(0, 0, dp(12), 0)
+            setOnClickListener { dialog.dismiss() }
+        }
+
+        val titleView = TextView(this).apply {
+            text = title
+            textSize = 24f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        header.addView(back, LinearLayout.LayoutParams(dp(42), dp(52)))
+        header.addView(
+            titleView,
+            LinearLayout.LayoutParams(0, dp(52), 1f)
+        )
+        root.addView(
+            header,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
+        )
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(16).toFloat()
+            }
+            clipToOutline = true
+        }
+
+        options.forEachIndexed { index, option ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(18), dp(10), dp(18), dp(10))
+                isClickable = true
+                isFocusable = true
             }
 
-        val header =
-            LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
+            val indicator = TextView(this).apply {
+                text = if (index == selectedIndex) "●" else "○"
+                textSize = 23f
+                setTextColor(Color.BLACK)
+                gravity = Gravity.CENTER
+            }
+
+            val label = TextView(this).apply {
+                text = option
+                textSize = 17f
+                setTextColor(Color.BLACK)
                 gravity = Gravity.CENTER_VERTICAL
             }
 
-        val back =
-            text(
-                "‹",
-                38f,
-                Color.BLACK,
-                Typeface.NORMAL
-            ).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-                setOnClickListener {
-                    dialog.dismiss()
-                }
-            }
-
-        header.addView(
-            back,
-            LinearLayout.LayoutParams(
-                dp(48),
-                dp(48)
-            )
-        )
-
-        header.addView(
-            text(
-                titleValue,
-                27f,
-                Color.BLACK,
-                Typeface.BOLD
-            ).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
-        )
-
-        root.addView(
-            header,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(54)
-            ).apply {
-                bottomMargin = dp(20)
-            }
-        )
-
-        val card =
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                background =
-                    android.graphics.drawable.GradientDrawable().apply {
-                        setColor(Color.WHITE)
-                        cornerRadius =
-                            dp(16).toFloat()
-                    }
-                clipToOutline = true
-            }
-
-        var dialogRef: android.app.Dialog? = null
-
-        options.forEachIndexed { index, option ->
-
-            val row =
-                LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.HORIZONTAL
-                    gravity =
-                        Gravity.CENTER_VERTICAL
-                    setPadding(
-                        dp(18),
-                        dp(6),
-                        dp(18),
-                        dp(6)
-                    )
-
-                    setOnClickListener {
-                        onSelected(index)
-                        dialogRef?.dismiss()
-                    }
-                }
-
-            val circle =
-                android.widget.TextView(this).apply {
-                    gravity = Gravity.CENTER
-                    text =
-                        if (option == selectedValue)
-                            "●"
-                        else
-                            "○"
-                    textSize = 24f
-                    setTextColor(
-                        Color.BLACK
-                    )
-                    includeFontPadding = false
-                }
-
+            row.addView(indicator, LinearLayout.LayoutParams(dp(38), dp(52)))
             row.addView(
-                circle,
-                LinearLayout.LayoutParams(
-                    dp(34),
-                    dp(52)
-                )
+                label,
+                LinearLayout.LayoutParams(0, dp(52), 1f)
             )
 
-            row.addView(
-                text(
-                    option,
-                    16f,
-                    Color.BLACK,
-                    Typeface.NORMAL
-                ).apply {
-                    includeFontPadding = false
-                },
-                LinearLayout.LayoutParams(
-                    0,
-                    -2,
-                    1f
-                ).apply {
-                    leftMargin = dp(10)
-                }
-            )
+            row.setOnClickListener {
+                onSelected(index)
+                dialog.dismiss()
+            }
 
             card.addView(
                 row,
                 LinearLayout.LayoutParams(
-                    -1,
-                    dp(58)
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(72)
                 )
             )
-
-            if (index < options.lastIndex) {
-                card.addView(
-                    View(this).apply {
-                        setBackgroundColor(
-                            Color.rgb(
-                                232,
-                                232,
-                                232
-                            )
-                        )
-                    },
-                    LinearLayout.LayoutParams(
-                        -1,
-                        1
-                    ).apply {
-                        leftMargin = dp(18)
-                        rightMargin = dp(18)
-                    }
-                )
-            }
         }
 
         root.addView(
             card,
             LinearLayout.LayoutParams(
-                -1,
-                -2
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
-        )
-
-        val dialog =
-            android.app.Dialog(this)
-
-        dialogRef = dialog
-
-        dialog.window?.setBackgroundDrawableResource(
-            android.R.color.transparent
         )
 
         dialog.setContentView(root)
         dialog.show()
-
-        dialog.window?.setLayout(
-            -1,
-            -1
-        )
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setLayout(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
     }
 
     private fun showMultiSelectionFullScreen(
-        titleValue: String,
-        options: Array<String>,
-        selected: BooleanArray,
-        onChanged: (BooleanArray) -> Unit
+        title: String,
+        options: List<String>,
+        selected: MutableList<Boolean>,
+        onChanged: (List<Boolean>) -> Unit
     ) {
+        val dialog = android.app.Dialog(this)
 
-        val root =
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setBackgroundColor(
-                    Color.rgb(
-                        246,
-                        246,
-                        246
-                    )
-                )
-                setPadding(
-                    dp(20),
-                    dp(22),
-                    dp(20),
-                    dp(24)
-                )
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.rgb(246, 246, 246))
+            setPadding(dp(20), dp(18), dp(20), dp(24))
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val back = TextView(this).apply {
+            text = "←"
+            textSize = 28f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            setPadding(0, 0, dp(12), 0)
+            setOnClickListener {
+                onChanged(selected.toList())
+                dialog.dismiss()
             }
+        }
 
-        val header =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-                gravity =
-                    Gravity.CENTER_VERTICAL
-            }
+        val titleView = TextView(this).apply {
+            text = title
+            textSize = 24f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+        }
 
-        var dialogRef:
-            android.app.Dialog? = null
-
+        header.addView(back, LinearLayout.LayoutParams(dp(42), dp(52)))
         header.addView(
-            text(
-                "‹",
-                38f,
-                Color.BLACK,
-                Typeface.NORMAL
-            ).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-                setOnClickListener {
-                    dialogRef?.dismiss()
-                }
-            },
-            LinearLayout.LayoutParams(
-                dp(48),
-                dp(48)
-            )
+            titleView,
+            LinearLayout.LayoutParams(0, dp(52), 1f)
         )
-
-        header.addView(
-            text(
-                titleValue,
-                27f,
-                Color.BLACK,
-                Typeface.BOLD
-            ).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
-        )
-
         root.addView(
             header,
             LinearLayout.LayoutParams(
-                -1,
-                dp(54)
-            ).apply {
-                bottomMargin = dp(20)
-            }
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
         )
 
-        val card =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                background =
-                    android.graphics.drawable.GradientDrawable().apply {
-                        setColor(Color.WHITE)
-                        cornerRadius =
-                            dp(16).toFloat()
-                    }
-                clipToOutline = true
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(16).toFloat()
             }
+            clipToOutline = true
+        }
 
         options.forEachIndexed { index, option ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(18), dp(10), dp(18), dp(10))
+                isClickable = true
+                isFocusable = true
+            }
 
-            val row =
-                LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.HORIZONTAL
-                    gravity =
-                        Gravity.CENTER_VERTICAL
-                    setPadding(
-                        dp(18),
-                        dp(6),
-                        dp(18),
-                        dp(6)
-                    )
+            val indicator = TextView(this).apply {
+                text = if (selected.getOrNull(index) == true) "●" else "○"
+                textSize = 23f
+                setTextColor(Color.BLACK)
+                gravity = Gravity.CENTER
+            }
 
-                    setOnClickListener {
-                        selected[index] =
-                            !selected[index]
+            val label = TextView(this).apply {
+                text = option
+                textSize = 17f
+                setTextColor(Color.BLACK)
+                gravity = Gravity.CENTER_VERTICAL
+            }
 
-                        onChanged(
-                            selected.copyOf()
-                        )
-
-                        showMultiSelectionFullScreen(
-                            titleValue,
-                            options,
-                            selected,
-                            onChanged
-                        )
-                    }
-                }
-
+            row.addView(indicator, LinearLayout.LayoutParams(dp(38), dp(52)))
             row.addView(
-                text(
-                    if (selected[index])
-                        "●"
-                    else
-                        "○",
-                    24f,
-                    Color.BLACK,
-                    Typeface.NORMAL
-                ).apply {
-                    gravity = Gravity.CENTER
-                    includeFontPadding = false
-                },
-                LinearLayout.LayoutParams(
-                    dp(34),
-                    dp(52)
-                )
+                label,
+                LinearLayout.LayoutParams(0, dp(52), 1f)
             )
 
-            row.addView(
-                text(
-                    option,
-                    16f,
-                    Color.BLACK,
-                    Typeface.NORMAL
-                ).apply {
-                    includeFontPadding = false
-                },
-                LinearLayout.LayoutParams(
-                    0,
-                    -2,
-                    1f
-                ).apply {
-                    leftMargin = dp(10)
-                }
-            )
+            row.setOnClickListener {
+                selected[index] = !selected[index]
+                indicator.text = if (selected[index]) "●" else "○"
+            }
 
             card.addView(
                 row,
                 LinearLayout.LayoutParams(
-                    -1,
-                    dp(58)
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(72)
                 )
             )
-
-            if (index < options.lastIndex) {
-                card.addView(
-                    View(this).apply {
-                        setBackgroundColor(
-                            Color.rgb(
-                                232,
-                                232,
-                                232
-                            )
-                        )
-                    },
-                    LinearLayout.LayoutParams(
-                        -1,
-                        1
-                    ).apply {
-                        leftMargin = dp(18)
-                        rightMargin = dp(18)
-                    }
-                )
-            }
         }
 
         root.addView(
             card,
             LinearLayout.LayoutParams(
-                -1,
-                -2
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
-        )
-
-        val dialog =
-            android.app.Dialog(this)
-
-        dialogRef = dialog
-
-        dialog.window?.setBackgroundDrawableResource(
-            android.R.color.transparent
         )
 
         dialog.setContentView(root)
         dialog.show()
-
-        dialog.window?.setLayout(
-            -1,
-            -1
-        )
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setLayout(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
     }
-
-
 
     private fun addSetting(
         titleValue: String,
