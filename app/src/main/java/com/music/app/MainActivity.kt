@@ -3179,8 +3179,8 @@ class MainActivity : ComponentActivity() {
         )
 
         val valueText = TextView(this).apply {
-            textSize = 14f
-            setTextColor(Color.rgb(45, 45, 45))
+            textSize = 13f
+            setTextColor(Color.rgb(70, 70, 70))
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -3189,11 +3189,14 @@ class MainActivity : ComponentActivity() {
             valueText,
             LinearLayout.LayoutParams(
                 -1,
-                dp(24)
+                dp(22)
             ).apply {
                 topMargin = dp(2)
             }
         )
+
+        val blue = Color.rgb(45, 115, 235)
+        val lightGray = Color.rgb(225, 225, 225)
 
         val seekBar = SeekBar(this).apply {
 
@@ -3232,31 +3235,54 @@ class MainActivity : ComponentActivity() {
                     }
             }
 
-            val blue =
-                Color.rgb(35, 115, 235)
+            minHeight = dp(20)
+            maxHeight = dp(20)
 
-            val blueLight =
-                Color.rgb(215, 230, 250)
+            setPadding(
+                dp(2),
+                0,
+                dp(2),
+                0
+            )
 
-            val trackDrawable =
-                android.graphics.drawable.LayerDrawable(
-                    arrayOf(
-                        android.graphics.drawable.GradientDrawable().apply {
-                            shape =
-                                android.graphics.drawable.GradientDrawable.RECTANGLE
-                            cornerRadius = dp(8).toFloat()
-                            setColor(blueLight)
-                        },
-                        android.graphics.drawable.GradientDrawable().apply {
-                            shape =
-                                android.graphics.drawable.GradientDrawable.RECTANGLE
-                            cornerRadius = dp(8).toFloat()
-                            setColor(blue)
-                        }
+            val backgroundTrack =
+                android.graphics.drawable.GradientDrawable().apply {
+                    shape =
+                        android.graphics.drawable.GradientDrawable.RECTANGLE
+                    cornerRadius = dp(4).toFloat()
+                    setColor(lightGray)
+                    setSize(
+                        -1,
+                        dp(6)
                     )
+                }
+
+            val activeTrack =
+                android.graphics.drawable.GradientDrawable().apply {
+                    shape =
+                        android.graphics.drawable.GradientDrawable.RECTANGLE
+                    cornerRadius = dp(4).toFloat()
+                    setColor(blue)
+                    setSize(
+                        -1,
+                        dp(6)
+                    )
+                }
+
+            val clipActive =
+                android.graphics.drawable.ClipDrawable(
+                    activeTrack,
+                    Gravity.LEFT,
+                    android.graphics.drawable.ClipDrawable.HORIZONTAL
                 )
 
-            progressDrawable = trackDrawable
+            progressDrawable =
+                android.graphics.drawable.LayerDrawable(
+                    arrayOf(
+                        backgroundTrack,
+                        clipActive
+                    )
+                )
 
             val thumbDrawable =
                 android.graphics.drawable.GradientDrawable().apply {
@@ -3267,21 +3293,15 @@ class MainActivity : ComponentActivity() {
                         dp(1),
                         blue
                     )
+                    setSize(
+                        dp(20),
+                        dp(20)
+                    )
                 }
 
             thumb = thumbDrawable
 
             splitTrack = false
-
-            setPadding(
-                0,
-                0,
-                0,
-                0
-            )
-
-            minHeight = dp(32)
-            maxHeight = dp(32)
 
             setOnSeekBarChangeListener(
                 object : SeekBar.OnSeekBarChangeListener {
@@ -3336,11 +3356,23 @@ class MainActivity : ComponentActivity() {
 
                     override fun onStartTrackingTouch(
                         seekBar: SeekBar?
-                    ) {}
+                    ) {
+                        seekBar?.animate()
+                            ?.scaleX(1.08f)
+                            ?.scaleY(1.08f)
+                            ?.setDuration(120)
+                            ?.start()
+                    }
 
                     override fun onStopTrackingTouch(
                         seekBar: SeekBar?
-                    ) {}
+                    ) {
+                        seekBar?.animate()
+                            ?.scaleX(1f)
+                            ?.scaleY(1f)
+                            ?.setDuration(120)
+                            ?.start()
+                    }
                 }
             )
         }
@@ -3349,9 +3381,9 @@ class MainActivity : ComponentActivity() {
             seekBar,
             LinearLayout.LayoutParams(
                 -1,
-                dp(32)
+                dp(20)
             ).apply {
-                topMargin = dp(4)
+                topMargin = dp(5)
             }
         )
 
@@ -3363,6 +3395,7 @@ class MainActivity : ComponentActivity() {
             )
         )
     }
+
 
 
 
