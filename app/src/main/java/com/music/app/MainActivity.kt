@@ -4349,7 +4349,7 @@ class MainActivity : ComponentActivity() {
                                 horizontal * 0.35f
 
                             miniCover.rotation =
-                                horizontal / dp(110f) * 8f
+                                horizontal / dp(110) * 8f
 
                             true
                         }
