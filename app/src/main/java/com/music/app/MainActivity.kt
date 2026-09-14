@@ -1839,7 +1839,7 @@ class MainActivity : ComponentActivity() {
                 list.addView(
                     View(this).apply {
                         setBackgroundColor(
-                            Color.rgb(238, 238, 238)
+                            Color.rgb(232, 232, 232)
                         )
                     },
                     LinearLayout.LayoutParams(
@@ -1899,34 +1899,37 @@ class MainActivity : ComponentActivity() {
 
         content.removeAllViews()
         content.setPadding(
+            dp(20),
             dp(18),
-            dp(24),
-            dp(18),
-            dp(30)
+            dp(20),
+            dp(26)
         )
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setBackgroundColor(Color.WHITE)
+            overScrollMode = View.OVER_SCROLL_NEVER
+            setBackgroundColor(Color.rgb(248, 248, 248))
         }
 
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, dp(30))
+            setPadding(0, 0, 0, dp(28))
+            setBackgroundColor(Color.rgb(248, 248, 248))
         }
 
         page.addView(
             text(
                 "Settings",
-                34f,
-                Color.rgb(15, 15, 15),
+                32f,
+                Color.rgb(24, 23, 27),
                 Typeface.BOLD
             ).apply {
                 includeFontPadding = false
+                letterSpacing = -0.02f
             },
-            LinearLayout.LayoutParams(-1, dp(48)).apply {
-                bottomMargin = dp(24)
+            LinearLayout.LayoutParams(-1, dp(46)).apply {
+                bottomMargin = dp(18)
             }
         )
 
@@ -2144,26 +2147,25 @@ class MainActivity : ComponentActivity() {
         titleValue: String
     ) {
 
+        val title = text(
+            titleValue,
+            13f,
+            Color.rgb(95, 95, 95),
+            Typeface.BOLD
+        ).apply {
+            includeFontPadding = false
+            letterSpacing = 0.015f
+        }
+
         parent.addView(
-            text(
-                titleValue,
-                18f,
-                Color.rgb(25, 25, 27),
-                Typeface.BOLD
-            ).apply {
-                includeFontPadding = false
-                setPadding(
-                    dp(4),
-                    dp(8),
-                    dp(4),
-                    dp(12)
-                )
-            },
+            title,
             LinearLayout.LayoutParams(
                 -1,
-                dp(48)
+                dp(32)
             ).apply {
-                topMargin = dp(8)
+                topMargin = dp(12)
+                leftMargin = dp(4)
+                rightMargin = dp(4)
             }
         )
     }
@@ -2175,16 +2177,14 @@ class MainActivity : ComponentActivity() {
 
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+
             background =
                 android.graphics.drawable.GradientDrawable().apply {
                     setColor(Color.WHITE)
-                    cornerRadius = dp(18).toFloat()
-                    setStroke(
-                        dp(1),
-                        Color.rgb(232, 232, 235)
-                    )
+                    cornerRadius = dp(14).toFloat()
                 }
-            elevation = dp(1).toFloat()
+
+            elevation = 0f
             clipToOutline = true
         }
 
@@ -2193,16 +2193,16 @@ class MainActivity : ComponentActivity() {
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
+
                 setPadding(
                     dp(18),
+                    dp(6),
                     dp(14),
-                    dp(14),
-                    dp(14)
+                    dp(6)
                 )
 
-                setOnClickListener {
-                    setting.action()
-                }
+                isClickable = true
+                isFocusable = true
             }
 
             val names = LinearLayout(this).apply {
@@ -2210,59 +2210,203 @@ class MainActivity : ComponentActivity() {
                 gravity = Gravity.CENTER_VERTICAL
             }
 
-            names.addView(
-                text(
-                    setting.title,
-                    16f,
-                    Color.rgb(25, 25, 27),
-                    Typeface.NORMAL
-                ).apply {
-                    includeFontPadding = false
-                }
-            )
+            val title = text(
+                setting.title,
+                16f,
+                Color.rgb(28, 28, 28),
+                Typeface.NORMAL
+            ).apply {
+                includeFontPadding = false
+                maxLines = 2
+            }
 
             names.addView(
-                text(
-                    setting.value,
-                    13f,
-                    Color.rgb(125, 125, 130),
-                    Typeface.NORMAL
-                ).apply {
-                    includeFontPadding = false
-                    setPadding(0, dp(4), 0, 0)
-                }
+                title,
+                LinearLayout.LayoutParams(
+                    0,
+                    -2,
+                    1f
+                )
             )
+
+            if (setting.value.isNotBlank()) {
+                names.addView(
+                    text(
+                        setting.value,
+                        12.5f,
+                        Color.rgb(112, 112, 112),
+                        Typeface.NORMAL
+                    ).apply {
+                        includeFontPadding = false
+                        maxLines = 2
+                        setPadding(
+                            0,
+                            dp(3),
+                            0,
+                            0
+                        )
+                    },
+                    LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                    )
+                )
+            }
 
             row.addView(
                 names,
                 LinearLayout.LayoutParams(
                     0,
-                    dp(58),
+                    -2,
                     1f
-                )
+                ).apply {
+                    rightMargin = dp(8)
+                }
             )
 
-            row.addView(
-                text(
-                    "›",
-                    27f,
-                    Color.rgb(165, 165, 170),
-                    Typeface.NORMAL
-                ).apply {
-                    gravity = Gravity.CENTER
-                    includeFontPadding = false
-                },
-                LinearLayout.LayoutParams(
-                    dp(26),
-                    dp(58)
+            val isToggle =
+                setting.title == "Cross fade" ||
+                setting.title == "Skip silence between tracks" ||
+                setting.title == "Control music from lock screen" ||
+                setting.title == "Don't allow duplicate songs" ||
+                setting.title == "Dark mode" ||
+                setting.title == "Allow external device to start playback"
+
+            if (isToggle) {
+
+                val prefs = getSettingsPrefs()
+
+                val key =
+                    when (setting.title) {
+                        "Cross fade" ->
+                            "cross_fade"
+
+                        "Skip silence between tracks" ->
+                            "skip_silence"
+
+                        "Control music from lock screen" ->
+                            "lock_screen_controls"
+
+                        "Don't allow duplicate songs" ->
+                            "no_duplicate_songs"
+
+                        "Dark mode" ->
+                            "dark_mode"
+
+                        else ->
+                            "external_playback"
+                    }
+
+                val defaultValue =
+                    when (key) {
+                        "lock_screen_controls" -> true
+                        "external_playback" -> true
+                        else -> false
+                    }
+
+                val switchView =
+                    android.widget.Switch(this).apply {
+
+                        isChecked =
+                            prefs.getBoolean(
+                                key,
+                                defaultValue
+                            )
+
+                        showText = false
+                        minWidth = dp(48)
+
+                        scaleX = 0.78f
+                        scaleY = 0.78f
+
+                        setOnCheckedChangeListener { _, checked ->
+
+                            prefs.edit()
+                                .putBoolean(
+                                    key,
+                                    checked
+                                )
+                                .apply()
+
+                            showSettings()
+                        }
+                    }
+
+                row.addView(
+                    switchView,
+                    LinearLayout.LayoutParams(
+                        dp(48),
+                        dp(40)
+                    )
                 )
-            )
+
+                row.setOnClickListener {
+                    switchView.isChecked =
+                        !switchView.isChecked
+                }
+
+            } else {
+
+                val rightSide =
+                    LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+
+                rightSide.addView(
+                    text(
+                        setting.value,
+                        13.5f,
+                        Color.rgb(112, 112, 112),
+                        Typeface.NORMAL
+                    ).apply {
+                        gravity = Gravity.CENTER_VERTICAL
+                        includeFontPadding = false
+                        maxLines = 1
+                        ellipsize =
+                            android.text.TextUtils.TruncateAt.END
+                        textAlignment = View.TEXT_ALIGNMENT_VIEW_END
+                    },
+                    LinearLayout.LayoutParams(
+                        dp(100),
+                        dp(40)
+                    )
+                )
+
+                rightSide.addView(
+                    text(
+                        "›",
+                        20f,
+                        Color.rgb(150, 150, 150),
+                        Typeface.NORMAL
+                    ).apply {
+                        gravity = Gravity.CENTER
+                        includeFontPadding = false
+                    },
+                    LinearLayout.LayoutParams(
+                        dp(20),
+                        dp(40)
+                    )
+                )
+
+                row.addView(
+                    rightSide,
+                    LinearLayout.LayoutParams(
+                        dp(120),
+                        dp(40)
+                    )
+                )
+
+                row.setOnClickListener {
+                    setting.action()
+                }
+            }
 
             card.addView(
                 row,
                 LinearLayout.LayoutParams(
                     -1,
-                    dp(72)
+                    dp(58)
                 )
             )
 
@@ -2270,12 +2414,12 @@ class MainActivity : ComponentActivity() {
                 card.addView(
                     View(this).apply {
                         setBackgroundColor(
-                            Color.rgb(238, 238, 240)
+                            Color.rgb(238, 238, 238)
                         )
                     },
                     LinearLayout.LayoutParams(
                         -1,
-                        dp(1)
+                        1
                     ).apply {
                         leftMargin = dp(18)
                         rightMargin = dp(18)
@@ -2290,589 +2434,7 @@ class MainActivity : ComponentActivity() {
                 -1,
                 -2
             ).apply {
-                bottomMargin = dp(22)
-            }
-        )
-    }
-
-    private fun toggleSetting(
-        key: String,
-        titleValue: String
-    ) {
-
-        val prefs = getSettingsPrefs()
-
-        val newValue =
-            !prefs.getBoolean(key, false)
-
-        prefs.edit()
-            .putBoolean(key, newValue)
-            .apply()
-
-        Toast.makeText(
-            this,
-            "$titleValue: ${if (newValue) "On" else "Off"}",
-            Toast.LENGTH_SHORT
-        ).show()
-
-        showSettings()
-    }
-
-    private fun getSleepTimerLabel(): String {
-
-        val minutes =
-            getSettingsPrefs()
-                .getInt("sleep_timer_minutes", 0)
-
-        return if (minutes <= 0)
-            "Off"
-        else
-            "$minutes min"
-    }
-
-    private fun showSleepTimerDialog() {
-
-        val options = arrayOf(
-            "Off",
-            "15 minutes",
-            "30 minutes",
-            "45 minutes",
-            "60 minutes",
-            "90 minutes"
-        )
-
-        AlertDialog.Builder(this)
-            .setTitle("Sleep timer")
-            .setItems(options) { _, which ->
-
-                val minutes =
-                    when (which) {
-                        1 -> 15
-                        2 -> 30
-                        3 -> 45
-                        4 -> 60
-                        5 -> 90
-                        else -> 0
-                    }
-
-                getSettingsPrefs()
-                    .edit()
-                    .putInt(
-                        "sleep_timer_minutes",
-                        minutes
-                    )
-                    .apply()
-
-                Toast.makeText(
-                    this,
-                    if (minutes == 0)
-                        "Sleep timer off"
-                    else
-                        "Sleep timer: $minutes minutes",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                if (minutes > 0) {
-                    android.os.Handler(
-                        android.os.Looper.getMainLooper()
-                    ).postDelayed(
-                        {
-                            mediaPlayer?.pause()
-                        },
-                        minutes * 60L * 1000L
-                    )
-                }
-
-                showSettings()
-            }
-            .show()
-    }
-
-    private fun getPlaybackSpeedLabel(): String {
-
-        val speed =
-            getSettingsPrefs()
-                .getFloat(
-                    "playback_speed",
-                    1.0f
-                )
-
-        return "${speed}x"
-    }
-
-    private fun showPlaybackSpeedDialog() {
-
-        val speeds = arrayOf(
-            0.5f,
-            0.75f,
-            1.0f,
-            1.25f,
-            1.5f,
-            1.75f,
-            2.0f
-        )
-
-        val labels = speeds.map {
-            "${it}x"
-        }.toTypedArray()
-
-        AlertDialog.Builder(this)
-            .setTitle("Play speed")
-            .setItems(labels) { _, which ->
-
-                val speed = speeds[which]
-
-                getSettingsPrefs()
-                    .edit()
-                    .putFloat(
-                        "playback_speed",
-                        speed
-                    )
-                    .apply()
-
-                applyPlaybackSpeed()
-
-                showSettings()
-            }
-            .show()
-    }
-
-    private fun applyPlaybackSpeed() {
-
-        if (android.os.Build.VERSION.SDK_INT >= 23) {
-
-            val speed =
-                getSettingsPrefs()
-                    .getFloat(
-                        "playback_speed",
-                        1.0f
-                    )
-
-            mediaPlayer?.let {
-                try {
-                    val params =
-                        it.playbackParams
-
-                    params.speed = speed
-
-                    it.playbackParams = params
-                } catch (_: Exception) {
-                }
-            }
-        }
-    }
-
-    private fun showQueueSettingsDialog() {
-
-        val prefs = getSettingsPrefs()
-
-        val duplicate =
-            prefs.getBoolean(
-                "no_duplicate_songs",
-                false
-            )
-
-        AlertDialog.Builder(this)
-            .setTitle("Queue settings")
-            .setMultiChoiceItems(
-                arrayOf(
-                    "Don't allow duplicate songs"
-                ),
-                booleanArrayOf(duplicate)
-            ) { _, _, checked ->
-
-                prefs.edit()
-                    .putBoolean(
-                        "no_duplicate_songs",
-                        checked
-                    )
-                    .apply()
-            }
-            .setPositiveButton("Done") { _, _ ->
-                showSettings()
-            }
-            .show()
-    }
-
-    private fun showManagePlaylistsDialog() {
-
-        AlertDialog.Builder(this)
-            .setTitle("Manage Playlists")
-            .setItems(
-                arrayOf(
-                    "Create playlist",
-                    "My playlists"
-                )
-            ) { _, which ->
-
-                when (which) {
-                    0 -> showCreatePlaylistDialog()
-                    1 ->
-                        Toast.makeText(
-                            this,
-                            "My playlists",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                }
-            }
-            .show()
-    }
-
-    private fun showCreatePlaylistDialog() {
-
-        val input = EditText(this).apply {
-            hint = "Playlist name"
-            setSingleLine(true)
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("Create playlist")
-            .setView(input)
-            .setNegativeButton(
-                "Cancel",
-                null
-            )
-            .setPositiveButton(
-                "Create"
-            ) { _, _ ->
-
-                val name =
-                    input.text
-                        .toString()
-                        .trim()
-
-                if (name.isNotEmpty()) {
-
-                    Toast.makeText(
-                        this,
-                        "Playlist \"$name\" created",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .show()
-    }
-
-    private fun showManageTabsDialog() {
-
-        val prefs = getSettingsPrefs()
-
-        val items = arrayOf(
-            "Home",
-            "Library",
-            "Settings"
-        )
-
-        val checked = booleanArrayOf(
-            prefs.getBoolean(
-                "tab_home",
-                true
-            ),
-            prefs.getBoolean(
-                "tab_library",
-                true
-            ),
-            prefs.getBoolean(
-                "tab_settings",
-                true
-            )
-        )
-
-        AlertDialog.Builder(this)
-            .setTitle("Manage tabs")
-            .setMultiChoiceItems(
-                items,
-                checked
-            ) { _, which, value ->
-
-                val key =
-                    when (which) {
-                        0 -> "tab_home"
-                        1 -> "tab_library"
-                        else -> "tab_settings"
-                    }
-
-                prefs.edit()
-                    .putBoolean(
-                        key,
-                        value
-                    )
-                    .apply()
-            }
-            .setPositiveButton(
-                "Done"
-            ) { _, _ ->
-                showSettings()
-            }
-            .show()
-    }
-
-    private fun toggleDarkMode() {
-
-        val prefs = getSettingsPrefs()
-
-        val enabled =
-            !prefs.getBoolean(
-                "dark_mode",
-                false
-            )
-
-        prefs.edit()
-            .putBoolean(
-                "dark_mode",
-                enabled
-            )
-            .apply()
-
-        Toast.makeText(
-            this,
-            if (enabled)
-                "Dark mode enabled"
-            else
-                "Dark mode disabled",
-            Toast.LENGTH_SHORT
-        ).show()
-
-        showSettings()
-    }
-
-    private fun showPermissionsDialog() {
-
-        val audioPermission =
-            if (Build.VERSION.SDK_INT >= 33)
-                Manifest.permission.READ_MEDIA_AUDIO
-            else
-                Manifest.permission.READ_EXTERNAL_STORAGE
-
-        val audioGranted =
-            ContextCompat.checkSelfPermission(
-                this,
-                audioPermission
-            ) == PackageManager.PERMISSION_GRANTED
-
-        val notificationGranted =
-            if (Build.VERSION.SDK_INT >= 33) {
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
-
-        AlertDialog.Builder(this)
-            .setTitle("Permissions")
-            .setMessage(
-                "Music and audio: ${
-                    if (audioGranted)
-                        "Allowed"
-                    else
-                        "Not allowed"
-                }\n\nNotifications: ${
-                    if (notificationGranted)
-                        "Allowed"
-                    else
-                        "Not allowed"
-                }"
-            )
-            .setPositiveButton(
-                "Open system settings"
-            ) {
-                _, _ ->
-
-                val intent =
-                    android.content.Intent(
-                        android.provider.Settings
-                            .ACTION_APPLICATION_DETAILS_SETTINGS
-                    ).apply {
-                        data =
-                            Uri.parse(
-                                "package:$packageName"
-                            )
-                    }
-
-                startActivity(intent)
-            }
-            .setNegativeButton(
-                "Done",
-                null
-            )
-            .show()
-    }
-
-    private fun showAboutMusicDialog() {
-
-        AlertDialog.Builder(this)
-            .setTitle("About Music")
-            .setMessage(
-                "Music\n\n" +
-                "Version 1.0\n\n" +
-                "A simple music player for your local audio library."
-            )
-            .setPositiveButton(
-                "Done",
-                null
-            )
-            .show()
-    }
-
-    private fun addSettingsSection(
-        titleValue: String
-    ) {
-        val section = text(
-            titleValue.uppercase(),
-            11f,
-            Color.rgb(120, 120, 125),
-            Typeface.BOLD
-        ).apply {
-            includeFontPadding = false
-            setPadding(
-                dp(4),
-                dp(18),
-                dp(4),
-                dp(8)
-            )
-        }
-
-        content.addView(
-            section,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(40)
-            )
-        )
-    }
-
-    private fun addAppleSetting(
-        icon: String,
-        titleValue: String,
-        value: String,
-        action: () -> Unit
-    ) {
-        val row =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-                gravity =
-                    Gravity.CENTER_VERTICAL
-                setPadding(
-                    dp(14),
-                    0,
-                    dp(10),
-                    0
-                )
-
-                background =
-                    android.graphics.drawable.GradientDrawable().apply {
-                        cornerRadius =
-                            dp(15).toFloat()
-                        setColor(
-                            Color.rgb(
-                                247,
-                                247,
-                                249
-                            )
-                        )
-                    }
-
-                setOnClickListener {
-                    action()
-                }
-            }
-
-        val iconView =
-            TextView(this).apply {
-                text = icon
-                textSize = 19f
-                setTextColor(
-                    Color.rgb(
-                        25,
-                        25,
-                        27
-                    )
-                )
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-            }
-
-        row.addView(
-            iconView,
-            LinearLayout.LayoutParams(
-                dp(34),
-                dp(42)
-            )
-        )
-
-        val names =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                gravity =
-                    Gravity.CENTER_VERTICAL
-            }
-
-        names.addView(
-            text(
-                titleValue,
-                15f,
-                Color.rgb(25, 25, 27),
-                Typeface.BOLD
-            ).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(23)
-            )
-        )
-
-        names.addView(
-            text(
-                value,
-                12f,
-                Color.rgb(120, 120, 125),
-                Typeface.NORMAL
-            ).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(18)
-            )
-        )
-
-        row.addView(
-            names,
-            LinearLayout.LayoutParams(
-                0,
-                -1,
-                1f
-            )
-        )
-
-        row.addView(
-            text(
-                "›",
-                27f,
-                Color.rgb(165, 165, 170),
-                Typeface.NORMAL
-            ).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(
-                dp(26),
-                -1
-            )
-        )
-
-        content.addView(
-            row,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
-            ).apply {
-                bottomMargin = dp(8)
+                bottomMargin = dp(16)
             }
         )
     }
