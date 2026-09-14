@@ -2183,7 +2183,7 @@ class MainActivity : ComponentActivity() {
             background =
                 android.graphics.drawable.GradientDrawable().apply {
                     setColor(Color.WHITE)
-                    cornerRadius = dp(14).toFloat()
+                    cornerRadius = dp(18).toFloat()
                 }
 
             elevation = 0f
@@ -3195,8 +3195,8 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        val blue = Color.rgb(45, 115, 235)
-        val lightGray = Color.rgb(225, 225, 225)
+        val blue = Color.rgb(74, 144, 226)
+        val lightGray = Color.rgb(238, 238, 238)
 
         val seekBar = SeekBar(this).apply {
 
@@ -3249,7 +3249,7 @@ class MainActivity : ComponentActivity() {
                 android.graphics.drawable.GradientDrawable().apply {
                     shape =
                         android.graphics.drawable.GradientDrawable.RECTANGLE
-                    cornerRadius = dp(4).toFloat()
+                    cornerRadius = dp(3).toFloat()
                     setColor(lightGray)
                     setSize(
                         -1,
@@ -3261,7 +3261,7 @@ class MainActivity : ComponentActivity() {
                 android.graphics.drawable.GradientDrawable().apply {
                     shape =
                         android.graphics.drawable.GradientDrawable.RECTANGLE
-                    cornerRadius = dp(4).toFloat()
+                    cornerRadius = dp(3).toFloat()
                     setColor(blue)
                     setSize(
                         -1,
@@ -3284,7 +3284,27 @@ class MainActivity : ComponentActivity() {
                     )
                 )
 
-            val thumbDrawable =
+
+        // Ensure the initial blue progress is rendered immediately.
+        if (title == "Play speed") {
+            post {
+                val speed = getPlaybackSpeedValue()
+                    .coerceIn(0.5f, 2.0f)
+
+                val initialProgress =
+                    ((speed - 0.5f) * 10f).roundToInt()
+
+                progress = initialProgress
+
+                val blueLevel =
+                    ((initialProgress.toFloat() / max.toFloat()) * 10000f)
+                        .roundToInt()
+
+                clipActive.level = blueLevel
+            }
+        }
+
+        val thumbDrawable =
                 android.graphics.drawable.GradientDrawable().apply {
                     shape =
                         android.graphics.drawable.GradientDrawable.OVAL
