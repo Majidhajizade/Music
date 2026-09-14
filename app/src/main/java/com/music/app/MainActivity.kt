@@ -1904,18 +1904,19 @@ class MainActivity : ComponentActivity() {
             dp(20),
             dp(26)
         )
+        content.setBackgroundColor(Color.rgb(246, 246, 246))
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
             overScrollMode = View.OVER_SCROLL_NEVER
-            setBackgroundColor(Color.rgb(238, 238, 238))
+            setBackgroundColor(Color.rgb(246, 246, 246))
         }
 
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, 0, 0, dp(28))
-            setBackgroundColor(Color.rgb(238, 238, 238))
+            setBackgroundColor(Color.rgb(246, 246, 246))
         }
 
         page.addView(
