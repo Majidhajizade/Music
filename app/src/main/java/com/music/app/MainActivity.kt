@@ -44,6 +44,31 @@ class MainActivity : ComponentActivity() {
     private lateinit var content: LinearLayout
     private lateinit var avatar: ImageView
     private lateinit var miniCover: ImageView
+    private lateinit var miniPlayer: LinearLayout
+
+    private var miniGestureDownX = 0f
+    private var miniGestureDownY = 0f
+    private var miniGestureLastX = 0f
+    private var miniGestureLastY = 0f
+    private var miniGestureDragging = false
+    private var miniGestureVertical = false
+    private var miniHideRunnable: Runnable? = null
+
+    private val playerPrefs by lazy {
+        getSharedPreferences("player_state", MODE_PRIVATE)
+    }
+
+    private val playerSaveHandler = android.os.Handler(
+        android.os.Looper.getMainLooper()
+    )
+
+    private val playerSaveRunnable = object : Runnable {
+        override fun run() {
+            savePlayerState()
+            playerSaveHandler.postDelayed(this, 1000L)
+        }
+    }
+
     private lateinit var miniTitle: TextView
     private lateinit var miniArtist: TextView
     private lateinit var playButton: TextView
@@ -780,8 +805,10 @@ class MainActivity : ComponentActivity() {
     )
 
         // ---------- MINI PLAYER ----------
+        miniPlayer = createMiniPlayer()
+
         root.addView(
-            createMiniPlayer(),
+            miniPlayer,
             LinearLayout.LayoutParams(
                 -1,
                 dp(60)
@@ -810,6 +837,19 @@ class MainActivity : ComponentActivity() {
         setContentView(root)
 
         showHome()
+
+        /*
+         * The Library/UI is now ready, so restore the
+         * previous song only after the Mini Player exists.
+         */
+        restorePlayerState()
+
+        playerSaveHandler.removeCallbacks(
+            playerSaveRunnable
+        )
+        playerSaveHandler.post(
+            playerSaveRunnable
+        )
     }
 
     private fun getAlbumArt(song: Song): android.graphics.Bitmap? {
@@ -4193,7 +4233,539 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        setupMiniPlayerGestures(layout)
+
         return layout
+    }
+
+
+    private fun setupMiniPlayerGestures(layout: LinearLayout) {
+
+        val touchSlop =
+            android.view.ViewConfiguration.get(this).scaledTouchSlop
+
+        val gestureListener =
+            View.OnTouchListener { view, event ->
+
+                when (event.actionMasked) {
+
+                    android.view.MotionEvent.ACTION_DOWN -> {
+
+                        miniGestureDownX = event.rawX
+                        miniGestureDownY = event.rawY
+                        miniGestureLastX = event.rawX
+                        miniGestureLastY = event.rawY
+
+                        miniGestureDragging = false
+                        miniGestureVertical = false
+
+                        cancelMiniHide()
+
+                        false
+                    }
+
+                    android.view.MotionEvent.ACTION_MOVE -> {
+
+                        val dx = event.rawX - miniGestureDownX
+                        val dy = event.rawY - miniGestureDownY
+
+                        if (!miniGestureDragging) {
+
+                            if (
+                                kotlin.math.abs(dx) > touchSlop ||
+                                kotlin.math.abs(dy) > touchSlop
+                            ) {
+                                miniGestureDragging = true
+                                miniGestureVertical =
+                                    kotlin.math.abs(dy) >
+                                    kotlin.math.abs(dx)
+                            }
+                        }
+
+                        if (!miniGestureDragging) {
+                            return@OnTouchListener false
+                        }
+
+                        if (miniGestureVertical) {
+
+                            /*
+                             * Upward drag:
+                             * 0   = original position
+                             * -1  = approximately half screen
+                             */
+                            val height =
+                                resources.displayMetrics.heightPixels
+                                    .toFloat()
+
+                            val upward =
+                                (-dy).coerceAtLeast(0f)
+
+                            val progress =
+                                (upward / (height * 0.52f))
+                                    .coerceIn(0f, 1f)
+
+                            layout.translationY =
+                                -upward * 0.88f
+
+                            miniCover.rotation =
+                                progress * 100f
+
+                            miniCover.scaleX =
+                                1f - (progress * 0.08f)
+
+                            miniCover.scaleY =
+                                1f - (progress * 0.08f)
+
+                            layout.alpha =
+                                1f - (progress * 0.08f)
+
+                            /*
+                             * Downward hold.
+                             */
+                            if (
+                                dy > dp(18) &&
+                                kotlin.math.abs(dy) >
+                                kotlin.math.abs(dx) * 1.15f
+                            ) {
+                                scheduleMiniHide(layout)
+                            }
+
+                            miniGestureLastY = event.rawY
+
+                            true
+
+                        } else {
+
+                            /*
+                             * Horizontal swipe preview.
+                             */
+                            val horizontal =
+                                dx.coerceIn(
+                                    -dp(110).toFloat(),
+                                    dp(110).toFloat()
+                                )
+
+                            layout.translationX =
+                                horizontal * 0.35f
+
+                            miniCover.rotation =
+                                horizontal / dp(110f) * 8f
+
+                            true
+                        }
+                    }
+
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+
+                        cancelMiniHide()
+
+                        val dx =
+                            event.rawX - miniGestureDownX
+
+                        val dy =
+                            event.rawY - miniGestureDownY
+
+                        if (!miniGestureDragging) {
+                            return@OnTouchListener false
+                        }
+
+                        if (miniGestureVertical) {
+
+                            val height =
+                                resources.displayMetrics.heightPixels
+                                    .toFloat()
+
+                            val upward =
+                                (-dy).coerceAtLeast(0f)
+
+                            val progress =
+                                (upward / (height * 0.52f))
+                                    .coerceIn(0f, 1f)
+
+                            if (progress >= 0.5f) {
+
+                                /*
+                                 * Complete upward expansion.
+                                 */
+                                layout.animate()
+                                    .translationY(
+                                        -height
+                                    )
+                                    .alpha(0f)
+                                    .setDuration(260L)
+                                    .setInterpolator(
+                                        android.view.animation
+                                            .DecelerateInterpolator()
+                                    )
+                                    .withEndAction {
+
+                                        layout.translationY = 0f
+                                        layout.translationX = 0f
+                                        layout.alpha = 1f
+
+                                        miniCover.rotation = 0f
+                                        miniCover.scaleX = 1f
+                                        miniCover.scaleY = 1f
+
+                                        if (currentSong != null) {
+                                            showNowPlaying()
+                                        }
+                                    }
+                                    .start()
+
+                            } else {
+
+                                /*
+                                 * Not enough:
+                                 * smoothly return to Mini Player.
+                                 */
+                                layout.animate()
+                                    .translationY(0f)
+                                    .alpha(1f)
+                                    .setDuration(320L)
+                                    .setInterpolator(
+                                        android.view.animation
+                                            .DecelerateInterpolator()
+                                    )
+                                    .start()
+
+                                miniCover.animate()
+                                    .rotation(0f)
+                                    .scaleX(1f)
+                                    .scaleY(1f)
+                                    .setDuration(320L)
+                                    .setInterpolator(
+                                        android.view.animation
+                                            .DecelerateInterpolator()
+                                    )
+                                    .start()
+                            }
+
+                            miniGestureDragging = false
+                            true
+
+                        } else {
+
+                            /*
+                             * Horizontal swipe.
+                             */
+                            val swipeThreshold = dp(70)
+
+                            if (dx < -swipeThreshold) {
+                                playMiniNext()
+                            } else if (dx > swipeThreshold) {
+                                playMiniPrevious()
+                            }
+
+                            layout.animate()
+                                .translationX(0f)
+                                .setDuration(220L)
+                                .setInterpolator(
+                                    android.view.animation
+                                        .DecelerateInterpolator()
+                                )
+                                .start()
+
+                            miniCover.animate()
+                                .rotation(0f)
+                                .setDuration(220L)
+                                .start()
+
+                            miniGestureDragging = false
+                            true
+                        }
+                    }
+
+                    else -> false
+                }
+            }
+
+        /*
+         * The gesture is installed on the Mini Player itself and
+         * on its passive content views. The Play button keeps its
+         * own click behavior.
+         */
+        layout.setOnTouchListener(gestureListener)
+        miniCover.setOnTouchListener(gestureListener)
+        miniTitle.setOnTouchListener(gestureListener)
+        miniArtist.setOnTouchListener(gestureListener)
+
+        /*
+         * Keep the Mini Player clickable when the user simply taps
+         * the artwork/title, while horizontal/vertical movement
+         * is handled by the gesture listener above.
+         */
+        layout.isClickable = true
+        layout.isFocusable = false
+    }
+
+    private fun scheduleMiniHide(layout: View) {
+
+        cancelMiniHide()
+
+        val runnable = Runnable {
+
+            if (!miniGestureDragging) {
+                return@Runnable
+            }
+
+            layout.animate()
+                .alpha(0f)
+                .translationY(dp(18).toFloat())
+                .setDuration(420L)
+                .setInterpolator(
+                    android.view.animation.DecelerateInterpolator()
+                )
+                .withEndAction {
+                    layout.visibility = View.INVISIBLE
+                    layout.translationY = 0f
+                    layout.alpha = 1f
+
+                    miniCover.rotation = 0f
+                    miniCover.scaleX = 1f
+                    miniCover.scaleY = 1f
+                }
+                .start()
+
+            miniGestureDragging = false
+        }
+
+        miniHideRunnable = runnable
+        layout.postDelayed(runnable, 3000L)
+    }
+
+    private fun cancelMiniHide() {
+        miniHideRunnable?.let {
+            miniPlayer.removeCallbacks(it)
+        }
+
+        miniHideRunnable = null
+    }
+
+    private fun showMiniPlayer() {
+
+        if (!::miniPlayer.isInitialized) {
+            return
+        }
+
+        cancelMiniHide()
+
+        miniPlayer.visibility = View.VISIBLE
+        miniPlayer.animate()
+            .cancel()
+
+        miniPlayer.alpha = 0f
+        miniPlayer.translationY = dp(10).toFloat()
+
+        miniCover.rotation = 0f
+        miniCover.scaleX = 1f
+        miniCover.scaleY = 1f
+
+        miniPlayer.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(280L)
+            .setInterpolator(
+                android.view.animation.DecelerateInterpolator()
+            )
+            .start()
+    }
+
+    private fun playMiniNext() {
+
+        val current = currentSong ?: return
+
+        val index =
+            playbackQueue.indexOfFirst {
+                it.id == current.id
+            }
+
+        if (index >= 0 && index < playbackQueue.lastIndex) {
+            playSong(playbackQueue[index + 1])
+            return
+        }
+
+        /*
+         * If queue only contains current song, try the
+         * currently loaded Library list through MediaStore.
+         */
+        val next = findAdjacentSong(current.id, true)
+
+        if (next != null) {
+            playSong(next)
+        }
+    }
+
+    private fun playMiniPrevious() {
+
+        val current = currentSong ?: return
+
+        val index =
+            playbackQueue.indexOfFirst {
+                it.id == current.id
+            }
+
+        if (index > 0) {
+            playSong(playbackQueue[index - 1])
+            return
+        }
+
+        val previous = findAdjacentSong(current.id, false)
+
+        if (previous != null) {
+            playSong(previous)
+        }
+    }
+
+    private fun findAdjacentSong(
+        currentId: Long,
+        next: Boolean
+    ): Song? {
+
+        val songs = mutableListOf<Song>()
+
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST
+        )
+
+        try {
+
+            contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                "${MediaStore.Audio.Media.IS_MUSIC} != 0",
+                null,
+                "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
+            )?.use { cursor ->
+
+                val idColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media._ID
+                    )
+
+                val titleColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media.TITLE
+                    )
+
+                val artistColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media.ARTIST
+                    )
+
+                while (cursor.moveToNext()) {
+
+                    songs.add(
+                        Song(
+                            cursor.getLong(idColumn),
+                            cursor.getString(titleColumn) ?: "Unknown",
+                            cursor.getString(artistColumn) ?: "Unknown Artist"
+                        )
+                    )
+                }
+            }
+
+        } catch (_: Exception) {
+            return null
+        }
+
+        val index =
+            songs.indexOfFirst {
+                it.id == currentId
+            }
+
+        if (index < 0) {
+            return null
+        }
+
+        val target =
+            if (next) index + 1 else index - 1
+
+        if (target !in songs.indices) {
+            return null
+        }
+
+        return songs[target]
+    }
+
+    private fun savePlayerState() {
+
+        val song = currentSong ?: return
+
+        val position =
+            try {
+                mediaPlayer?.currentPosition ?: 0
+            } catch (_: Exception) {
+                0
+            }
+
+        playerPrefs.edit()
+            .putLong("song_id", song.id)
+            .putInt("position", position)
+            .apply()
+    }
+
+    private fun restorePlayerState() {
+
+        val songId =
+            playerPrefs.getLong("song_id", -1L)
+
+        if (songId <= 0L) {
+            return
+        }
+
+        val savedPosition =
+            playerPrefs.getInt("position", 0)
+
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST
+        )
+
+        try {
+
+            contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                "${MediaStore.Audio.Media._ID} = ?",
+                arrayOf(songId.toString()),
+                null
+            )?.use { cursor ->
+
+                if (cursor.moveToFirst()) {
+
+                    val song =
+                        Song(
+                            cursor.getLong(
+                                cursor.getColumnIndexOrThrow(
+                                    MediaStore.Audio.Media._ID
+                                )
+                            ),
+                            cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                    MediaStore.Audio.Media.TITLE
+                                )
+                            ) ?: "Unknown",
+                            cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                    MediaStore.Audio.Media.ARTIST
+                                )
+                            ) ?: "Unknown Artist"
+                        )
+
+                    playSong(
+                        song,
+                        startPosition = savedPosition
+                    )
+                }
+            }
+
+        } catch (_: Exception) {
+        }
     }
 
     private fun createBottomNavigation(): LinearLayout {
@@ -7171,29 +7743,36 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
-    private fun playSong(song: Song) {
+    private fun playSong(
+        song: Song,
+        startPosition: Int = 0
+    ) {
 
         mediaPlayer?.release()
         mediaPlayer = null
 
         currentSong = song
 
-        // If the song is not part of the current queue,
-        // treat this as a direct single-song playback.
-        if (playbackQueue.isEmpty() ||
+        showMiniPlayer()
+
+        if (
+            playbackQueue.isEmpty() ||
             playbackQueue.none { it.id == song.id }
         ) {
             playbackQueue = mutableListOf(song)
             playbackIndex = 0
         } else {
             playbackIndex =
-                playbackQueue.indexOfFirst { it.id == song.id }
+                playbackQueue.indexOfFirst {
+                    it.id == song.id
+                }
         }
 
-        val uri = ContentUris.withAppendedId(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            song.id
-        )
+        val uri =
+            ContentUris.withAppendedId(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                song.id
+            )
 
         mediaPlayer =
             android.media.MediaPlayer().apply {
@@ -7207,23 +7786,46 @@ class MainActivity : ComponentActivity() {
 
                 applyPlaybackSpeed()
 
+                if (startPosition > 0) {
+                    try {
+                        seekTo(
+                            startPosition.coerceIn(
+                                0,
+                                duration.coerceAtLeast(0)
+                            )
+                        )
+                    } catch (_: Exception) {
+                    }
+                }
+
                 start()
 
                 setOnCompletionListener {
 
-                    val nextIndex = playbackIndex + 1
+                    savePlayerState()
+
+                    val nextIndex =
+                        playbackIndex + 1
 
                     if (
                         nextIndex >= 0 &&
                         nextIndex < playbackQueue.size
                     ) {
+
                         playbackIndex = nextIndex
-                        playSong(playbackQueue[playbackIndex])
+
+                        playSong(
+                            playbackQueue[playbackIndex]
+                        )
+
                     } else {
+
                         playbackQueue.clear()
                         playbackIndex = -1
 
                         playButton.text = "▶"
+
+                        savePlayerState()
                     }
                 }
             }
@@ -7236,10 +7838,34 @@ class MainActivity : ComponentActivity() {
 
         miniTitle.text = song.title
         miniArtist.text = song.artist
+
         playButton.text = "Ⅱ"
+
+        savePlayerState()
+    }
+
+
+    override fun onPause() {
+
+        savePlayerState()
+
+        super.onPause()
+    }
+
+    override fun onStop() {
+
+        savePlayerState()
+
+        super.onStop()
     }
 
     override fun onDestroy() {
+
+        savePlayerState()
+
+        playerSaveHandler.removeCallbacks(
+            playerSaveRunnable
+        )
 
         mediaPlayer?.release()
         mediaPlayer = null
