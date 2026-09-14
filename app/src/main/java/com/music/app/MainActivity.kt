@@ -2440,6 +2440,381 @@ class MainActivity : ComponentActivity() {
     }
 
 
+
+
+    private fun showSleepTimerDialog() {
+
+        val options = arrayOf(
+            "Off",
+            "15 minutes",
+            "30 minutes",
+            "45 minutes",
+            "60 minutes",
+            "90 minutes"
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle("Sleep timer")
+            .setItems(options) { _, which ->
+
+                val minutes =
+                    when (which) {
+                        1 -> 15
+                        2 -> 30
+                        3 -> 45
+                        4 -> 60
+                        5 -> 90
+                        else -> 0
+                    }
+
+                getSettingsPrefs()
+                    .edit()
+                    .putInt(
+                        "sleep_timer_minutes",
+                        minutes
+                    )
+                    .apply()
+
+                Toast.makeText(
+                    this,
+                    if (minutes == 0)
+                        "Sleep timer off"
+                    else
+                        "Sleep timer: $minutes minutes",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                if (minutes > 0) {
+                    android.os.Handler(
+                        android.os.Looper.getMainLooper()
+                    ).postDelayed(
+                        {
+                            mediaPlayer?.pause()
+                        },
+                        minutes * 60L * 1000L
+                    )
+                }
+
+                showSettings()
+            }
+            .show()
+    }
+
+    private fun getPlaybackSpeedLabel(): String {
+
+        val speed =
+            getSettingsPrefs()
+                .getFloat(
+                    "playback_speed",
+                    1.0f
+                )
+
+        return "${speed}x"
+    }
+
+    private fun showPlaybackSpeedDialog() {
+
+        val speeds = arrayOf(
+            0.5f,
+            0.75f,
+            1.0f,
+            1.25f,
+            1.5f,
+            1.75f,
+            2.0f
+        )
+
+        val labels = speeds.map {
+            "${it}x"
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Play speed")
+            .setItems(labels) { _, which ->
+
+                val speed = speeds[which]
+
+                getSettingsPrefs()
+                    .edit()
+                    .putFloat(
+                        "playback_speed",
+                        speed
+                    )
+                    .apply()
+
+                applyPlaybackSpeed()
+
+                showSettings()
+            }
+            .show()
+    }
+
+    private fun toggleSetting(
+        key: String,
+        titleValue: String
+    ) {
+
+        val prefs = getSettingsPrefs()
+
+        val newValue =
+            !prefs.getBoolean(key, false)
+
+        prefs.edit()
+            .putBoolean(key, newValue)
+            .apply()
+
+        Toast.makeText(
+            this,
+            "$titleValue: ${if (newValue) "On" else "Off"}",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        showSettings()
+    }
+
+    private fun showQueueSettingsDialog() {
+
+        val prefs = getSettingsPrefs()
+
+        val duplicate =
+            prefs.getBoolean(
+                "no_duplicate_songs",
+                false
+            )
+
+        AlertDialog.Builder(this)
+            .setTitle("Queue settings")
+            .setMultiChoiceItems(
+                arrayOf(
+                    "Don't allow duplicate songs"
+                ),
+                booleanArrayOf(duplicate)
+            ) { _, _, checked ->
+
+                prefs.edit()
+                    .putBoolean(
+                        "no_duplicate_songs",
+                        checked
+                    )
+                    .apply()
+            }
+            .setPositiveButton("Done") { _, _ ->
+                showSettings()
+            }
+            .show()
+    }
+
+    private fun showManagePlaylistsDialog() {
+
+        AlertDialog.Builder(this)
+            .setTitle("Manage Playlists")
+            .setItems(
+                arrayOf(
+                    "Create playlist",
+                    "My playlists"
+                )
+            ) { _, which ->
+
+                when (which) {
+                    0 -> showCreatePlaylistDialog()
+                    1 ->
+                        Toast.makeText(
+                            this,
+                            "My playlists",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                }
+            }
+            .show()
+    }
+
+    private fun showManageTabsDialog() {
+
+        val prefs = getSettingsPrefs()
+
+        val items = arrayOf(
+            "Home",
+            "Library",
+            "Settings"
+        )
+
+        val checked = booleanArrayOf(
+            prefs.getBoolean(
+                "tab_home",
+                true
+            ),
+            prefs.getBoolean(
+                "tab_library",
+                true
+            ),
+            prefs.getBoolean(
+                "tab_settings",
+                true
+            )
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle("Manage tabs")
+            .setMultiChoiceItems(
+                items,
+                checked
+            ) { _, which, value ->
+
+                val key =
+                    when (which) {
+                        0 -> "tab_home"
+                        1 -> "tab_library"
+                        else -> "tab_settings"
+                    }
+
+                prefs.edit()
+                    .putBoolean(
+                        key,
+                        value
+                    )
+                    .apply()
+            }
+            .setPositiveButton(
+                "Done"
+            ) { _, _ ->
+                showSettings()
+            }
+            .show()
+    }
+
+    private fun toggleDarkMode() {
+
+        val prefs = getSettingsPrefs()
+
+        val enabled =
+            !prefs.getBoolean(
+                "dark_mode",
+                false
+            )
+
+        prefs.edit()
+            .putBoolean(
+                "dark_mode",
+                enabled
+            )
+            .apply()
+
+        Toast.makeText(
+            this,
+            if (enabled)
+                "Dark mode enabled"
+            else
+                "Dark mode disabled",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        showSettings()
+    }
+
+    private fun showPermissionsDialog() {
+
+        val audioPermission =
+            if (Build.VERSION.SDK_INT >= 33)
+                Manifest.permission.READ_MEDIA_AUDIO
+            else
+                Manifest.permission.READ_EXTERNAL_STORAGE
+
+        val audioGranted =
+            ContextCompat.checkSelfPermission(
+                this,
+                audioPermission
+            ) == PackageManager.PERMISSION_GRANTED
+
+        val notificationGranted =
+            if (Build.VERSION.SDK_INT >= 33) {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+
+        AlertDialog.Builder(this)
+            .setTitle("Permissions")
+            .setMessage(
+                "Music and audio: ${
+                    if (audioGranted)
+                        "Allowed"
+                    else
+                        "Not allowed"
+                }\n\nNotifications: ${
+                    if (notificationGranted)
+                        "Allowed"
+                    else
+                        "Not allowed"
+                }"
+            )
+            .setPositiveButton(
+                "Open system settings"
+            ) {
+                _, _ ->
+
+                val intent =
+                    android.content.Intent(
+                        android.provider.Settings
+                            .ACTION_APPLICATION_DETAILS_SETTINGS
+                    ).apply {
+                        data =
+                            Uri.parse(
+                                "package:$packageName"
+                            )
+                    }
+
+                startActivity(intent)
+            }
+            .setNegativeButton(
+                "Done",
+                null
+            )
+            .show()
+    }
+
+    private fun showAboutMusicDialog() {
+
+        AlertDialog.Builder(this)
+            .setTitle("About Music")
+            .setMessage(
+                "Music\n\n" +
+                "Version 1.0\n\n" +
+                "A simple music player for your local audio library."
+            )
+            .setPositiveButton(
+                "Done",
+                null
+            )
+            .show()
+    }
+
+    private fun applyPlaybackSpeed() {
+
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+
+            val speed =
+                getSettingsPrefs()
+                    .getFloat(
+                        "playback_speed",
+                        1.0f
+                    )
+
+            mediaPlayer?.let {
+                try {
+                    val params =
+                        it.playbackParams
+
+                    params.speed = speed
+
+                    it.playbackParams = params
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
     private fun addSetting(
         titleValue: String,
         value: String,
