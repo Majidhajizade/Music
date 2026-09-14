@@ -4445,100 +4445,65 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun createMiniExpansionCard() {
-
-        if (miniExpansionCard != null) {
-            return
-        }
-
-        if (!::miniPlayer.isInitialized) {
-            return
-        }
-
+        if (miniExpansionCard != null) return
+        if (!::miniPlayer.isInitialized) return
         val song = currentSong ?: return
 
-        val decor =
-            window.decorView as? ViewGroup
-                ?: return
+        val decor = window.decorView as? ViewGroup ?: return
 
-        val location =
-            IntArray(2)
+        val location = IntArray(2)
+        miniPlayer.getLocationOnScreen(location)
 
-        miniPlayer.getLocationOnScreen(
-            location
-        )
-
-        val decorLocation =
-            IntArray(2)
-
-        decor.getLocationOnScreen(
-            decorLocation
-        )
-
-        val left =
-            location[0] - decorLocation[0]
+        val decorLocation = IntArray(2)
+        decor.getLocationOnScreen(decorLocation)
 
         val top =
-            location[1] - decorLocation[1]
+            location[1] -
+                decorLocation[1]
 
-        val width =
-            miniPlayer.width
+        val screenWidth =
+            resources.displayMetrics.widthPixels
 
-        val height =
-            miniPlayer.height
+        val miniHeight =
+            miniPlayer.height.coerceAtLeast(dp(60))
 
-        val card =
-            FrameLayout(this).apply {
+        val card = FrameLayout(this).apply {
+            clipChildren = false
+            background = createMiniExpansionBackground(song)
+            elevation = dp(12).toFloat()
+        }
 
-                clipChildren = false
+        val cover = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            clipToOutline = true
 
-                background =
-                    createMiniExpansionBackground(
-                        song
-                    )
-
-                elevation =
-                    dp(12).toFloat()
-            }
-
-        val cover =
-            ImageView(this).apply {
-
-                scaleType =
-                    ImageView.ScaleType.CENTER_CROP
-
-                clipToOutline = true
-
-                outlineProvider =
-                    object : android.view.ViewOutlineProvider() {
-
-                        override fun getOutline(
-                            view: View,
-                            outline: android.graphics.Outline
-                        ) {
-
-                            outline.setRoundRect(
-                                0,
-                                0,
-                                view.width,
-                                view.height,
-                                dp(18).toFloat()
-                            )
-                        }
+            outlineProvider =
+                object : android.view.ViewOutlineProvider() {
+                    override fun getOutline(
+                        view: View,
+                        outline: android.graphics.Outline
+                    ) {
+                        outline.setRoundRect(
+                            0,
+                            0,
+                            view.width,
+                            view.height,
+                            dp(18).toFloat()
+                        )
                     }
-
-                getAlbumArt(song)?.let {
-                    setImageBitmap(it)
-                } ?: run {
-                    setImageResource(
-                        R.drawable.ic_music
-                    )
                 }
 
-                alpha = 0f
-                rotation = 110f
-                scaleX = 0.28f
-                scaleY = 0.28f
+            getAlbumArt(song)?.let {
+                setImageBitmap(it)
+            } ?: run {
+                setImageResource(R.drawable.ic_music)
             }
+
+            alpha = 1f
+            rotation = 0f
+            scaleX = 1f
+            scaleY = 1f
+        }
 
         val title =
             text(
@@ -4547,14 +4512,9 @@ class MainActivity : ComponentActivity() {
                 Color.WHITE,
                 Typeface.BOLD
             ).apply {
-
                 maxLines = 1
-
-                ellipsize =
-                    TextUtils.TruncateAt.END
-
+                ellipsize = TextUtils.TruncateAt.END
                 includeFontPadding = false
-
                 alpha = 0f
             }
 
@@ -4565,14 +4525,9 @@ class MainActivity : ComponentActivity() {
                 Color.WHITE,
                 Typeface.NORMAL
             ).apply {
-
                 maxLines = 1
-
-                ellipsize =
-                    TextUtils.TruncateAt.END
-
+                ellipsize = TextUtils.TruncateAt.END
                 includeFontPadding = false
-
                 alpha = 0f
             }
 
@@ -4591,18 +4546,10 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(28)
             ).apply {
-
-                gravity =
-                    Gravity.BOTTOM
-
-                leftMargin =
-                    dp(28)
-
-                rightMargin =
-                    dp(28)
-
-                bottomMargin =
-                    dp(34)
+                gravity = Gravity.BOTTOM
+                leftMargin = dp(28)
+                rightMargin = dp(28)
+                bottomMargin = dp(34)
             }
         )
 
@@ -4612,29 +4559,20 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(22)
             ).apply {
-
-                gravity =
-                    Gravity.BOTTOM
-
-                leftMargin =
-                    dp(28)
-
-                rightMargin =
-                    dp(28)
-
-                bottomMargin =
-                    dp(10)
+                gravity = Gravity.BOTTOM
+                leftMargin = dp(28)
+                rightMargin = dp(28)
+                bottomMargin = dp(10)
             }
         )
 
         decor.addView(
             card,
             FrameLayout.LayoutParams(
-                width,
-                height
+                screenWidth,
+                miniHeight
             ).apply {
-
-                leftMargin = left
+                leftMargin = 0
                 topMargin = top
             }
         )
@@ -4644,48 +4582,35 @@ class MainActivity : ComponentActivity() {
         miniExpansionTitle = title
         miniExpansionArtist = artist
 
-        /*
-         * Hide the original Mini Player while the expansion
-         * card follows the finger.
-         */
         miniPlayer.alpha = 0f
+
+        updateMiniExpansionCard(0f)
     }
+
 
     private fun updateMiniExpansionCard(
         dy: Float
     ) {
+        val card = miniExpansionCard ?: return
+        val cover = miniExpansionCover ?: return
+        val title = miniExpansionTitle ?: return
+        val artist = miniExpansionArtist ?: return
 
-        val card =
-            miniExpansionCard
-                ?: return
-
-        val cover =
-            miniExpansionCover
-                ?: return
-
-        val title =
-            miniExpansionTitle
-                ?: return
-
-        val artist =
-            miniExpansionArtist
-                ?: return
+        val screenWidth =
+            resources.displayMetrics.widthPixels
+                .toFloat()
 
         val screenHeight =
-            resources.displayMetrics
-                .heightPixels
+            resources.displayMetrics.heightPixels
                 .toFloat()
 
         val miniHeight =
-            miniPlayer.height
-                .coerceAtLeast(
-                    dp(60)
-                )
+            miniPlayer.height.coerceAtLeast(dp(60))
 
         val maxUp =
             (
                 screenHeight -
-                miniHeight
+                    miniHeight
             ).coerceAtLeast(1f)
 
         val upward =
@@ -4694,99 +4619,269 @@ class MainActivity : ComponentActivity() {
                 .coerceAtMost(maxUp)
 
         val progress =
-            (
-                upward / maxUp
-            ).coerceIn(0f, 1f)
+            (upward / maxUp)
+                .coerceIn(0f, 1f)
 
         val lp =
             card.layoutParams
                 as? FrameLayout.LayoutParams
                 ?: return
 
-        /*
-         * The bottom edge stays fixed.
-         * The card grows upward with the finger.
-         */
+        lp.width = screenWidth.toInt()
         lp.height =
             (
                 miniHeight +
-                upward
+                    upward
             ).toInt()
+
+        lp.leftMargin = 0
 
         lp.topMargin =
             (
                 miniPlayerTopInDecor() -
-                upward
+                    upward
             ).toInt()
 
         card.layoutParams = lp
 
-        /*
-         * Cover:
-         * starts tiny + 110 degrees,
-         * ends large + 0 degrees.
-         */
-        val maxCover =
-            (
-                resources.displayMetrics.widthPixels -
-                dp(48)
-            ).coerceAtLeast(
-                dp(46)
-            )
+        val miniLocation =
+            IntArray(2)
+
+        miniCover.getLocationOnScreen(
+            miniLocation
+        )
+
+        val miniCenterX =
+            miniLocation[0] +
+                miniCover.width / 2f
+
+        val miniCenterY =
+            miniLocation[1] +
+                miniCover.height / 2f
+
+        val targetCenterX =
+            screenWidth / 2f
+
+        val targetCenterY =
+            screenHeight / 2f
+
+        val desiredCenterX =
+            miniCenterX +
+                (
+                    targetCenterX -
+                        miniCenterX
+                ) * progress
+
+        val desiredCenterY =
+            miniCenterY +
+                (
+                    targetCenterY -
+                        miniCenterY
+                ) * progress
+
+        val cardTop =
+            lp.topMargin.toFloat()
+
+        val cardCenterX =
+            screenWidth / 2f
+
+        val cardCenterY =
+            cardTop +
+                lp.height / 2f
 
         val coverSize =
             (
                 dp(46) +
-                (
-                    maxCover -
-                    dp(46)
-                ) * progress
-            ).toInt()
+                    (
+                        screenWidth -
+                            dp(48) -
+                            dp(46)
+                    ) * progress
+            )
+                .toInt()
+                .coerceAtLeast(dp(46))
 
         val coverLp =
             cover.layoutParams
 
-        coverLp.width =
-            coverSize
+        coverLp.width = coverSize
+        coverLp.height = coverSize
+        cover.layoutParams = coverLp
 
-        coverLp.height =
-            coverSize
+        cover.translationX =
+            desiredCenterX -
+                cardCenterX
 
-        cover.layoutParams =
-            coverLp
+        cover.translationY =
+            desiredCenterY -
+                cardCenterY
 
-        cover.alpha =
-            (
-                progress * 1.25f
-            ).coerceIn(
-                0f,
-                1f
-            )
-
-        cover.rotation =
-            110f * (1f - progress)
-
+        cover.alpha = 1f
+        cover.rotation = 0f
         cover.scaleX = 1f
         cover.scaleY = 1f
 
         title.alpha =
             (
                 (progress - 0.18f) /
-                0.35f
-            ).coerceIn(
-                0f,
-                1f
+                    0.30f
             )
+                .coerceIn(0f, 1f)
 
         artist.alpha =
             (
                 (progress - 0.24f) /
-                0.35f
-            ).coerceIn(
-                0f,
-                0.68f
+                    0.30f
             )
+                .coerceIn(0f, 0.68f)
     }
+
+
+    private fun animateMiniExpansionTo(
+        targetProgress: Float,
+        duration: Long,
+        onEnd: (() -> Unit)? = null
+    ) {
+        val card = miniExpansionCard ?: return
+
+        val screenHeight =
+            resources.displayMetrics.heightPixels
+                .toFloat()
+
+        val miniHeight =
+            miniPlayer.height.coerceAtLeast(dp(60))
+
+        val maxUp =
+            (
+                screenHeight -
+                    miniHeight
+            ).coerceAtLeast(1f)
+
+        val current =
+            fullMiniExpansionProgress()
+
+        android.animation.ValueAnimator
+            .ofFloat(
+                current,
+                targetProgress
+            )
+            .apply {
+                this.duration = duration
+                interpolator =
+                    DecelerateInterpolator()
+
+                addUpdateListener { animator ->
+                    val progress =
+                        animator.animatedValue
+                            as Float
+
+                    updateMiniExpansionCard(
+                        -maxUp * progress
+                    )
+                }
+
+                addListener(
+                    object : android.animation.AnimatorListenerAdapter() {
+                        override fun onAnimationEnd(
+                            animation: android.animation.Animator
+                        ) {
+                            onEnd?.invoke()
+                        }
+                    }
+                )
+            }
+            .start()
+    }
+
+
+    private fun fullMiniExpansionProgress(): Float {
+        val card = miniExpansionCard
+            ?: return 0f
+
+        val screenHeight =
+            resources.displayMetrics.heightPixels
+                .toFloat()
+
+        val miniHeight =
+            miniPlayer.height.coerceAtLeast(dp(60))
+
+        val maxUp =
+            (
+                screenHeight -
+                    miniHeight
+            ).coerceAtLeast(1f)
+
+        val top =
+            (
+                card.layoutParams
+                    as? FrameLayout.LayoutParams
+            )?.topMargin
+                ?: miniPlayerTopInDecor().toInt()
+
+        val upward =
+            (
+                miniPlayerTopInDecor() -
+                    top
+            ).coerceAtLeast(0f)
+
+        return (
+            upward /
+                maxUp
+        )
+            .coerceIn(0f, 1f)
+    }
+
+
+    private fun completeMiniExpansion(
+        layout: LinearLayout
+    ) {
+        if (miniExpansionCard == null) return
+
+        animateMiniExpansionTo(
+            targetProgress = 1f,
+            duration = 360L
+        ) {
+            removeMiniExpansionCard()
+
+            layout.translationX = 0f
+            layout.translationY = 0f
+            layout.alpha = 1f
+
+            miniCover.rotation = 0f
+            miniCover.scaleX = 1f
+            miniCover.scaleY = 1f
+
+            if (currentSong != null) {
+                showNowPlaying()
+            }
+        }
+    }
+
+
+    private fun cancelMiniExpansion(
+        layout: LinearLayout
+    ) {
+        if (miniExpansionCard == null) {
+            miniPlayer.alpha = 1f
+            return
+        }
+
+        animateMiniExpansionTo(
+            targetProgress = 0f,
+            duration = 280L
+        ) {
+            removeMiniExpansionCard()
+
+            layout.translationX = 0f
+            layout.translationY = 0f
+            layout.alpha = 1f
+
+            miniCover.rotation = 0f
+            miniCover.scaleX = 1f
+            miniCover.scaleY = 1f
+        }
+    }
+
 
     private fun miniPlayerTopInDecor(): Float {
 
@@ -4876,154 +4971,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun completeMiniExpansion(
-        layout: LinearLayout
-    ) {
-
-        val card =
-            miniExpansionCard
-                ?: return
-
-        val cover =
-            miniExpansionCover
-                ?: return
-
-        val title =
-            miniExpansionTitle
-                ?: return
-
-        val artist =
-            miniExpansionArtist
-                ?: return
-
-        val decor =
-            window.decorView as? ViewGroup
-                ?: return
-
-        val screenWidth =
-            resources.displayMetrics
-                .widthPixels
-
-        val screenHeight =
-            resources.displayMetrics
-                .heightPixels
-
-        val lp =
-            card.layoutParams
-                as? FrameLayout.LayoutParams
-                ?: return
-
-        lp.leftMargin = 0
-        lp.topMargin = 0
-        lp.width = screenWidth
-        lp.height = screenHeight
-
-        card.layoutParams = lp
-
-        card.animate()
-            .alpha(1f)
-            .setDuration(430L)
-            .setInterpolator(
-                android.view.animation
-                    .DecelerateInterpolator()
-            )
-            .start()
-
-        val coverSize =
-            screenWidth -
-            dp(48)
-
-        val coverLp =
-            cover.layoutParams
-
-        coverLp.width =
-            coverSize
-
-        coverLp.height =
-            coverSize
-
-        cover.layoutParams =
-            coverLp
-
-        cover.animate()
-            .alpha(1f)
-            .rotation(0f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(430L)
-            .setInterpolator(
-                android.view.animation
-                    .DecelerateInterpolator()
-            )
-            .start()
-
-        title.animate()
-            .alpha(1f)
-            .setDuration(280L)
-            .start()
-
-        artist.animate()
-            .alpha(0.68f)
-            .setDuration(300L)
-            .start()
-
-        card.postDelayed({
-
-            removeMiniExpansionCard()
-
-            layout.translationX = 0f
-            layout.translationY = 0f
-            layout.alpha = 1f
-
-            miniCover.rotation = 0f
-            miniCover.scaleX = 1f
-            miniCover.scaleY = 1f
-
-            if (currentSong != null) {
-                showNowPlaying()
-            }
-
-        }, 430L)
-    }
-
-    private fun cancelMiniExpansion(
-        layout: LinearLayout
-    ) {
-
-        val card =
-            miniExpansionCard
-
-        if (card == null) {
-
-            layout.translationX = 0f
-            layout.translationY = 0f
-            layout.alpha = 1f
-
-            return
-        }
-
-        card.animate()
-            .alpha(0f)
-            .setDuration(220L)
-            .setInterpolator(
-                android.view.animation
-                    .DecelerateInterpolator()
-            )
-            .withEndAction {
-
-                removeMiniExpansionCard()
-
-                layout.translationX = 0f
-                layout.translationY = 0f
-                layout.alpha = 1f
-
-                miniCover.rotation = 0f
-                miniCover.scaleX = 1f
-                miniCover.scaleY = 1f
-            }
-            .start()
-    }
-
     private fun removeMiniExpansionCard() {
 
         miniExpansionCard?.let { card ->
@@ -5072,7 +5019,8 @@ class MainActivity : ComponentActivity() {
 
         playSong(
             next,
-            smoothMiniChange = true
+            smoothMiniChange = true,
+            miniTextDirection = 1
         )
     }
 
@@ -5103,35 +5051,54 @@ class MainActivity : ComponentActivity() {
 
         playSong(
             previous,
-            smoothMiniChange = true
+            smoothMiniChange = true,
+            miniTextDirection = -1
         )
     }
 
     private fun animateMiniSongTextChange(
-        song: Song
+        song: Song,
+        direction: Int
     ) {
+        val distance =
+            dp(22).toFloat()
+
+        val outX =
+            if (direction > 0) {
+                -distance
+            } else {
+                distance
+            }
+
+        val inX =
+            -outX
 
         miniTitle.animate().cancel()
         miniArtist.animate().cancel()
 
         miniTitle.animate()
             .alpha(0f)
-            .translationY(dp(3).toFloat())
-            .setDuration(120L)
+            .translationX(outX)
+            .setDuration(150L)
             .setInterpolator(
-                android.view.animation.DecelerateInterpolator()
+                DecelerateInterpolator()
             )
             .withEndAction {
 
-                miniTitle.text = song.title
-                miniTitle.translationY = -dp(3).toFloat()
+                miniTitle.text =
+                    song.title
+
+                miniTitle.translationX =
+                    inX
+
+                miniTitle.alpha = 0f
 
                 miniTitle.animate()
                     .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(230L)
+                    .translationX(0f)
+                    .setDuration(240L)
                     .setInterpolator(
-                        android.view.animation.DecelerateInterpolator()
+                        DecelerateInterpolator()
                     )
                     .start()
             }
@@ -5139,22 +5106,27 @@ class MainActivity : ComponentActivity() {
 
         miniArtist.animate()
             .alpha(0f)
-            .translationY(dp(3).toFloat())
-            .setDuration(120L)
+            .translationX(outX)
+            .setDuration(150L)
             .setInterpolator(
-                android.view.animation.DecelerateInterpolator()
+                DecelerateInterpolator()
             )
             .withEndAction {
 
-                miniArtist.text = song.artist
-                miniArtist.translationY = -dp(3).toFloat()
+                miniArtist.text =
+                    song.artist
+
+                miniArtist.translationX =
+                    inX
+
+                miniArtist.alpha = 0f
 
                 miniArtist.animate()
                     .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(230L)
+                    .translationX(0f)
+                    .setDuration(240L)
                     .setInterpolator(
-                        android.view.animation.DecelerateInterpolator()
+                        DecelerateInterpolator()
                     )
                     .start()
             }
@@ -5254,7 +5226,7 @@ class MainActivity : ComponentActivity() {
         val next = findAdjacentSong(current.id, true)
 
         if (next != null) {
-            playSong(next)
+            playSong(next, smoothMiniChange = true, miniTextDirection = 1)
         }
     }
 
@@ -5275,7 +5247,7 @@ class MainActivity : ComponentActivity() {
         val previous = findAdjacentSong(current.id, false)
 
         if (previous != null) {
-            playSong(previous)
+            playSong(previous, smoothMiniChange = true, miniTextDirection = -1)
         }
     }
 
@@ -8811,7 +8783,8 @@ class MainActivity : ComponentActivity() {
     private fun playSong(
         song: Song,
         startPosition: Int = 0,
-        smoothMiniChange: Boolean = false
+        smoothMiniChange: Boolean = false,
+        miniTextDirection: Int = 1
     ) {
 
         mediaPlayer?.release()
@@ -8897,7 +8870,7 @@ class MainActivity : ComponentActivity() {
             }
 
         if (smoothMiniChange) {
-            animateMiniSongTextChange(song)
+            animateMiniSongTextChange(song, miniTextDirection)
 
             getAlbumArt(song)?.let {
                 miniCover.setImageBitmap(it)
