@@ -4507,11 +4507,11 @@ class MainActivity : ComponentActivity() {
                 clipToOutline = true
 
                 outlineProvider =
-                    object : ViewOutlineProvider() {
+                    object : android.view.ViewOutlineProvider() {
 
                         override fun getOutline(
                             view: View,
-                            outline: Outline
+                            outline: android.graphics.Outline
                         ) {
 
                             outline.setRoundRect(
