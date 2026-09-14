@@ -1429,7 +1429,7 @@ class MainActivity : ComponentActivity() {
             )
 
             background = GradientDrawable().apply {
-                cornerRadius = dp(18).toFloat()
+                cornerRadius = dp(22).toFloat()
                 setColor(Color.rgb(232, 232, 232))
             }
         }
@@ -2165,8 +2165,8 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(32)
             ).apply {
-                topMargin = dp(12)
-                leftMargin = dp(4)
+                topMargin = dp(18)
+                leftMargin = dp(8)
                 rightMargin = dp(4)
             }
         )
@@ -2238,6 +2238,7 @@ class MainActivity : ComponentActivity() {
             ).apply {
                 includeFontPadding = false
                 maxLines = 2
+                setSingleLine(false)
             }
 
             names.addView(
@@ -2342,8 +2343,8 @@ class MainActivity : ComponentActivity() {
                                     intArrayOf(-android.R.attr.state_checked)
                                 ),
                                 intArrayOf(
-                                    Color.BLACK,
-                                    Color.rgb(90, 90, 90)
+                                    Color.rgb(42, 118, 224),
+                                    Color.rgb(185, 185, 185)
                                 )
                             )
 
@@ -2400,7 +2401,10 @@ class MainActivity : ComponentActivity() {
 
                 rightSide.addView(
                     text(
-                        setting.value,
+                        if (
+                            setting.title == "Skip silence between tracks" ||
+                            setting.title == "Control music from lock screen"
+                        ) "" else setting.value,
                         13.5f,
                         Color.BLACK,
                         Typeface.NORMAL
@@ -3167,7 +3171,8 @@ class MainActivity : ComponentActivity() {
             textSize = 16f
             setTextColor(Color.BLACK)
             typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            includeFontPadding = false
         }
 
         container.addView(
@@ -3183,6 +3188,7 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.rgb(70, 70, 70))
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
+            includeFontPadding = false
         }
 
         container.addView(
@@ -3195,8 +3201,8 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        val blue = Color.rgb(74, 144, 226)
-        val lightGray = Color.rgb(238, 238, 238)
+        val blue = Color.rgb(42, 118, 224)
+        val lightGray = Color.rgb(232, 232, 232)
 
         val seekBar = object : SeekBar(this) {
 
@@ -3390,20 +3396,30 @@ class MainActivity : ComponentActivity() {
                     override fun onStartTrackingTouch(
                         seekBar: SeekBar?
                     ) {
+                        seekBar?.animate()?.cancel()
+
                         seekBar?.animate()
-                            ?.scaleX(1.08f)
-                            ?.scaleY(1.08f)
-                            ?.setDuration(120)
+                            ?.scaleX(1.10f)
+                            ?.scaleY(1.10f)
+                            ?.setDuration(140)
+                            ?.setInterpolator(
+                                android.view.animation.DecelerateInterpolator()
+                            )
                             ?.start()
                     }
 
                     override fun onStopTrackingTouch(
                         seekBar: SeekBar?
                     ) {
+                        seekBar?.animate()?.cancel()
+
                         seekBar?.animate()
                             ?.scaleX(1f)
                             ?.scaleY(1f)
-                            ?.setDuration(120)
+                            ?.setDuration(280)
+                            ?.setInterpolator(
+                                android.view.animation.DecelerateInterpolator()
+                            )
                             ?.start()
                     }
                 }
@@ -3414,10 +3430,12 @@ class MainActivity : ComponentActivity() {
             seekBar,
 
             LinearLayout.LayoutParams(
-                -1,
-                dp(20)
+                0,
+                dp(20),
+                0.82f
             ).apply {
                 topMargin = dp(5)
+                gravity = Gravity.CENTER_HORIZONTAL
             }
         )
 
