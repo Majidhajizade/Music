@@ -6770,6 +6770,10 @@ class MainActivity : ComponentActivity() {
 
                 window.setDecorFitsSystemWindows(false)
 
+                window.insetsController?.show(
+                    android.view.WindowInsets.Type.statusBars()
+                )
+
                 window.insetsController?.setSystemBarsAppearance(
                     0,
                     android.view.WindowInsetsController
