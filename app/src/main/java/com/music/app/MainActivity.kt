@@ -1541,7 +1541,13 @@ class MainActivity : ComponentActivity() {
             if (songs.isNotEmpty()) {
 
                 playbackQueue =
-                    songs.toMutableList()
+                    if (isDuplicateSongsBlocked()) {
+                        songs
+                            .distinctBy { it.id }
+                            .toMutableList()
+                    } else {
+                        songs.toMutableList()
+                    }
 
                 playbackIndex = 0
 
@@ -1558,7 +1564,16 @@ class MainActivity : ComponentActivity() {
             if (songs.isNotEmpty()) {
 
                 playbackQueue =
-                    songs.shuffled().toMutableList()
+                    if (isDuplicateSongsBlocked()) {
+                        songs
+                            .distinctBy { it.id }
+                            .shuffled()
+                            .toMutableList()
+                    } else {
+                        songs
+                            .shuffled()
+                            .toMutableList()
+                    }
 
                 playbackIndex = 0
 
@@ -1881,8 +1896,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showSettings() {
+
         content.removeAllViews()
-        content.setPadding(dp(18), dp(24), dp(18), dp(30))
+        content.setPadding(
+            dp(18),
+            dp(24),
+            dp(18),
+            dp(30)
+        )
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
@@ -1892,313 +1913,807 @@ class MainActivity : ComponentActivity() {
 
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, dp(24))
-        }
-
-        val title = text(
-            "Settings",
-            34f,
-            Color.rgb(15, 15, 15),
-            Typeface.BOLD
-        ).apply {
-            includeFontPadding = false
+            setPadding(0, 0, 0, dp(30))
         }
 
         page.addView(
-            title,
-            LinearLayout.LayoutParams(-1, dp(48)).apply {
-                bottomMargin = dp(18)
-            }
-        )
-
-        // ---------- ACCOUNT ----------
-        val account = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(14), dp(14), dp(14))
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.rgb(247, 247, 249))
-                cornerRadius = dp(18).toFloat()
-            }
-            elevation = dp(1).toFloat()
-
-            setOnClickListener {
-                showProfileDialog()
-            }
-        }
-
-        val accountIcon = TextView(this).apply {
-            text = "●"
-            textSize = 30f
-            gravity = Gravity.CENTER
-            setTextColor(Color.rgb(90, 90, 95))
-        }
-
-        account.addView(
-            accountIcon,
-            LinearLayout.LayoutParams(dp(48), dp(48)).apply {
-                rightMargin = dp(12)
-            }
-        )
-
-        val accountTexts = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        accountTexts.addView(
             text(
-                "Music",
-                17f,
-                Color.rgb(20, 20, 22),
+                "Settings",
+                34f,
+                Color.rgb(15, 15, 15),
                 Typeface.BOLD
-            )
-        )
-
-        accountTexts.addView(
-            text(
-                "Apple Music style player",
-                13f,
-                Color.rgb(120, 120, 125),
-                Typeface.NORMAL
             ).apply {
-                setPadding(0, dp(3), 0, 0)
-            }
-        )
-
-        account.addView(
-            accountTexts,
-            LinearLayout.LayoutParams(0, -2, 1f)
-        )
-
-        account.addView(
-            TextView(this).apply {
-                text = "›"
-                textSize = 28f
-                setTextColor(Color.rgb(155, 155, 160))
-                gravity = Gravity.CENTER
+                includeFontPadding = false
             },
-            LinearLayout.LayoutParams(dp(28), dp(48))
-        )
-
-        page.addView(
-            account,
-            LinearLayout.LayoutParams(-1, dp(76)).apply {
-                bottomMargin = dp(28)
+            LinearLayout.LayoutParams(-1, dp(48)).apply {
+                bottomMargin = dp(24)
             }
         )
 
         // ---------- PLAYBACK ----------
-        addSettingsSectionTo(page, "PLAYBACK")
 
-        addAppleSettingTo(
+        addModernSettingsSection(
             page,
-            "♫",
-            "Audio Quality",
-            "High"
-        ) {
-            showChoiceDialog(
-                "Audio Quality",
-                arrayOf("High", "Lossless", "Automatic")
+            "Playback"
+        )
+
+        addModernSettingsCard(
+            page,
+            listOf(
+                ModernSetting(
+                    "Sleep timer",
+                    getSleepTimerLabel()
+                ) {
+                    showSleepTimerDialog()
+                },
+                ModernSetting(
+                    "Play speed",
+                    getPlaybackSpeedLabel()
+                ) {
+                    showPlaybackSpeedDialog()
+                },
+                ModernSetting(
+                    "Cross fade",
+                    if (getSettingsPrefs().getBoolean(
+                            "cross_fade",
+                            false
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "cross_fade",
+                        "Cross fade"
+                    )
+                },
+                ModernSetting(
+                    "Skip silence between tracks",
+                    if (getSettingsPrefs().getBoolean(
+                            "skip_silence",
+                            false
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "skip_silence",
+                        "Skip silence between tracks"
+                    )
+                },
+                ModernSetting(
+                    "Control music from lock screen",
+                    if (getSettingsPrefs().getBoolean(
+                            "lock_screen_controls",
+                            true
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "lock_screen_controls",
+                        "Control music from lock screen"
+                    )
+                }
             )
-        }
+        )
 
-        addAppleSettingTo(
+        // ---------- PLAYLIST ----------
+
+        addModernSettingsSection(
             page,
-            "∞",
-            "Gapless Playback",
-            "On"
-        ) {
-            Toast.makeText(this, "Gapless Playback", Toast.LENGTH_SHORT).show()
-        }
+            "Playlist"
+        )
 
-        addAppleSettingTo(
+        addModernSettingsCard(
             page,
-            "◉",
-            "Normalize Volume",
-            "On"
-        ) {
-            Toast.makeText(this, "Normalize Volume", Toast.LENGTH_SHORT).show()
-        }
-
-        // ---------- APPEARANCE ----------
-        addSettingsSectionTo(page, "APPEARANCE")
-
-        addAppleSettingTo(
-            page,
-            "☼",
-            "Theme",
-            "System"
-        ) {
-            showChoiceDialog(
-                "Theme",
-                arrayOf("System", "Light", "Dark")
+            listOf(
+                ModernSetting(
+                    "Queue settings",
+                    "Playback queue"
+                ) {
+                    showQueueSettingsDialog()
+                },
+                ModernSetting(
+                    "Don't allow duplicate songs",
+                    if (getSettingsPrefs().getBoolean(
+                            "no_duplicate_songs",
+                            false
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "no_duplicate_songs",
+                        "Don't allow duplicate songs"
+                    )
+                },
+                ModernSetting(
+                    "Manage Playlists",
+                    "Create and manage playlists"
+                ) {
+                    showManagePlaylistsDialog()
+                }
             )
-        }
+        )
 
-        // ---------- LIBRARY ----------
-        addSettingsSectionTo(page, "LIBRARY")
+        // ---------- GENERAL ----------
 
-        addAppleSettingTo(
+        addModernSettingsSection(
             page,
-            "LIBRARY_ICON",
-            "Music Library",
-            "${songs.size} Songs"
-        ) {
-            showLibrary()
-        }
+            "General"
+        )
 
-        addAppleSettingTo(
+        addModernSettingsCard(
             page,
-            "↻",
-            "Recently Played",
-            "On"
-        ) {
-            Toast.makeText(this, "Recently Played", Toast.LENGTH_SHORT).show()
-        }
+            listOf(
+                ModernSetting(
+                    "Manage tabs",
+                    "Home, Library, Settings"
+                ) {
+                    showManageTabsDialog()
+                },
+                ModernSetting(
+                    "Dark mode",
+                    if (getSettingsPrefs().getBoolean(
+                            "dark_mode",
+                            false
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleDarkMode()
+                },
+                ModernSetting(
+                    "Allow external device to start playback",
+                    if (getSettingsPrefs().getBoolean(
+                            "external_playback",
+                            true
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "external_playback",
+                        "Allow external device to start playback"
+                    )
+                }
+            )
+        )
+
+        // ---------- PRIVACY ----------
+
+        addModernSettingsSection(
+            page,
+            "Privacy"
+        )
+
+        addModernSettingsCard(
+            page,
+            listOf(
+                ModernSetting(
+                    "Permissions",
+                    "Music and notifications"
+                ) {
+                    showPermissionsDialog()
+                }
+            )
+        )
 
         // ---------- ABOUT ----------
-        addSettingsSectionTo(page, "ABOUT")
 
-        addAppleSettingTo(
+        addModernSettingsSection(
             page,
-            "ⓘ",
-            "About Music",
-            "Version 1.0"
-        ) {
-            AlertDialog.Builder(this)
-                .setTitle("Music")
-                .setMessage("Apple Music inspired music player.")
-                .setPositiveButton("Done", null)
-                .show()
-        }
+            "About Music"
+        )
+
+        addModernSettingsCard(
+            page,
+            listOf(
+                ModernSetting(
+                    "About Music",
+                    "Version 1.0"
+                ) {
+                    showAboutMusicDialog()
+                }
+            )
+        )
 
         scroll.addView(
             page,
-            android.view.ViewGroup.LayoutParams(-1, -2)
+            ViewGroup.LayoutParams(-1, -2)
         )
 
         content.addView(
             scroll,
-            LinearLayout.LayoutParams(-1, 0, 1f)
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
         )
     }
 
-    private fun addSettingsSectionTo(
+    private data class ModernSetting(
+        val title: String,
+        val value: String,
+        val action: () -> Unit
+    )
+
+    private fun getSettingsPrefs() =
+        getSharedPreferences(
+            "music_settings",
+            MODE_PRIVATE
+        )
+
+    private fun addModernSettingsSection(
         parent: LinearLayout,
         titleValue: String
     ) {
-        val section = TextView(this).apply {
-            text = titleValue
-            textSize = 12f
-            typeface = Typeface.create(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-            )
-            setTextColor(Color.rgb(125, 125, 130))
-            letterSpacing = 0.08f
-            includeFontPadding = false
-            setPadding(dp(4), 0, 0, dp(8))
-        }
 
         parent.addView(
-            section,
-            LinearLayout.LayoutParams(-1, dp(28)).apply {
+            text(
+                titleValue,
+                18f,
+                Color.rgb(25, 25, 27),
+                Typeface.BOLD
+            ).apply {
+                includeFontPadding = false
+                setPadding(
+                    dp(4),
+                    dp(8),
+                    dp(4),
+                    dp(12)
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(48)
+            ).apply {
                 topMargin = dp(8)
             }
         )
     }
 
-    private fun addAppleSettingTo(
+    private fun addModernSettingsCard(
         parent: LinearLayout,
-        iconValue: String,
-        titleValue: String,
-        value: String,
-        action: () -> Unit
+        settings: List<ModernSetting>
     ) {
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), 0, dp(12), 0)
 
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.rgb(248, 248, 250))
-                cornerRadius = dp(14).toFloat()
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    setColor(Color.WHITE)
+                    cornerRadius = dp(18).toFloat()
+                    setStroke(
+                        dp(1),
+                        Color.rgb(232, 232, 235)
+                    )
+                }
+            elevation = dp(1).toFloat()
+            clipToOutline = true
+        }
+
+        settings.forEachIndexed { index, setting ->
+
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(
+                    dp(18),
+                    dp(14),
+                    dp(14),
+                    dp(14)
+                )
+
+                setOnClickListener {
+                    setting.action()
+                }
             }
 
-            isClickable = true
-            isFocusable = true
-            setOnClickListener {
-                action()
+            val names = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            names.addView(
+                text(
+                    setting.title,
+                    16f,
+                    Color.rgb(25, 25, 27),
+                    Typeface.NORMAL
+                ).apply {
+                    includeFontPadding = false
+                }
+            )
+
+            names.addView(
+                text(
+                    setting.value,
+                    13f,
+                    Color.rgb(125, 125, 130),
+                    Typeface.NORMAL
+                ).apply {
+                    includeFontPadding = false
+                    setPadding(0, dp(4), 0, 0)
+                }
+            )
+
+            row.addView(
+                names,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(58),
+                    1f
+                )
+            )
+
+            row.addView(
+                text(
+                    "›",
+                    27f,
+                    Color.rgb(165, 165, 170),
+                    Typeface.NORMAL
+                ).apply {
+                    gravity = Gravity.CENTER
+                    includeFontPadding = false
+                },
+                LinearLayout.LayoutParams(
+                    dp(26),
+                    dp(58)
+                )
+            )
+
+            card.addView(
+                row,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(72)
+                )
+            )
+
+            if (index < settings.lastIndex) {
+                card.addView(
+                    View(this).apply {
+                        setBackgroundColor(
+                            Color.rgb(238, 238, 240)
+                        )
+                    },
+                    LinearLayout.LayoutParams(
+                        -1,
+                        dp(1)
+                    ).apply {
+                        leftMargin = dp(18)
+                        rightMargin = dp(18)
+                    }
+                )
             }
         }
 
-        val icon = if (iconValue == "LIBRARY_ICON") {
-            ImageView(this).apply {
-                setImageResource(R.drawable.ic_library)
-                scaleType = ImageView.ScaleType.CENTER
-            }
-        } else {
-            TextView(this).apply {
-                text = iconValue
-                textSize = 21f
-                gravity = Gravity.CENTER
-                setTextColor(Color.rgb(45, 45, 48))
-            }
-        }
-
-        row.addView(
-            icon,
-            LinearLayout.LayoutParams(dp(38), dp(52)).apply {
-                rightMargin = dp(10)
+        parent.addView(
+            card,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            ).apply {
+                bottomMargin = dp(22)
             }
         )
+    }
 
-        val texts = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
+    private fun toggleSetting(
+        key: String,
+        titleValue: String
+    ) {
+
+        val prefs = getSettingsPrefs()
+
+        val newValue =
+            !prefs.getBoolean(key, false)
+
+        prefs.edit()
+            .putBoolean(key, newValue)
+            .apply()
+
+        Toast.makeText(
+            this,
+            "$titleValue: ${if (newValue) "On" else "Off"}",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        showSettings()
+    }
+
+    private fun getSleepTimerLabel(): String {
+
+        val minutes =
+            getSettingsPrefs()
+                .getInt("sleep_timer_minutes", 0)
+
+        return if (minutes <= 0)
+            "Off"
+        else
+            "$minutes min"
+    }
+
+    private fun showSleepTimerDialog() {
+
+        val options = arrayOf(
+            "Off",
+            "15 minutes",
+            "30 minutes",
+            "45 minutes",
+            "60 minutes",
+            "90 minutes"
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle("Sleep timer")
+            .setItems(options) { _, which ->
+
+                val minutes =
+                    when (which) {
+                        1 -> 15
+                        2 -> 30
+                        3 -> 45
+                        4 -> 60
+                        5 -> 90
+                        else -> 0
+                    }
+
+                getSettingsPrefs()
+                    .edit()
+                    .putInt(
+                        "sleep_timer_minutes",
+                        minutes
+                    )
+                    .apply()
+
+                Toast.makeText(
+                    this,
+                    if (minutes == 0)
+                        "Sleep timer off"
+                    else
+                        "Sleep timer: $minutes minutes",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                if (minutes > 0) {
+                    android.os.Handler(
+                        android.os.Looper.getMainLooper()
+                    ).postDelayed(
+                        {
+                            mediaPlayer?.pause()
+                        },
+                        minutes * 60L * 1000L
+                    )
+                }
+
+                showSettings()
+            }
+            .show()
+    }
+
+    private fun getPlaybackSpeedLabel(): String {
+
+        val speed =
+            getSettingsPrefs()
+                .getFloat(
+                    "playback_speed",
+                    1.0f
+                )
+
+        return "${speed}x"
+    }
+
+    private fun showPlaybackSpeedDialog() {
+
+        val speeds = arrayOf(
+            0.5f,
+            0.75f,
+            1.0f,
+            1.25f,
+            1.5f,
+            1.75f,
+            2.0f
+        )
+
+        val labels = speeds.map {
+            "${it}x"
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Play speed")
+            .setItems(labels) { _, which ->
+
+                val speed = speeds[which]
+
+                getSettingsPrefs()
+                    .edit()
+                    .putFloat(
+                        "playback_speed",
+                        speed
+                    )
+                    .apply()
+
+                applyPlaybackSpeed()
+
+                showSettings()
+            }
+            .show()
+    }
+
+    private fun applyPlaybackSpeed() {
+
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+
+            val speed =
+                getSettingsPrefs()
+                    .getFloat(
+                        "playback_speed",
+                        1.0f
+                    )
+
+            mediaPlayer?.let {
+                try {
+                    val params =
+                        it.playbackParams
+
+                    params.speed = speed
+
+                    it.playbackParams = params
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    private fun showQueueSettingsDialog() {
+
+        val prefs = getSettingsPrefs()
+
+        val duplicate =
+            prefs.getBoolean(
+                "no_duplicate_songs",
+                false
+            )
+
+        AlertDialog.Builder(this)
+            .setTitle("Queue settings")
+            .setMultiChoiceItems(
+                arrayOf(
+                    "Don't allow duplicate songs"
+                ),
+                booleanArrayOf(duplicate)
+            ) { _, _, checked ->
+
+                prefs.edit()
+                    .putBoolean(
+                        "no_duplicate_songs",
+                        checked
+                    )
+                    .apply()
+            }
+            .setPositiveButton("Done") { _, _ ->
+                showSettings()
+            }
+            .show()
+    }
+
+    private fun showManagePlaylistsDialog() {
+
+        AlertDialog.Builder(this)
+            .setTitle("Manage Playlists")
+            .setItems(
+                arrayOf(
+                    "Create playlist",
+                    "My playlists"
+                )
+            ) { _, which ->
+
+                when (which) {
+                    0 -> showCreatePlaylistDialog()
+                    1 ->
+                        Toast.makeText(
+                            this,
+                            "My playlists",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                }
+            }
+            .show()
+    }
+
+    private fun showCreatePlaylistDialog() {
+
+        val input = EditText(this).apply {
+            hint = "Playlist name"
+            setSingleLine(true)
         }
 
-        texts.addView(
-            text(
-                titleValue,
-                16f,
-                Color.rgb(25, 25, 27),
-                Typeface.NORMAL
+        AlertDialog.Builder(this)
+            .setTitle("Create playlist")
+            .setView(input)
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "Create"
+            ) { _, _ ->
+
+                val name =
+                    input.text
+                        .toString()
+                        .trim()
+
+                if (name.isNotEmpty()) {
+
+                    Toast.makeText(
+                        this,
+                        "Playlist \"$name\" created",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .show()
+    }
+
+    private fun showManageTabsDialog() {
+
+        val prefs = getSettingsPrefs()
+
+        val items = arrayOf(
+            "Home",
+            "Library",
+            "Settings"
+        )
+
+        val checked = booleanArrayOf(
+            prefs.getBoolean(
+                "tab_home",
+                true
+            ),
+            prefs.getBoolean(
+                "tab_library",
+                true
+            ),
+            prefs.getBoolean(
+                "tab_settings",
+                true
             )
         )
 
-        texts.addView(
-            text(
-                value,
-                12f,
-                Color.rgb(135, 135, 140),
-                Typeface.NORMAL
-            ).apply {
-                setPadding(0, dp(2), 0, 0)
+        AlertDialog.Builder(this)
+            .setTitle("Manage tabs")
+            .setMultiChoiceItems(
+                items,
+                checked
+            ) { _, which, value ->
+
+                val key =
+                    when (which) {
+                        0 -> "tab_home"
+                        1 -> "tab_library"
+                        else -> "tab_settings"
+                    }
+
+                prefs.edit()
+                    .putBoolean(
+                        key,
+                        value
+                    )
+                    .apply()
             }
-        )
-
-        row.addView(
-            texts,
-            LinearLayout.LayoutParams(0, dp(58), 1f)
-        )
-
-        row.addView(
-            TextView(this).apply {
-                text = "›"
-                textSize = 25f
-                gravity = Gravity.CENTER
-                setTextColor(Color.rgb(165, 165, 170))
-            },
-            LinearLayout.LayoutParams(dp(24), dp(58))
-        )
-
-        parent.addView(
-            row,
-            LinearLayout.LayoutParams(-1, dp(58)).apply {
-                bottomMargin = dp(8)
+            .setPositiveButton(
+                "Done"
+            ) { _, _ ->
+                showSettings()
             }
-        )
+            .show()
+    }
+
+    private fun toggleDarkMode() {
+
+        val prefs = getSettingsPrefs()
+
+        val enabled =
+            !prefs.getBoolean(
+                "dark_mode",
+                false
+            )
+
+        prefs.edit()
+            .putBoolean(
+                "dark_mode",
+                enabled
+            )
+            .apply()
+
+        Toast.makeText(
+            this,
+            if (enabled)
+                "Dark mode enabled"
+            else
+                "Dark mode disabled",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        showSettings()
+    }
+
+    private fun showPermissionsDialog() {
+
+        val audioPermission =
+            if (Build.VERSION.SDK_INT >= 33)
+                Manifest.permission.READ_MEDIA_AUDIO
+            else
+                Manifest.permission.READ_EXTERNAL_STORAGE
+
+        val audioGranted =
+            ContextCompat.checkSelfPermission(
+                this,
+                audioPermission
+            ) == PackageManager.PERMISSION_GRANTED
+
+        val notificationGranted =
+            if (Build.VERSION.SDK_INT >= 33) {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+
+        AlertDialog.Builder(this)
+            .setTitle("Permissions")
+            .setMessage(
+                "Music and audio: ${
+                    if (audioGranted)
+                        "Allowed"
+                    else
+                        "Not allowed"
+                }\n\nNotifications: ${
+                    if (notificationGranted)
+                        "Allowed"
+                    else
+                        "Not allowed"
+                }"
+            )
+            .setPositiveButton(
+                "Open system settings"
+            ) {
+                _, _ ->
+
+                val intent =
+                    android.content.Intent(
+                        android.provider.Settings
+                            .ACTION_APPLICATION_DETAILS_SETTINGS
+                    ).apply {
+                        data =
+                            Uri.parse(
+                                "package:$packageName"
+                            )
+                    }
+
+                startActivity(intent)
+            }
+            .setNegativeButton(
+                "Done",
+                null
+            )
+            .show()
+    }
+
+    private fun showAboutMusicDialog() {
+
+        AlertDialog.Builder(this)
+            .setTitle("About Music")
+            .setMessage(
+                "Music\n\n" +
+                "Version 1.0\n\n" +
+                "A simple music player for your local audio library."
+            )
+            .setPositiveButton(
+                "Done",
+                null
+            )
+            .show()
     }
 
     private fun addSettingsSection(
@@ -2638,6 +3153,24 @@ class MainActivity : ComponentActivity() {
 
     private fun createBottomNavigation(): LinearLayout {
 
+        val prefs = getSettingsPrefs()
+
+        val showHome =
+            prefs.getBoolean("tab_home", true)
+
+        val showLibrary =
+            prefs.getBoolean("tab_library", true)
+
+        val showSettings =
+            prefs.getBoolean("tab_settings", true)
+
+        val enabledCount =
+            listOf(
+                showHome,
+                showLibrary,
+                showSettings
+            ).count { it }
+
         val nav = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -2645,20 +3178,68 @@ class MainActivity : ComponentActivity() {
             setBackgroundColor(Color.WHITE)
         }
 
-        nav.addView(
-            navItem("⌂", "Home") { showHome() },
-            LinearLayout.LayoutParams(0, dp(64), 1f)
-        )
+        /*
+         * Settings is always kept accessible.
+         * This prevents the user from hiding every navigation
+         * destination and getting stuck in the app.
+         */
+        val finalShowSettings =
+            showSettings || enabledCount == 0
 
-        nav.addView(
-            navItem("♫", "Library") { showLibrary() },
-            LinearLayout.LayoutParams(0, dp(64), 1f)
-        )
+        val items = mutableListOf<Pair<String, () -> Unit>>()
 
-        nav.addView(
-            navItem("⚙", "Settings") { showSettings() },
-            LinearLayout.LayoutParams(0, dp(64), 1f)
-        )
+        if (showHome) {
+            items.add(
+                "Home" to {
+                    showHome()
+                }
+            )
+        }
+
+        if (showLibrary) {
+            items.add(
+                "Library" to {
+                    showLibrary()
+                }
+            )
+        }
+
+        if (finalShowSettings) {
+            items.add(
+                "Settings" to {
+                    showSettings()
+                }
+            )
+        }
+
+        val weight =
+            1f / items.size.coerceAtLeast(1)
+
+        items.forEach { item ->
+
+            val label = item.first
+            val action = item.second
+
+            val icon =
+                when (label) {
+                    "Home" -> "⌂"
+                    "Library" -> "♫"
+                    else -> "⚙"
+                }
+
+            nav.addView(
+                navItem(
+                    icon,
+                    label,
+                    action
+                ),
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(64),
+                    weight
+                )
+            )
+        }
 
         return nav
     }
@@ -5160,6 +5741,39 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun isDuplicateSongsBlocked(): Boolean {
+
+        return getSettingsPrefs()
+            .getBoolean(
+                "no_duplicate_songs",
+                false
+            )
+    }
+
+    private fun addSongToPlaybackQueue(
+        song: Song
+    ): Boolean {
+
+        if (
+            isDuplicateSongsBlocked() &&
+            playbackQueue.any {
+                it.id == song.id
+            }
+        ) {
+            Toast.makeText(
+                this,
+                "Song is already in the queue",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return false
+        }
+
+        playbackQueue.add(song)
+
+        return true
+    }
+
     private fun playSong(song: Song) {
 
         mediaPlayer?.release()
@@ -5193,6 +5807,9 @@ class MainActivity : ComponentActivity() {
                 )
 
                 prepare()
+
+                applyPlaybackSpeed()
+
                 start()
 
                 setOnCompletionListener {
