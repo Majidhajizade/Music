@@ -5043,7 +5043,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        info.translationY = -dp(10).toFloat()
+        info.translationY = 0f
 
         bottomPanel.addView(
             info,
@@ -5154,7 +5154,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        seekBar.translationY = -dp(16).toFloat()
+        seekBar.translationY = -dp(6).toFloat()
 
         bottomPanel.addView(
             seekBar,
@@ -5496,7 +5496,7 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = -dp(19).toFloat()
+        controls.translationY = -dp(10).toFloat()
 
         bottomPanel.addView(
             controls,
@@ -5792,9 +5792,19 @@ class MainActivity : ComponentActivity() {
                         queuePanel.visibility = View.GONE
 
                         cover.animate()
-                            .alpha(1f)
-                            .scaleX(1f)
-                            .scaleY(1f)
+                    .alpha(1f)
+                    .scaleX(
+                        if (mediaPlayer?.isPlaying == true)
+                            coverPlayingScale
+                        else
+                            coverStoppedScale
+                    )
+                    .scaleY(
+                        if (mediaPlayer?.isPlaying == true)
+                            coverPlayingScale
+                        else
+                            coverStoppedScale
+                    )
                             .setDuration(220L)
                             .start()
                     }
