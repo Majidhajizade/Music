@@ -2194,7 +2194,7 @@ class MainActivity : ComponentActivity() {
 
             if (setting.title == "Play speed") {
                 addPlaybackSliderCard(
-                    content,
+                    card,
                     "Play speed",
                     getPlaybackSpeedValue()
                 )
@@ -2203,7 +2203,7 @@ class MainActivity : ComponentActivity() {
 
             if (setting.title == "Cross fade") {
                 addPlaybackSliderCard(
-                    content,
+                    card,
                     "Cross fade",
                     getCrossFadeValue()
                 )
@@ -3152,18 +3152,14 @@ class MainActivity : ComponentActivity() {
         title: String,
         currentValue: Number
     ) {
-        val card = LinearLayout(this).apply {
+        val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(
                 dp(18),
-                dp(16),
+                dp(14),
                 dp(18),
-                dp(16)
+                dp(14)
             )
-            background = GradientDrawable().apply {
-                setColor(Color.WHITE)
-                cornerRadius = dp(16).toFloat()
-            }
         }
 
         val header = LinearLayout(this).apply {
@@ -3202,7 +3198,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        card.addView(header)
+        container.addView(header)
 
         val seekBar = SeekBar(this).apply {
 
@@ -3214,7 +3210,8 @@ class MainActivity : ComponentActivity() {
                     .toFloat()
                     .coerceIn(0.5f, 2.0f)
 
-                progress = ((speed - 0.5f) * 10f).roundToInt()
+                progress =
+                    ((speed - 0.5f) * 10f).roundToInt()
 
                 valueText.text = String.format(
                     java.util.Locale.US,
@@ -3265,7 +3262,6 @@ class MainActivity : ComponentActivity() {
                         progress: Int,
                         fromUser: Boolean
                     ) {
-
                         if (!fromUser) return
 
                         if (title == "Play speed") {
@@ -3320,26 +3316,25 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        card.addView(
+        container.addView(
             seekBar,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(38)
             ).apply {
-                topMargin = dp(8)
+                topMargin = dp(6)
             }
         )
 
         parent.addView(
-            card,
+            container,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                bottomMargin = dp(10)
-            }
+            )
         )
     }
+
 
     private fun showSettingFullScreen(
         titleValue: String,
