@@ -4745,7 +4745,10 @@ class MainActivity : ComponentActivity() {
 
         val song = currentSong ?: return
 
-        val dialog = android.app.Dialog(this)
+        val dialog = android.app.Dialog(
+            this,
+            android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen
+        )
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -6775,13 +6778,17 @@ class MainActivity : ComponentActivity() {
                         .APPEARANCE_LIGHT_NAVIGATION_BARS
                 )
 
-            } else {
-
-                window.decorView.systemUiVisibility =
-                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             }
+
+            window.decorView.systemUiVisibility =
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+
+            // Force the Full Player window/background to occupy the full display.
+            window.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            )
         }
     }
 
