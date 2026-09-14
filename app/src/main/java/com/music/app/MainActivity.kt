@@ -1,4 +1,5 @@
 package com.music.app
+import kotlin.math.roundToInt
 
 import android.text.TextUtils
 import android.view.ViewOutlineProvider
@@ -2191,6 +2192,24 @@ class MainActivity : ComponentActivity() {
 
         settings.forEachIndexed { index, setting ->
 
+            if (setting.title == "Play speed") {
+                addPlaybackSliderCard(
+                    content,
+                    "Play speed",
+                    getPlaybackSpeedValue()
+                )
+                return@forEachIndexed
+            }
+
+            if (setting.title == "Cross fade") {
+                addPlaybackSliderCard(
+                    content,
+                    "Cross fade",
+                    getCrossFadeValue()
+                )
+                return@forEachIndexed
+            }
+
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -2266,7 +2285,6 @@ class MainActivity : ComponentActivity() {
             )
 
             val isToggle =
-                setting.title == "Cross fade" ||
                 setting.title == "Skip silence between tracks" ||
                 setting.title == "Control music from lock screen" ||
                 setting.title == "Don't allow duplicate songs" ||
@@ -2279,9 +2297,6 @@ class MainActivity : ComponentActivity() {
 
                 val key =
                     when (setting.title) {
-                        "Cross fade" ->
-                            "cross_fade"
-
                         "Skip silence between tracks" ->
                             "skip_silence"
 
@@ -3119,6 +3134,213 @@ class MainActivity : ComponentActivity() {
             }
             .show()
     }
+
+    private fun getPlaybackSpeedValue(): Float {
+        return getSettingsPrefs()
+            .getFloat("playback_speed", 1.0f)
+            .coerceIn(0.5f, 2.0f)
+    }
+
+    private fun getCrossFadeValue(): Int {
+        return getSettingsPrefs()
+            .getInt("cross_fade_seconds", 0)
+            .coerceIn(0, 12)
+    }
+
+    private fun addPlaybackSliderCard(
+        parent: LinearLayout,
+        title: String,
+        currentValue: Number
+    ) {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(
+                dp(18),
+                dp(16),
+                dp(18),
+                dp(16)
+            )
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(16).toFloat()
+            }
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val titleText = TextView(this).apply {
+            text = title
+            textSize = 16f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+        }
+
+        val valueText = TextView(this).apply {
+            textSize = 14f
+            setTextColor(Color.DKGRAY)
+            gravity = Gravity.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
+
+        header.addView(
+            titleText,
+            LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        )
+
+        header.addView(
+            valueText,
+            LinearLayout.LayoutParams(
+                dp(60),
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+
+        card.addView(header)
+
+        val seekBar = SeekBar(this).apply {
+
+            if (title == "Play speed") {
+
+                max = 15
+
+                val speed = currentValue
+                    .toFloat()
+                    .coerceIn(0.5f, 2.0f)
+
+                progress = ((speed - 0.5f) * 10f).roundToInt()
+
+                valueText.text = String.format(
+                    java.util.Locale.US,
+                    "%.1fx",
+                    speed
+                )
+
+            } else {
+
+                max = 12
+
+                val seconds = currentValue
+                    .toInt()
+                    .coerceIn(0, 12)
+
+                progress = seconds
+
+                valueText.text =
+                    if (seconds == 0) {
+                        "Off"
+                    } else {
+                        "${seconds}s"
+                    }
+            }
+
+            progressTintList =
+                android.content.res.ColorStateList.valueOf(
+                    Color.BLACK
+                )
+
+            thumbTintList =
+                android.content.res.ColorStateList.valueOf(
+                    Color.BLACK
+                )
+
+            setPadding(
+                dp(2),
+                dp(4),
+                dp(2),
+                dp(2)
+            )
+
+            setOnSeekBarChangeListener(
+                object : SeekBar.OnSeekBarChangeListener {
+
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+
+                        if (!fromUser) return
+
+                        if (title == "Play speed") {
+
+                            val speed =
+                                0.5f + (progress / 10f)
+
+                            valueText.text =
+                                String.format(
+                                    java.util.Locale.US,
+                                    "%.1fx",
+                                    speed
+                                )
+
+                            getSettingsPrefs()
+                                .edit()
+                                .putFloat(
+                                    "playback_speed",
+                                    speed
+                                )
+                                .apply()
+
+                            applyPlaybackSpeed()
+
+                        } else {
+
+                            valueText.text =
+                                if (progress == 0) {
+                                    "Off"
+                                } else {
+                                    "${progress}s"
+                                }
+
+                            getSettingsPrefs()
+                                .edit()
+                                .putInt(
+                                    "cross_fade_seconds",
+                                    progress
+                                )
+                                .apply()
+                        }
+                    }
+
+                    override fun onStartTrackingTouch(
+                        seekBar: SeekBar?
+                    ) {}
+
+                    override fun onStopTrackingTouch(
+                        seekBar: SeekBar?
+                    ) {}
+                }
+            )
+        }
+
+        card.addView(
+            seekBar,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(38)
+            ).apply {
+                topMargin = dp(8)
+            }
+        )
+
+        parent.addView(
+            card,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dp(10)
+            }
+        )
+    }
+
     private fun showSettingFullScreen(
         titleValue: String,
         value: String,
@@ -3372,6 +3594,23 @@ class MainActivity : ComponentActivity() {
             clipToOutline = true
         }
 
+        val cardTitle = TextView(this).apply {
+            text = title
+            textSize = 18f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(18), dp(20), dp(10))
+        }
+
+        card.addView(
+            cardTitle,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
+        )
+
         options.forEachIndexed { index, option ->
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -3494,6 +3733,23 @@ class MainActivity : ComponentActivity() {
             }
             clipToOutline = true
         }
+
+        val cardTitle = TextView(this).apply {
+            text = title
+            textSize = 18f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(18), dp(20), dp(10))
+        }
+
+        card.addView(
+            cardTitle,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
+        )
 
         options.forEachIndexed { index, option ->
             val row = LinearLayout(this).apply {
