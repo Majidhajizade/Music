@@ -5296,15 +5296,15 @@ class MainActivity : ComponentActivity() {
                         "Play"
 
                 setPadding(
-                    dp(18),
-                    dp(18),
-                    dp(18),
-                    dp(18)
+                    dp(12),
+                    dp(12),
+                    dp(12),
+                    dp(12)
                 )
 
                 setColorFilter(
                     android.graphics.PorterDuffColorFilter(
-                        Color.BLACK,
+                        Color.WHITE,
                         android.graphics.PorterDuff.Mode.SRC_IN
                     )
                 )
@@ -5463,36 +5463,36 @@ class MainActivity : ComponentActivity() {
         controls.addView(
             previous,
             LinearLayout.LayoutParams(
-                dp(50),
-                dp(50)
+                dp(62),
+                dp(62)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(10)
-                marginEnd = dp(8)
+                marginStart = dp(8)
+                marginEnd = dp(6)
             }
         )
 
         controls.addView(
             play,
             LinearLayout.LayoutParams(
-                dp(72),
-                dp(72)
+                dp(62),
+                dp(62)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(8)
-                marginEnd = dp(8)
+                marginStart = dp(6)
+                marginEnd = dp(6)
             }
         )
 
         controls.addView(
             next,
             LinearLayout.LayoutParams(
-                dp(50),
-                dp(50)
+                dp(62),
+                dp(62)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(8)
-                marginEnd = dp(10)
+                marginStart = dp(6)
+                marginEnd = dp(8)
             }
         )
 
