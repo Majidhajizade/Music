@@ -19,6 +19,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.view.Gravity
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.*
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
     private var miniHideRunnable: Runnable? = null
 
     private var miniExpansionCard: FrameLayout? = null
+    private var miniBottomNavigation: View? = null
     private var miniExpansionCover: ImageView? = null
     private var miniExpansionTitle: TextView? = null
     private var miniExpansionArtist: TextView? = null
@@ -5517,6 +5519,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        miniBottomNavigation = nav
         return nav
     }
 
@@ -6230,6 +6233,401 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
+    // ============================================================
+    // FULL PLAYER -> MINI PLAYER GESTURE
+    // ============================================================
+
+    private var fullPlayerCloseDragging = false
+    private var fullPlayerCloseDownY = 0f
+    private var fullPlayerCloseProgress = 0f
+    private var fullPlayerCloseInitialScale = 1f
+    private var fullPlayerCloseStartCenterX = 0f
+    private var fullPlayerCloseStartCenterY = 0f
+
+    private fun setupFullPlayerCloseGesture(
+        dialog: android.app.Dialog,
+        root: View,
+        cover: ImageView,
+        coverContainer: View
+    ) {
+
+        coverContainer.setOnTouchListener { _, event ->
+
+            when (event.actionMasked) {
+
+                android.view.MotionEvent.ACTION_DOWN -> {
+
+                    if (fullPlayerCloseDragging) {
+                        return@setOnTouchListener true
+                    }
+
+                    fullPlayerCloseDownY =
+                        event.rawY
+
+                    fullPlayerCloseProgress = 0f
+
+                    fullPlayerCloseInitialScale =
+                        cover.scaleX
+
+                    val coverLocation =
+                        IntArray(2)
+
+                    cover.getLocationOnScreen(
+                        coverLocation
+                    )
+
+                    fullPlayerCloseStartCenterX =
+                        coverLocation[0] +
+                            cover.width / 2f
+
+                    fullPlayerCloseStartCenterY =
+                        coverLocation[1] +
+                            cover.height / 2f
+
+                    true
+                }
+
+                android.view.MotionEvent.ACTION_MOVE -> {
+
+                    val dy =
+                        event.rawY -
+                            fullPlayerCloseDownY
+
+                    if (!fullPlayerCloseDragging) {
+
+                        if (dy < dp(10)) {
+                            return@setOnTouchListener true
+                        }
+
+                        fullPlayerCloseDragging = true
+
+                        miniPlayer.alpha = 0f
+                    }
+
+                    val screenHeight =
+                        resources.displayMetrics
+                            .heightPixels
+                            .toFloat()
+
+                    val progress =
+                        (
+                            dy /
+                                (screenHeight * 0.72f)
+                        )
+                            .coerceIn(0f, 1f)
+
+                    fullPlayerCloseProgress =
+                        progress
+
+                    updateFullPlayerCloseGesture(
+                        root,
+                        cover,
+                        coverContainer,
+                        progress
+                    )
+
+                    true
+                }
+
+                android.view.MotionEvent.ACTION_UP,
+                android.view.MotionEvent.ACTION_CANCEL -> {
+
+                    if (!fullPlayerCloseDragging) {
+                        return@setOnTouchListener true
+                    }
+
+                    fullPlayerCloseDragging = false
+
+                    if (fullPlayerCloseProgress >= 0.5f) {
+
+                        finishFullPlayerClose(
+                            dialog,
+                            root,
+                            cover,
+                            coverContainer
+                        )
+
+                    } else {
+
+                        restoreFullPlayerFromGesture(
+                            root,
+                            cover
+                        )
+                    }
+
+                    true
+                }
+
+                else -> true
+            }
+        }
+    }
+
+
+    private fun updateFullPlayerCloseGesture(
+        root: View,
+        cover: ImageView,
+        coverContainer: View,
+        progress: Float
+    ) {
+
+        val miniLocation =
+            IntArray(2)
+
+        miniCover.getLocationOnScreen(
+            miniLocation
+        )
+
+        val fullWidth =
+            cover.width
+                .coerceAtLeast(1)
+                .toFloat()
+
+        val fullCenterX =
+            fullPlayerCloseStartCenterX
+
+        val fullCenterY =
+            fullPlayerCloseStartCenterY
+
+        val miniSize =
+            dp(46).toFloat()
+
+        val miniCenterX =
+            miniLocation[0] +
+                miniSize / 2f
+
+        val miniCenterY =
+            miniLocation[1] +
+                miniSize / 2f
+
+        // Interpolate the artwork center directly
+        // between Full Player and Mini Player.
+        val centerX =
+            fullCenterX +
+                (
+                    miniCenterX -
+                        fullCenterX
+                ) * progress
+
+        val centerY =
+            fullCenterY +
+                (
+                    miniCenterY -
+                        fullCenterY
+                ) * progress
+
+        val containerLocation =
+            IntArray(2)
+
+        coverContainer.getLocationOnScreen(
+            containerLocation
+        )
+
+        val containerCenterX =
+            containerLocation[0] +
+                coverContainer.width / 2f
+
+        val containerCenterY =
+            containerLocation[1] +
+                coverContainer.height / 2f
+
+        cover.translationX =
+            centerX -
+                containerCenterX
+
+        cover.translationY =
+            centerY -
+                containerCenterY
+
+        val targetScale =
+            miniSize / fullWidth
+
+        val scale =
+            fullPlayerCloseInitialScale +
+                (
+                    targetScale -
+                        fullPlayerCloseInitialScale
+                ) * progress
+
+        cover.scaleX = scale
+        cover.scaleY = scale
+
+        // Fade the lower Full Player controls.
+        root.alpha =
+            1f -
+                progress * 0.35f
+
+        // Reveal Mini Player underneath.
+        miniPlayer.alpha =
+            progress
+
+        miniBottomNavigation?.let { nav ->
+
+            nav.translationY =
+                dp(82).toFloat() *
+                    (1f - progress)
+
+            nav.alpha =
+                progress
+        }
+    }
+
+
+    private fun restoreFullPlayerFromGesture(
+        root: View,
+        cover: ImageView
+    ) {
+
+        root.animate()
+            .alpha(1f)
+            .setDuration(300L)
+            .setInterpolator(
+                DecelerateInterpolator()
+            )
+            .start()
+
+        cover.animate()
+            .translationX(0f)
+            .translationY(0f)
+            .scaleX(
+                fullPlayerCloseInitialScale
+            )
+            .scaleY(
+                fullPlayerCloseInitialScale
+            )
+            .setDuration(320L)
+            .setInterpolator(
+                DecelerateInterpolator()
+            )
+            .start()
+
+        miniPlayer.animate()
+            .alpha(0f)
+            .setDuration(220L)
+            .start()
+
+        miniBottomNavigation?.animate()
+            ?.translationY(dp(82).toFloat())
+            ?.alpha(0f)
+            ?.setDuration(220L)
+            ?.start()
+
+        fullPlayerCloseProgress = 0f
+    }
+
+
+    private fun finishFullPlayerClose(
+        dialog: android.app.Dialog,
+        root: View,
+        cover: ImageView,
+        coverContainer: View
+    ) {
+
+        val miniLocation =
+            IntArray(2)
+
+        miniCover.getLocationOnScreen(
+            miniLocation
+        )
+
+        val fullWidth =
+            cover.width
+                .coerceAtLeast(1)
+                .toFloat()
+
+        val miniSize =
+            dp(46).toFloat()
+
+        val miniCenterX =
+            miniLocation[0] +
+                miniSize / 2f
+
+        val miniCenterY =
+            miniLocation[1] +
+                miniSize / 2f
+
+        val containerLocation =
+            IntArray(2)
+
+        coverContainer.getLocationOnScreen(
+            containerLocation
+        )
+
+        val containerCenterX =
+            containerLocation[0] +
+                coverContainer.width / 2f
+
+        val containerCenterY =
+            containerLocation[1] +
+                coverContainer.height / 2f
+
+        val finalX =
+            miniCenterX -
+                containerCenterX
+
+        val finalY =
+            miniCenterY -
+                containerCenterY
+
+        miniPlayer.alpha = 1f
+
+        miniBottomNavigation?.animate()
+            ?.translationY(0f)
+            ?.alpha(1f)
+            ?.setDuration(280L)
+            ?.setInterpolator(
+                DecelerateInterpolator()
+            )
+            ?.start()
+
+        cover.animate()
+            .translationX(finalX)
+            .translationY(finalY)
+            .scaleX(
+                miniSize / fullWidth
+            )
+            .scaleY(
+                miniSize / fullWidth
+            )
+            .setDuration(360L)
+            .setInterpolator(
+                DecelerateInterpolator()
+            )
+            .start()
+
+        root.animate()
+            .alpha(0f)
+            .setDuration(330L)
+            .setInterpolator(
+                DecelerateInterpolator()
+            )
+            .withEndAction {
+
+                cover.translationX = 0f
+                cover.translationY = 0f
+
+                cover.scaleX =
+                    if (
+                        mediaPlayer?.isPlaying == true
+                    ) {
+                        1f
+                    } else {
+                        0.94f
+                    }
+
+                cover.scaleY =
+                    cover.scaleX
+
+                root.alpha = 1f
+
+                fullPlayerCloseProgress = 0f
+
+                dialog.dismiss()
+            }
+            .start()
+    }
+
     private fun showNowPlaying() {
 
         if (android.os.Build.VERSION.SDK_INT >= 30) {
@@ -6466,6 +6864,14 @@ class MainActivity : ComponentActivity() {
         cover.scaleY = cover.scaleX
 
         // Queue panel is attached after its declaration below.
+
+
+        setupFullPlayerCloseGesture(
+            dialog,
+            root,
+            cover,
+            coverContainer
+        )
 
         root.addView(
             coverContainer,
