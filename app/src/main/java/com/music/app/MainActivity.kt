@@ -54,6 +54,11 @@ class MainActivity : ComponentActivity() {
     private var miniGestureVertical = false
     private var miniHideRunnable: Runnable? = null
 
+    private var miniExpansionCard: FrameLayout? = null
+    private var miniExpansionCover: ImageView? = null
+    private var miniExpansionTitle: TextView? = null
+    private var miniExpansionArtist: TextView? = null
+
     private val playerPrefs by lazy {
         getSharedPreferences("player_state", MODE_PRIVATE)
     }
@@ -4239,13 +4244,17 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    private fun setupMiniPlayerGestures(layout: LinearLayout) {
+    private fun setupMiniPlayerGestures(
+        layout: LinearLayout
+    ) {
 
         val touchSlop =
-            android.view.ViewConfiguration.get(this).scaledTouchSlop
+            android.view.ViewConfiguration
+                .get(this)
+                .scaledTouchSlop
 
         val gestureListener =
-            View.OnTouchListener { view, event ->
+            View.OnTouchListener { _, event ->
 
                 when (event.actionMasked) {
 
@@ -4266,8 +4275,11 @@ class MainActivity : ComponentActivity() {
 
                     android.view.MotionEvent.ACTION_MOVE -> {
 
-                        val dx = event.rawX - miniGestureDownX
-                        val dy = event.rawY - miniGestureDownY
+                        val dx =
+                            event.rawX - miniGestureDownX
+
+                        val dy =
+                            event.rawY - miniGestureDownY
 
                         if (!miniGestureDragging) {
 
@@ -4275,10 +4287,16 @@ class MainActivity : ComponentActivity() {
                                 kotlin.math.abs(dx) > touchSlop ||
                                 kotlin.math.abs(dy) > touchSlop
                             ) {
+
                                 miniGestureDragging = true
+
                                 miniGestureVertical =
                                     kotlin.math.abs(dy) >
                                     kotlin.math.abs(dx)
+
+                                if (miniGestureVertical) {
+                                    createMiniExpansionCard()
+                                }
                             }
                         }
 
@@ -4288,46 +4306,14 @@ class MainActivity : ComponentActivity() {
 
                         if (miniGestureVertical) {
 
-                            /*
-                             * Upward drag:
-                             * 0   = original position
-                             * -1  = approximately half screen
-                             */
-                            val height =
-                                resources.displayMetrics.heightPixels
-                                    .toFloat()
+                            updateMiniExpansionCard(
+                                dy = dy
+                            )
 
-                            val upward =
-                                (-dy).coerceAtLeast(0f)
-
-                            val progress =
-                                (upward / (height * 0.52f))
-                                    .coerceIn(0f, 1f)
-
-                            layout.translationY =
-                                -upward * 0.88f
-
-                            miniCover.rotation =
-                                progress * 100f
-
-                            miniCover.scaleX =
-                                1f - (progress * 0.08f)
-
-                            miniCover.scaleY =
-                                1f - (progress * 0.08f)
-
-                            layout.alpha =
-                                1f - (progress * 0.08f)
-
-                            /*
-                             * Downward hold.
-                             */
-                            if (
-                                dy > dp(18) &&
-                                kotlin.math.abs(dy) >
-                                kotlin.math.abs(dx) * 1.15f
-                            ) {
+                            if (dy > dp(18)) {
                                 scheduleMiniHide(layout)
+                            } else {
+                                cancelMiniHide()
                             }
 
                             miniGestureLastY = event.rawY
@@ -4337,19 +4323,15 @@ class MainActivity : ComponentActivity() {
                         } else {
 
                             /*
-                             * Horizontal swipe preview.
+                             * IMPORTANT:
+                             * The Mini Player itself does NOT move.
                              */
-                            val horizontal =
-                                dx.coerceIn(
-                                    -dp(110).toFloat(),
-                                    dp(110).toFloat()
-                                )
+                            layout.translationX = 0f
+                            layout.translationY = 0f
 
-                            layout.translationX =
-                                horizontal * 0.35f
-
-                            miniCover.rotation =
-                                horizontal / dp(110) * 8f
+                            miniCover.rotation = 0f
+                            miniCover.scaleX = 1f
+                            miniCover.scaleY = 1f
 
                             true
                         }
@@ -4360,86 +4342,48 @@ class MainActivity : ComponentActivity() {
 
                         cancelMiniHide()
 
+                        if (!miniGestureDragging) {
+                            return@OnTouchListener false
+                        }
+
                         val dx =
                             event.rawX - miniGestureDownX
 
                         val dy =
                             event.rawY - miniGestureDownY
 
-                        if (!miniGestureDragging) {
-                            return@OnTouchListener false
-                        }
-
                         if (miniGestureVertical) {
 
-                            val height =
-                                resources.displayMetrics.heightPixels
+                            val screenHeight =
+                                resources.displayMetrics
+                                    .heightPixels
                                     .toFloat()
+
+                            val maxUp =
+                                (
+                                    screenHeight -
+                                    miniPlayer.height
+                                ).coerceAtLeast(1f)
 
                             val upward =
                                 (-dy).coerceAtLeast(0f)
 
                             val progress =
-                                (upward / (height * 0.52f))
-                                    .coerceIn(0f, 1f)
+                                (
+                                    upward / maxUp
+                                ).coerceIn(0f, 1f)
 
                             if (progress >= 0.5f) {
 
-                                /*
-                                 * Complete upward expansion.
-                                 */
-                                layout.animate()
-                                    .translationY(
-                                        -height
-                                    )
-                                    .alpha(0f)
-                                    .setDuration(260L)
-                                    .setInterpolator(
-                                        android.view.animation
-                                            .DecelerateInterpolator()
-                                    )
-                                    .withEndAction {
-
-                                        layout.translationY = 0f
-                                        layout.translationX = 0f
-                                        layout.alpha = 1f
-
-                                        miniCover.rotation = 0f
-                                        miniCover.scaleX = 1f
-                                        miniCover.scaleY = 1f
-
-                                        if (currentSong != null) {
-                                            showNowPlaying()
-                                        }
-                                    }
-                                    .start()
+                                completeMiniExpansion(
+                                    layout
+                                )
 
                             } else {
 
-                                /*
-                                 * Not enough:
-                                 * smoothly return to Mini Player.
-                                 */
-                                layout.animate()
-                                    .translationY(0f)
-                                    .alpha(1f)
-                                    .setDuration(320L)
-                                    .setInterpolator(
-                                        android.view.animation
-                                            .DecelerateInterpolator()
-                                    )
-                                    .start()
-
-                                miniCover.animate()
-                                    .rotation(0f)
-                                    .scaleX(1f)
-                                    .scaleY(1f)
-                                    .setDuration(320L)
-                                    .setInterpolator(
-                                        android.view.animation
-                                            .DecelerateInterpolator()
-                                    )
-                                    .start()
+                                cancelMiniExpansion(
+                                    layout
+                                )
                             }
 
                             miniGestureDragging = false
@@ -4448,29 +4392,26 @@ class MainActivity : ComponentActivity() {
                         } else {
 
                             /*
-                             * Horizontal swipe.
+                             * Horizontal swipe:
+                             * NO Mini Player movement.
                              */
-                            val swipeThreshold = dp(70)
+                            layout.translationX = 0f
+                            layout.translationY = 0f
 
-                            if (dx < -swipeThreshold) {
-                                playMiniNext()
-                            } else if (dx > swipeThreshold) {
-                                playMiniPrevious()
+                            if (
+                                dx <
+                                -dp(70)
+                            ) {
+
+                                playMiniNextAnimated()
+
+                            } else if (
+                                dx >
+                                dp(70)
+                            ) {
+
+                                playMiniPreviousAnimated()
                             }
-
-                            layout.animate()
-                                .translationX(0f)
-                                .setDuration(220L)
-                                .setInterpolator(
-                                    android.view.animation
-                                        .DecelerateInterpolator()
-                                )
-                                .start()
-
-                            miniCover.animate()
-                                .rotation(0f)
-                                .setDuration(220L)
-                                .start()
 
                             miniGestureDragging = false
                             true
@@ -4481,23 +4422,741 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-        /*
-         * The gesture is installed on the Mini Player itself and
-         * on its passive content views. The Play button keeps its
-         * own click behavior.
-         */
-        layout.setOnTouchListener(gestureListener)
-        miniCover.setOnTouchListener(gestureListener)
-        miniTitle.setOnTouchListener(gestureListener)
-        miniArtist.setOnTouchListener(gestureListener)
+        layout.setOnTouchListener(
+            gestureListener
+        )
 
-        /*
-         * Keep the Mini Player clickable when the user simply taps
-         * the artwork/title, while horizontal/vertical movement
-         * is handled by the gesture listener above.
-         */
+        miniCover.setOnTouchListener(
+            gestureListener
+        )
+
+        miniTitle.setOnTouchListener(
+            gestureListener
+        )
+
+        miniArtist.setOnTouchListener(
+            gestureListener
+        )
+
         layout.isClickable = true
         layout.isFocusable = false
+    }
+
+    private fun createMiniExpansionCard() {
+
+        if (miniExpansionCard != null) {
+            return
+        }
+
+        if (!::miniPlayer.isInitialized) {
+            return
+        }
+
+        val song = currentSong ?: return
+
+        val decor =
+            window.decorView as? ViewGroup
+                ?: return
+
+        val location =
+            IntArray(2)
+
+        miniPlayer.getLocationOnScreen(
+            location
+        )
+
+        val decorLocation =
+            IntArray(2)
+
+        decor.getLocationOnScreen(
+            decorLocation
+        )
+
+        val left =
+            location[0] - decorLocation[0]
+
+        val top =
+            location[1] - decorLocation[1]
+
+        val width =
+            miniPlayer.width
+
+        val height =
+            miniPlayer.height
+
+        val card =
+            FrameLayout(this).apply {
+
+                clipChildren = false
+
+                background =
+                    createMiniExpansionBackground(
+                        song
+                    )
+
+                elevation =
+                    dp(12).toFloat()
+            }
+
+        val cover =
+            ImageView(this).apply {
+
+                scaleType =
+                    ImageView.ScaleType.CENTER_CROP
+
+                clipToOutline = true
+
+                outlineProvider =
+                    object : ViewOutlineProvider() {
+
+                        override fun getOutline(
+                            view: View,
+                            outline: Outline
+                        ) {
+
+                            outline.setRoundRect(
+                                0,
+                                0,
+                                view.width,
+                                view.height,
+                                dp(18).toFloat()
+                            )
+                        }
+                    }
+
+                getAlbumArt(song)?.let {
+                    setImageBitmap(it)
+                } ?: run {
+                    setImageResource(
+                        R.drawable.ic_music
+                    )
+                }
+
+                alpha = 0f
+                rotation = 110f
+                scaleX = 0.28f
+                scaleY = 0.28f
+            }
+
+        val title =
+            text(
+                song.title,
+                20f,
+                Color.WHITE,
+                Typeface.BOLD
+            ).apply {
+
+                maxLines = 1
+
+                ellipsize =
+                    TextUtils.TruncateAt.END
+
+                includeFontPadding = false
+
+                alpha = 0f
+            }
+
+        val artist =
+            text(
+                song.artist,
+                13f,
+                Color.WHITE,
+                Typeface.NORMAL
+            ).apply {
+
+                maxLines = 1
+
+                ellipsize =
+                    TextUtils.TruncateAt.END
+
+                includeFontPadding = false
+
+                alpha = 0f
+            }
+
+        card.addView(
+            cover,
+            FrameLayout.LayoutParams(
+                dp(46),
+                dp(46),
+                Gravity.CENTER
+            )
+        )
+
+        card.addView(
+            title,
+            FrameLayout.LayoutParams(
+                -1,
+                dp(28)
+            ).apply {
+
+                gravity =
+                    Gravity.BOTTOM
+
+                leftMargin =
+                    dp(28)
+
+                rightMargin =
+                    dp(28)
+
+                bottomMargin =
+                    dp(34)
+            }
+        )
+
+        card.addView(
+            artist,
+            FrameLayout.LayoutParams(
+                -1,
+                dp(22)
+            ).apply {
+
+                gravity =
+                    Gravity.BOTTOM
+
+                leftMargin =
+                    dp(28)
+
+                rightMargin =
+                    dp(28)
+
+                bottomMargin =
+                    dp(10)
+            }
+        )
+
+        decor.addView(
+            card,
+            FrameLayout.LayoutParams(
+                width,
+                height
+            ).apply {
+
+                leftMargin = left
+                topMargin = top
+            }
+        )
+
+        miniExpansionCard = card
+        miniExpansionCover = cover
+        miniExpansionTitle = title
+        miniExpansionArtist = artist
+
+        /*
+         * Hide the original Mini Player while the expansion
+         * card follows the finger.
+         */
+        miniPlayer.alpha = 0f
+    }
+
+    private fun updateMiniExpansionCard(
+        dy: Float
+    ) {
+
+        val card =
+            miniExpansionCard
+                ?: return
+
+        val cover =
+            miniExpansionCover
+                ?: return
+
+        val title =
+            miniExpansionTitle
+                ?: return
+
+        val artist =
+            miniExpansionArtist
+                ?: return
+
+        val screenHeight =
+            resources.displayMetrics
+                .heightPixels
+                .toFloat()
+
+        val miniHeight =
+            miniPlayer.height
+                .coerceAtLeast(
+                    dp(60)
+                )
+
+        val maxUp =
+            (
+                screenHeight -
+                miniHeight
+            ).coerceAtLeast(1f)
+
+        val upward =
+            (-dy)
+                .coerceAtLeast(0f)
+                .coerceAtMost(maxUp)
+
+        val progress =
+            (
+                upward / maxUp
+            ).coerceIn(0f, 1f)
+
+        val lp =
+            card.layoutParams
+                as? FrameLayout.LayoutParams
+                ?: return
+
+        /*
+         * The bottom edge stays fixed.
+         * The card grows upward with the finger.
+         */
+        lp.height =
+            (
+                miniHeight +
+                upward
+            ).toInt()
+
+        lp.topMargin =
+            (
+                miniPlayerTopInDecor() -
+                upward
+            ).toInt()
+
+        card.layoutParams = lp
+
+        /*
+         * Cover:
+         * starts tiny + 110 degrees,
+         * ends large + 0 degrees.
+         */
+        val maxCover =
+            (
+                resources.displayMetrics.widthPixels -
+                dp(48)
+            ).coerceAtLeast(
+                dp(46)
+            )
+
+        val coverSize =
+            (
+                dp(46) +
+                (
+                    maxCover -
+                    dp(46)
+                ) * progress
+            ).toInt()
+
+        val coverLp =
+            cover.layoutParams
+
+        coverLp.width =
+            coverSize
+
+        coverLp.height =
+            coverSize
+
+        cover.layoutParams =
+            coverLp
+
+        cover.alpha =
+            (
+                progress * 1.25f
+            ).coerceIn(
+                0f,
+                1f
+            )
+
+        cover.rotation =
+            110f * (1f - progress)
+
+        cover.scaleX = 1f
+        cover.scaleY = 1f
+
+        title.alpha =
+            (
+                (progress - 0.18f) /
+                0.35f
+            ).coerceIn(
+                0f,
+                1f
+            )
+
+        artist.alpha =
+            (
+                (progress - 0.24f) /
+                0.35f
+            ).coerceIn(
+                0f,
+                0.68f
+            )
+    }
+
+    private fun miniPlayerTopInDecor(): Float {
+
+        val location =
+            IntArray(2)
+
+        val decorLocation =
+            IntArray(2)
+
+        miniPlayer.getLocationOnScreen(
+            location
+        )
+
+        window.decorView.getLocationOnScreen(
+            decorLocation
+        )
+
+        return (
+            location[1] -
+            decorLocation[1]
+        ).toFloat()
+    }
+
+    private fun createMiniExpansionBackground(
+        song: Song
+    ): GradientDrawable {
+
+        val bitmap =
+            getAlbumArt(song)
+
+        if (bitmap == null) {
+
+            return GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(
+                    Color.rgb(80, 80, 80),
+                    Color.rgb(20, 20, 20)
+                )
+            ).apply {
+
+                cornerRadii =
+                    floatArrayOf(
+                        dp(18).toFloat(),
+                        dp(18).toFloat(),
+                        dp(18).toFloat(),
+                        dp(18).toFloat(),
+                        0f,
+                        0f,
+                        0f,
+                        0f
+                    )
+            }
+        }
+
+        val points =
+            intArrayOf(
+                bitmap.getPixel(
+                    0,
+                    0
+                ),
+                bitmap.getPixel(
+                    bitmap.width / 2,
+                    bitmap.height / 2
+                ),
+                bitmap.getPixel(
+                    bitmap.width - 1,
+                    bitmap.height - 1
+                )
+            )
+
+        return GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            points
+        ).apply {
+
+            cornerRadii =
+                floatArrayOf(
+                    dp(18).toFloat(),
+                    dp(18).toFloat(),
+                    dp(18).toFloat(),
+                    dp(18).toFloat(),
+                    0f,
+                    0f,
+                    0f,
+                    0f
+                )
+        }
+    }
+
+    private fun completeMiniExpansion(
+        layout: LinearLayout
+    ) {
+
+        val card =
+            miniExpansionCard
+                ?: return
+
+        val cover =
+            miniExpansionCover
+                ?: return
+
+        val title =
+            miniExpansionTitle
+                ?: return
+
+        val artist =
+            miniExpansionArtist
+                ?: return
+
+        val decor =
+            window.decorView as? ViewGroup
+                ?: return
+
+        val screenWidth =
+            resources.displayMetrics
+                .widthPixels
+
+        val screenHeight =
+            resources.displayMetrics
+                .heightPixels
+
+        val lp =
+            card.layoutParams
+                as? FrameLayout.LayoutParams
+                ?: return
+
+        lp.leftMargin = 0
+        lp.topMargin = 0
+        lp.width = screenWidth
+        lp.height = screenHeight
+
+        card.layoutParams = lp
+
+        card.animate()
+            .alpha(1f)
+            .setDuration(430L)
+            .setInterpolator(
+                android.view.animation
+                    .DecelerateInterpolator()
+            )
+            .start()
+
+        val coverSize =
+            screenWidth -
+            dp(48)
+
+        val coverLp =
+            cover.layoutParams
+
+        coverLp.width =
+            coverSize
+
+        coverLp.height =
+            coverSize
+
+        cover.layoutParams =
+            coverLp
+
+        cover.animate()
+            .alpha(1f)
+            .rotation(0f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(430L)
+            .setInterpolator(
+                android.view.animation
+                    .DecelerateInterpolator()
+            )
+            .start()
+
+        title.animate()
+            .alpha(1f)
+            .setDuration(280L)
+            .start()
+
+        artist.animate()
+            .alpha(0.68f)
+            .setDuration(300L)
+            .start()
+
+        card.postDelayed({
+
+            removeMiniExpansionCard()
+
+            layout.translationX = 0f
+            layout.translationY = 0f
+            layout.alpha = 1f
+
+            miniCover.rotation = 0f
+            miniCover.scaleX = 1f
+            miniCover.scaleY = 1f
+
+            if (currentSong != null) {
+                showNowPlaying()
+            }
+
+        }, 430L)
+    }
+
+    private fun cancelMiniExpansion(
+        layout: LinearLayout
+    ) {
+
+        val card =
+            miniExpansionCard
+
+        if (card == null) {
+
+            layout.translationX = 0f
+            layout.translationY = 0f
+            layout.alpha = 1f
+
+            return
+        }
+
+        card.animate()
+            .alpha(0f)
+            .setDuration(220L)
+            .setInterpolator(
+                android.view.animation
+                    .DecelerateInterpolator()
+            )
+            .withEndAction {
+
+                removeMiniExpansionCard()
+
+                layout.translationX = 0f
+                layout.translationY = 0f
+                layout.alpha = 1f
+
+                miniCover.rotation = 0f
+                miniCover.scaleX = 1f
+                miniCover.scaleY = 1f
+            }
+            .start()
+    }
+
+    private fun removeMiniExpansionCard() {
+
+        miniExpansionCard?.let { card ->
+
+            (card.parent as? ViewGroup)
+                ?.removeView(card)
+        }
+
+        miniExpansionCard = null
+        miniExpansionCover = null
+        miniExpansionTitle = null
+        miniExpansionArtist = null
+
+        if (::miniPlayer.isInitialized) {
+            miniPlayer.alpha = 1f
+        }
+    }
+
+    private fun playMiniNextAnimated() {
+
+        val current =
+            currentSong
+                ?: return
+
+        val index =
+            playbackQueue.indexOfFirst {
+                it.id == current.id
+            }
+
+        val next =
+            if (
+                index >= 0 &&
+                index < playbackQueue.lastIndex
+            ) {
+                playbackQueue[index + 1]
+            } else {
+                findAdjacentSong(
+                    current.id,
+                    true
+                )
+            }
+
+        if (next == null) {
+            return
+        }
+
+        playSong(
+            next,
+            smoothMiniChange = true
+        )
+    }
+
+    private fun playMiniPreviousAnimated() {
+
+        val current =
+            currentSong
+                ?: return
+
+        val index =
+            playbackQueue.indexOfFirst {
+                it.id == current.id
+            }
+
+        val previous =
+            if (index > 0) {
+                playbackQueue[index - 1]
+            } else {
+                findAdjacentSong(
+                    current.id,
+                    false
+                )
+            }
+
+        if (previous == null) {
+            return
+        }
+
+        playSong(
+            previous,
+            smoothMiniChange = true
+        )
+    }
+
+    private fun animateMiniSongTextChange(
+        song: Song
+    ) {
+
+        miniTitle.animate().cancel()
+        miniArtist.animate().cancel()
+
+        miniTitle.animate()
+            .alpha(0f)
+            .translationY(dp(3).toFloat())
+            .setDuration(120L)
+            .setInterpolator(
+                android.view.animation.DecelerateInterpolator()
+            )
+            .withEndAction {
+
+                miniTitle.text = song.title
+                miniTitle.translationY = -dp(3).toFloat()
+
+                miniTitle.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(230L)
+                    .setInterpolator(
+                        android.view.animation.DecelerateInterpolator()
+                    )
+                    .start()
+            }
+            .start()
+
+        miniArtist.animate()
+            .alpha(0f)
+            .translationY(dp(3).toFloat())
+            .setDuration(120L)
+            .setInterpolator(
+                android.view.animation.DecelerateInterpolator()
+            )
+            .withEndAction {
+
+                miniArtist.text = song.artist
+                miniArtist.translationY = -dp(3).toFloat()
+
+                miniArtist.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(230L)
+                    .setInterpolator(
+                        android.view.animation.DecelerateInterpolator()
+                    )
+                    .start()
+            }
+            .start()
     }
 
     private fun scheduleMiniHide(layout: View) {
@@ -7745,7 +8404,8 @@ class MainActivity : ComponentActivity() {
 
     private fun playSong(
         song: Song,
-        startPosition: Int = 0
+        startPosition: Int = 0,
+        smoothMiniChange: Boolean = false
     ) {
 
         mediaPlayer?.release()
@@ -7830,14 +8490,24 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-        getAlbumArt(song)?.let {
-            miniCover.setImageBitmap(it)
-        } ?: run {
-            miniCover.setImageResource(0)
-        }
+        if (smoothMiniChange) {
+            animateMiniSongTextChange(song)
 
-        miniTitle.text = song.title
-        miniArtist.text = song.artist
+            getAlbumArt(song)?.let {
+                miniCover.setImageBitmap(it)
+            } ?: run {
+                miniCover.setImageResource(0)
+            }
+        } else {
+            getAlbumArt(song)?.let {
+                miniCover.setImageBitmap(it)
+            } ?: run {
+                miniCover.setImageResource(0)
+            }
+
+            miniTitle.text = song.title
+            miniArtist.text = song.artist
+        }
 
         playButton.text = "Ⅱ"
 
