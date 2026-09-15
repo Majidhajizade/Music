@@ -4383,17 +4383,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun getRecentlyPlayedSongs(): List<Song> {
-
-        if (recentSongIds.isEmpty()) {
-            loadRecentlyPlayed()
-        }
-
-        val byId =
-            songs.associateBy { it.id }
-
-        return recentSongIds.mapNotNull { id ->
-            byId[id]
-        }
+        return songs.take(10)
     }
 
     private fun createRealSongRow(
