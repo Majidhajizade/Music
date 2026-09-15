@@ -57,6 +57,8 @@ class MainActivity : ComponentActivity() {
 
     private var miniExpansionCard: FrameLayout? = null
     private var miniBottomNavigation: View? = null
+    private var activeNavIndex = 0
+    private val navItems = mutableListOf<LinearLayout>()
     private var miniExpansionCover: ImageView? = null
     private var miniExpansionTitle: TextView? = null
     private var miniExpansionArtist: TextView? = null
@@ -85,6 +87,10 @@ class MainActivity : ComponentActivity() {
     private val playerPrefs by lazy {
         getSharedPreferences("player_state", MODE_PRIVATE)
     }
+
+    private val recentSongIds =
+        mutableListOf<Long>()
+
 
     private val playerSaveHandler = android.os.Handler(
         android.os.Looper.getMainLooper()
@@ -804,35 +810,28 @@ class MainActivity : ComponentActivity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
-            setPadding(0, 0, 0, dp(6))
+            setPadding(0, 0, 0, dp(4))
         }
 
+        // Main content host.
+        // Home/Search/Library own their scrolling.
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             clipToPadding = false
-            setPadding(dp(20), dp(10), dp(20), dp(14))
+            setBackgroundColor(Color.WHITE)
         }
 
-        val homeScroll = ScrollView(this).apply {
-        isFillViewport = true
-        clipToPadding = false
-        setBackgroundColor(Color.WHITE)
-    }
-
-    homeScroll.addView(
-        content,
-        android.view.ViewGroup.LayoutParams(
-            -1,
-            -2
+        root.addView(
+            content,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
         )
-    )
-
-    root.addView(
-        homeScroll,
-        LinearLayout.LayoutParams(-1, 0, 1f)
-    )
 
         // ---------- MINI PLAYER ----------
+
         miniPlayer = createMiniPlayer()
 
         root.addView(
@@ -849,6 +848,7 @@ class MainActivity : ComponentActivity() {
         )
 
         // ---------- BOTTOM NAVIGATION ----------
+
         root.addView(
             createBottomNavigation(),
             LinearLayout.LayoutParams(
@@ -866,18 +866,208 @@ class MainActivity : ComponentActivity() {
 
         showHome()
 
+
+        loadRecentlyPlayed()
+
         /*
-         * The Library/UI is now ready, so restore the
-         * previous song only after the Mini Player exists.
+         * Restore the previous song only after the Mini Player
+         * has been created and attached to the hierarchy.
          */
         restorePlayerState()
 
         playerSaveHandler.removeCallbacks(
             playerSaveRunnable
         )
+
         playerSaveHandler.post(
             playerSaveRunnable
         )
+    }
+
+    private fun createBottomNavigation(): LinearLayout {
+
+        navItems.clear()
+
+        val nav = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(
+                dp(8),
+                dp(1),
+                dp(8),
+                dp(1)
+            )
+
+            setBackgroundColor(Color.WHITE)
+
+            elevation = dp(2).toFloat()
+        }
+
+        val items = listOf(
+            Triple("Home", R.drawable.ic_nav_home) { showHome() },
+            Triple("Search", R.drawable.ic_nav_search) { showSearch() },
+            Triple("Library", R.drawable.ic_nav_library) { showLibrary() }
+        )
+
+        items.forEachIndexed { index, item ->
+
+            val navItemView = navItem(
+                item.first,
+                item.second,
+                item.third
+            )
+
+            navItems.add(navItemView)
+
+            nav.addView(
+                navItemView,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(56),
+                    1f
+                )
+            )
+
+            updateNavItem(
+                navItemView,
+                index == activeNavIndex
+            )
+        }
+
+        miniBottomNavigation = nav
+
+        return nav
+    }
+
+    private fun navItem(
+        label: String,
+        iconRes: Int,
+        action: () -> Unit
+    ): LinearLayout {
+
+        val item = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            isClickable = true
+            isFocusable = true
+
+            setPadding(
+                dp(2),
+                dp(1),
+                dp(2),
+                dp(1)
+            )
+
+            setOnClickListener {
+                action()
+            }
+        }
+
+        val iconView = ImageView(this).apply {
+            setImageResource(iconRes)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+        }
+
+        item.addView(
+            iconView,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(28)
+            )
+        )
+
+        val labelView = TextView(this).apply {
+            text = label
+            textSize = 11f
+            gravity = Gravity.CENTER
+            typeface = Typeface.create(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+            )
+            includeFontPadding = false
+        }
+
+        item.addView(
+            labelView,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(18)
+            )
+        )
+
+        return item
+    }
+
+    private fun updateNavItem(
+        item: LinearLayout,
+        active: Boolean
+    ) {
+
+        val iconView =
+            item.getChildAt(0) as ImageView
+
+        val labelView =
+            item.getChildAt(1) as TextView
+
+        // Clean Spotify-style navigation:
+        // no active container/background.
+        item.background = null
+
+        if (active) {
+
+            iconView.setColorFilter(
+                Color.BLACK,
+                android.graphics.PorterDuff.Mode.SRC_IN
+            )
+
+            labelView.setTextColor(
+                Color.BLACK
+            )
+
+            iconView.scaleX = 1.08f
+            iconView.scaleY = 1.08f
+
+            labelView.scaleX = 1.02f
+            labelView.scaleY = 1.02f
+
+        } else {
+
+            iconView.setColorFilter(
+                Color.rgb(
+                    125,
+                    125,
+                    125
+                ),
+                android.graphics.PorterDuff.Mode.SRC_IN
+            )
+
+            labelView.setTextColor(
+                Color.rgb(
+                    105,
+                    105,
+                    105
+                )
+            )
+
+            iconView.scaleX = 1f
+            iconView.scaleY = 1f
+
+            labelView.scaleX = 1f
+            labelView.scaleY = 1f
+        }
+    }
+
+    private fun setActiveNavigation(index: Int) {
+
+        activeNavIndex =
+            index.coerceIn(0, 2)
+
+        navItems.forEachIndexed { i, item ->
+            updateNavItem(
+                item,
+                i == activeNavIndex
+            )
+        }
     }
 
     private fun getAlbumArt(song: Song): android.graphics.Bitmap? {
@@ -914,49 +1104,1940 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun showHome() {
 
-        content.removeAllViews()
 
-        // ---------- HOME CONTAINER ----------
-        val homeContainer = LinearLayout(this).apply {
+    private fun createRealSongCover(song: Song, sizeDp: Int): ImageView {
+        return ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                dp(sizeDp),
+                dp(sizeDp)
+            )
+            scaleType = ImageView.ScaleType.CENTER_CROP
+
+            val art = getAlbumArt(song)
+
+            if (art != null) {
+                setImageBitmap(art)
+            } else {
+                setImageResource(android.R.drawable.ic_media_play)
+                setColorFilter(Color.DKGRAY)
+                background = GradientDrawable().apply {
+                    setColor(Color.rgb(235, 235, 235))
+                    cornerRadius = dp(10).toFloat()
+                }
+            }
+        }
+    }
+
+    private fun createRealSongCard(
+        song: Song,
+        widthDp: Int,
+        imageDp: Int,
+        onClick: (() -> Unit)? = null
+    ): LinearLayout {
+
+        val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setPadding(
+                0,
+                0,
+                0,
+                dp(5)
+            )
+
+            isClickable = true
+            isFocusable = true
+
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(16).toFloat()
+            }
+
+            elevation = dp(2).toFloat()
+
+            if (onClick != null) {
+                setOnClickListener {
+                    onClick.invoke()
+                }
+            }
         }
 
-        content.addView(
-            homeContainer,
-            LinearLayout.LayoutParams(
+        // -------------------------------------------------
+        // Artwork
+        // -------------------------------------------------
+
+        val coverFrame = FrameLayout(this).apply {
+            clipChildren = true
+            clipToPadding = true
+
+            background = GradientDrawable().apply {
+                setColor(
+                    Color.rgb(
+                        235,
+                        235,
+                        235
+                    )
+                )
+                cornerRadius = dp(16).toFloat()
+            }
+        }
+
+        val cover = createRealSongCover(
+            song,
+            imageDp
+        ).apply {
+            scaleType =
+                ImageView.ScaleType.CENTER_CROP
+            clipToOutline = true
+
+            background =
+                GradientDrawable().apply {
+                    setColor(
+                        Color.rgb(
+                            235,
+                            235,
+                            235
+                        )
+                    )
+                    cornerRadius =
+                        dp(16).toFloat()
+                }
+        }
+
+        coverFrame.addView(
+            cover,
+            FrameLayout.LayoutParams(
                 -1,
                 -1
             )
         )
 
-        // ---------- HEADER ----------
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(26), 0, 0)
+        // Soft bottom gradient over artwork.
+        val artworkShade =
+            android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(
+                    Color.TRANSPARENT,
+                    Color.argb(
+                        75,
+                        0,
+                        0,
+                        0
+                    )
+                )
+            )
+
+        val shade = View(this).apply {
+            background = artworkShade
         }
 
-        val title = text(
-            "Home",
-            30f,
-            Color.rgb(15, 15, 15),
-            Typeface.BOLD
+        coverFrame.addView(
+            shade,
+            FrameLayout.LayoutParams(
+                -1,
+                -1
+            )
+        )
+
+        // Small music badge.
+        val badge = TextView(this).apply {
+            text = "♫"
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            includeFontPadding = false
+
+            background = GradientDrawable().apply {
+                setColor(
+                    Color.argb(
+                        175,
+                        0,
+                        0,
+                        0
+                    )
+                )
+                shape = GradientDrawable.OVAL
+            }
+        }
+
+        coverFrame.addView(
+            badge,
+            FrameLayout.LayoutParams(
+                dp(28),
+                dp(28),
+                Gravity.BOTTOM or Gravity.END
+            ).apply {
+                rightMargin = dp(9)
+                bottomMargin = dp(9)
+            }
+        )
+
+        card.addView(
+            coverFrame,
+            LinearLayout.LayoutParams(
+                dp(imageDp),
+                dp(imageDp)
+            )
+        )
+
+        // -------------------------------------------------
+        // Title
+        // -------------------------------------------------
+
+        val title = TextView(this).apply {
+            text = song.title
+            textSize = 14.5f
+            setTextColor(Color.BLACK)
+
+            typeface = Typeface.create(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+            )
+
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
+
+            includeFontPadding = false
+
+            setPadding(
+                dp(4),
+                dp(10),
+                dp(4),
+                0
+            )
+        }
+
+        card.addView(
+            title,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(25)
+            )
+        )
+
+        // -------------------------------------------------
+        // Artist
+        // -------------------------------------------------
+
+        val artist = TextView(this).apply {
+            text = song.artist
+            textSize = 12f
+
+            setTextColor(
+                Color.rgb(
+                    105,
+                    105,
+                    105
+                )
+            )
+
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
+
+            includeFontPadding = false
+
+            setPadding(
+                dp(4),
+                dp(2),
+                dp(4),
+                0
+            )
+        }
+
+        card.addView(
+            artist,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(20)
+            )
+        )
+
+        return card
+    }
+
+    private fun createRealSongRow(
+        song: Song,
+        onClick: (() -> Unit)? = null
+    ): LinearLayout {
+
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
+            )
+            isClickable = true
+            isFocusable = true
+
+            background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                cornerRadius = dp(14).toFloat()
+            }
+
+            if (onClick != null) {
+                setOnClickListener {
+                    onClick.invoke()
+                }
+            }
+        }
+
+        val cover = createRealSongCover(
+            song,
+            58
         ).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            clipToOutline = true
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(235, 235, 235))
+                cornerRadius = dp(10).toFloat()
+            }
+        }
+
+        row.addView(
+            cover,
+            LinearLayout.LayoutParams(
+                dp(58),
+                dp(58)
+            )
+        )
+
+        val info = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(
+                dp(12),
+                0,
+                dp(8),
+                0
+            )
+        }
+
+        val title = TextView(this).apply {
+            text = song.title
+            textSize = 15f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.create(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+            )
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
             includeFontPadding = false
         }
 
-        header.addView(
+        val artist = TextView(this).apply {
+            text = song.artist
+            textSize = 12.5f
+            setTextColor(
+                Color.rgb(
+                    105,
+                    105,
+                    105
+                )
+            )
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
+            includeFontPadding = false
+            setPadding(
+                0,
+                dp(4),
+                0,
+                0
+            )
+        }
+
+        info.addView(
             title,
             LinearLayout.LayoutParams(
+                -1,
+                dp(24)
+            )
+        )
+
+        info.addView(
+            artist,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(22)
+            )
+        )
+
+        row.addView(
+            info,
+            LinearLayout.LayoutParams(
                 0,
-                dp(48),
+                -2,
                 1f
             )
         )
 
-        val profile = ImageView(this).apply {
+        val more = TextView(this).apply {
+            text = "⋮"
+            textSize = 24f
+            gravity = Gravity.CENTER
+            setTextColor(
+                Color.rgb(
+                    100,
+                    100,
+                    100
+                )
+            )
+            includeFontPadding = false
+        }
+
+        row.addView(
+            more,
+            LinearLayout.LayoutParams(
+                dp(30),
+                dp(58)
+            )
+        )
+
+        return row
+    }
+
+    private fun addRealSectionTitle(
+        parent: LinearLayout,
+        titleText: String
+    ) {
+
+        val title = TextView(this).apply {
+            text = titleText
+            textSize = 21f
+            setTextColor(Color.BLACK)
+
+            typeface = Typeface.create(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+            )
+
+            includeFontPadding = false
+
+            setPadding(
+                dp(2),
+                dp(24),
+                dp(2),
+                dp(11)
+            )
+        }
+
+        parent.addView(
+            title,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+    }
+
+    private fun showHome() {
+
+        setActiveNavigation(0)
+
+        content.removeAllViews()
+
+        val scroll = android.widget.ScrollView(this).apply {
+            isFillViewport = true
+            clipToPadding = false
+            setBackgroundColor(Color.WHITE)
+        }
+
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(
+                dp(18),
+                dp(10),
+                dp(18),
+                dp(28)
+            )
+            clipToPadding = false
+        }
+
+        // -------------------------------------------------
+        // Header
+        // -------------------------------------------------
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val greetingBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val greeting = TextView(this).apply {
+            text = "Good evening"
+            textSize = 27f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.create(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+            )
+            includeFontPadding = false
+        }
+
+        val subtitle = TextView(this).apply {
+            text = "Your music, your mood"
+            textSize = 13f
+            setTextColor(
+                Color.rgb(
+                    105,
+                    105,
+                    105
+                )
+            )
+            includeFontPadding = false
+            setPadding(
+                0,
+                dp(5),
+                0,
+                0
+            )
+        }
+
+        greetingBox.addView(greeting)
+        greetingBox.addView(subtitle)
+
+        header.addView(
+            greetingBox,
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        val headerAvatar = ImageView(this).apply {
+            setImageResource(
+                android.R.drawable.ic_menu_myplaces
+            )
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(
+                dp(9),
+                dp(9),
+                dp(9),
+                dp(9)
+            )
+            background = GradientDrawable().apply {
+                setColor(
+                    Color.rgb(
+                        238,
+                        238,
+                        238
+                    )
+                )
+                shape = GradientDrawable.OVAL
+            }
+        }
+
+        header.addView(
+            headerAvatar,
+            LinearLayout.LayoutParams(
+                dp(44),
+                dp(44)
+            )
+        )
+
+        page.addView(
+            header,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        // -------------------------------------------------
+        // Quick filter chips
+        // -------------------------------------------------
+
+        val chipsScroll =
+            HorizontalScrollView(this).apply {
+                isHorizontalScrollBarEnabled = false
+                clipToPadding = false
+                setPadding(
+                    0,
+                    dp(18),
+                    0,
+                    dp(2)
+                )
+            }
+
+        val chips = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        fun addHomeChip(
+            textValue: String,
+            selected: Boolean = false
+        ) {
+
+            val chip = TextView(this).apply {
+                text = textValue
+                textSize = 13f
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                typeface = Typeface.create(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+                )
+                setPadding(
+                    dp(17),
+                    dp(9),
+                    dp(17),
+                    dp(9)
+                )
+
+                setTextColor(
+                    if (selected) {
+                        Color.WHITE
+                    } else {
+                        Color.BLACK
+                    }
+                )
+
+                background = GradientDrawable().apply {
+                    setColor(
+                        if (selected) {
+                            Color.BLACK
+                        } else {
+                            Color.rgb(
+                                242,
+                                242,
+                                242
+                            )
+                        }
+                    )
+                    cornerRadius =
+                        dp(20).toFloat()
+                }
+            }
+
+            chips.addView(
+                chip,
+                LinearLayout.LayoutParams(
+                    -2,
+                    dp(38)
+                ).apply {
+                    rightMargin = dp(8)
+                }
+            )
+        }
+
+        addHomeChip(
+            "All",
+            true
+        )
+        addHomeChip("Music")
+        addHomeChip("Recently played")
+        addHomeChip("Made for you")
+
+        chipsScroll.addView(chips)
+
+        page.addView(
+            chipsScroll,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(48)
+            )
+        )
+
+        // -------------------------------------------------
+        // Recently played
+        // -------------------------------------------------
+
+        val recent =
+            getRecentlyPlayedSongs()
+
+        if (recent.isNotEmpty()) {
+
+            addRealSectionTitle(
+                page,
+                "Recently played"
+            )
+
+            val recentScroll =
+                HorizontalScrollView(this).apply {
+                    isHorizontalScrollBarEnabled = false
+                    clipToPadding = false
+                }
+
+            val recentRow =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                }
+
+            recent.take(10).forEach { song ->
+
+                val card =
+                    createRealSongCard(
+                        song,
+                        widthDp = 148,
+                        imageDp = 148
+                    ) {
+                        playSong(song)
+                    }
+
+                recentRow.addView(
+                    card,
+                    LinearLayout.LayoutParams(
+                        dp(148),
+                        -2
+                    ).apply {
+                        rightMargin = dp(12)
+                    }
+                )
+            }
+
+            recentScroll.addView(recentRow)
+
+            page.addView(
+                recentScroll,
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
+            )
+        }
+
+        // -------------------------------------------------
+        // Made for you
+        // -------------------------------------------------
+
+        if (songs.isNotEmpty()) {
+
+            addRealSectionTitle(
+                page,
+                "Made for you"
+            )
+
+            val madeForYou =
+                songs
+                    .drop(10)
+                    .take(10)
+                    .ifEmpty {
+                        songs.take(10)
+                    }
+
+            val madeScroll =
+                HorizontalScrollView(this).apply {
+                    isHorizontalScrollBarEnabled = false
+                    clipToPadding = false
+                }
+
+            val madeRow =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                }
+
+            madeForYou.forEach { song ->
+
+                val card =
+                    createRealSongCard(
+                        song,
+                        widthDp = 148,
+                        imageDp = 148
+                    ) {
+                        playSong(song)
+                    }
+
+                madeRow.addView(
+                    card,
+                    LinearLayout.LayoutParams(
+                        dp(148),
+                        -2
+                    ).apply {
+                        rightMargin = dp(12)
+                    }
+                )
+            }
+
+            madeScroll.addView(madeRow)
+
+            page.addView(
+                madeScroll,
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
+            )
+        }
+
+        // -------------------------------------------------
+        // Your music
+        // -------------------------------------------------
+
+        if (songs.isNotEmpty()) {
+
+            addRealSectionTitle(
+                page,
+                "Your music"
+            )
+
+            val musicContainer =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.VERTICAL
+                }
+
+            songs.take(12).forEach { song ->
+
+                musicContainer.addView(
+                    createRealSongRow(
+                        song
+                    ) {
+                        playSong(song)
+                    },
+                    LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                    )
+                )
+            }
+
+            page.addView(
+                musicContainer,
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
+            )
+        }
+
+        if (songs.isEmpty()) {
+
+            val empty = LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                setPadding(
+                    dp(24),
+                    dp(80),
+                    dp(24),
+                    dp(80)
+                )
+            }
+
+            val emptyTitle = TextView(this).apply {
+                text = "No music yet"
+                textSize = 21f
+                gravity = Gravity.CENTER
+                setTextColor(Color.BLACK)
+                typeface = Typeface.create(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+                )
+            }
+
+            val emptyText = TextView(this).apply {
+                text =
+                    "Add music to your device to see it here."
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setTextColor(
+                    Color.rgb(
+                        110,
+                        110,
+                        110
+                    )
+                )
+                setPadding(
+                    0,
+                    dp(8),
+                    0,
+                    0
+                )
+            }
+
+            empty.addView(emptyTitle)
+            empty.addView(emptyText)
+
+            page.addView(
+                empty,
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
+            )
+        }
+
+        scroll.addView(page)
+
+        content.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
+    }
+
+    private fun showLibrary() {
+
+        setActiveNavigation(2)
+
+        content.removeAllViews()
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+        }
+
+        content.addView(root, LinearLayout.LayoutParams(-1, -1))
+
+        // ============================================================
+        // HEADER
+        // ============================================================
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(18), dp(18), dp(8))
+        }
+
+        header.addView(
+            text(
+                "Your Library",
+                28f,
+                Color.rgb(18, 18, 18),
+                Typeface.BOLD
+            ).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(0, dp(48), 1f)
+        )
+
+        val add = TextView(this).apply {
+            text = "+"
+            textSize = 29f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(25, 25, 25))
+            setOnClickListener {
+                showCreatePlaylistDialog()
+            }
+        }
+
+        header.addView(
+            add,
+            LinearLayout.LayoutParams(dp(42), dp(42))
+        )
+
+        root.addView(
+            header,
+            LinearLayout.LayoutParams(-1, dp(70))
+        )
+
+        // ============================================================
+        // FILTERS
+        // ============================================================
+
+        val filterScroll = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            setPadding(dp(18), 0, dp(18), 0)
+        }
+
+        val filters = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+
+        listOf(
+            "Playlists",
+            "Artists",
+            "Albums",
+            "Songs"
+        ).forEachIndexed { index, value ->
+
+            val chip = TextView(this).apply {
+                text = value
+                textSize = 13f
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                setPadding(dp(17), 0, dp(17), 0)
+
+                setTextColor(
+                    if (index == 0) Color.WHITE
+                    else Color.rgb(35, 35, 35)
+                )
+
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(22).toFloat()
+                    setColor(
+                        if (index == 0)
+                            Color.rgb(25, 25, 25)
+                        else
+                            Color.rgb(242, 242, 242)
+                    )
+                }
+            }
+
+            filters.addView(
+                chip,
+                LinearLayout.LayoutParams(-2, dp(38)).apply {
+                    rightMargin = dp(8)
+                }
+            )
+        }
+
+        filterScroll.addView(filters)
+
+        root.addView(
+            filterScroll,
+            LinearLayout.LayoutParams(-1, dp(50))
+        )
+
+        // ============================================================
+        // SEARCH
+        // ============================================================
+
+        val search = EditText(this).apply {
+            hint = "Search in your library"
+            textSize = 14f
+            singleLine = true
+            setTextColor(Color.rgb(25, 25, 25))
+            setHintTextColor(Color.rgb(105, 105, 105))
+            setPadding(dp(17), 0, dp(17), 0)
+
+            background = GradientDrawable().apply {
+                cornerRadius = dp(14).toFloat()
+                setColor(Color.rgb(241, 241, 241))
+            }
+        }
+
+        root.addView(
+            search,
+            LinearLayout.LayoutParams(-1, dp(50)).apply {
+                leftMargin = dp(18)
+                rightMargin = dp(18)
+                topMargin = dp(8)
+                bottomMargin = dp(10)
+            }
+        )
+
+        // ============================================================
+        // CONTENT
+        // ============================================================
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            clipToPadding = false
+        }
+
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(2), dp(20), dp(24))
+        }
+
+        scroll.addView(list, ScrollView.LayoutParams(-1, -2))
+
+        root.addView(
+            scroll,
+            LinearLayout.LayoutParams(-1, 0, 1f)
+        )
+
+        // ============================================================
+        // PINNED / FAVORITES
+        // ============================================================
+
+        val liked = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(7), 0, dp(7))
+            setOnClickListener {
+                showMultiSelectionFullScreen()
+            }
+        }
+
+        val likedArt = TextView(this).apply {
+            text = "♥"
+            textSize = 27f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+
+            background = GradientDrawable().apply {
+                cornerRadius = dp(13).toFloat()
+                setColor(Color.rgb(77, 67, 111))
+            }
+        }
+
+        liked.addView(
+            likedArt,
+            LinearLayout.LayoutParams(dp(64), dp(64))
+        )
+
+        val likedInfo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(15), 0, dp(8), 0)
+        }
+
+        likedInfo.addView(
+            text(
+                "Liked Songs",
+                16f,
+                Color.rgb(25, 25, 25),
+                Typeface.BOLD
+            ),
+            LinearLayout.LayoutParams(-1, dp(25))
+        )
+
+        likedInfo.addView(
+            text(
+                "Your favorite tracks",
+                12f,
+                Color.rgb(105, 105, 105),
+                Typeface.NORMAL
+            ),
+            LinearLayout.LayoutParams(-1, dp(21))
+        )
+
+        liked.addView(
+            likedInfo,
+            LinearLayout.LayoutParams(0, dp(64), 1f)
+        )
+
+        list.addView(
+            liked,
+            LinearLayout.LayoutParams(-1, dp(78))
+        )
+
+        // ============================================================
+        // LIBRARY SECTIONS
+        // ============================================================
+
+        val items = listOf(
+            Triple("Recently played", "Your latest music", "◷"),
+            Triple("My playlists", "Playlists you created", "♫"),
+            Triple("Albums", "Saved albums", "▣"),
+            Triple("Artists", "Your favorite artists", "●")
+        )
+
+        items.forEachIndexed { index, item ->
+
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(7), 0, dp(7))
+            }
+
+            val art = TextView(this).apply {
+                text = item.third
+                textSize = 23f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(13).toFloat()
+                    setColor(
+                        when (index) {
+                            0 -> Color.rgb(62, 82, 103)
+                            1 -> Color.rgb(61, 87, 70)
+                            2 -> Color.rgb(103, 77, 63)
+                            else -> Color.rgb(76, 76, 76)
+                        }
+                    )
+                }
+            }
+
+            row.addView(
+                art,
+                LinearLayout.LayoutParams(dp(64), dp(64))
+            )
+
+            val info = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(15), 0, dp(8), 0)
+            }
+
+            info.addView(
+                text(
+                    item.first,
+                    16f,
+                    Color.rgb(25, 25, 25),
+                    Typeface.BOLD
+                ).apply {
+                    includeFontPadding = false
+                    maxLines = 1
+                },
+                LinearLayout.LayoutParams(-1, dp(26))
+            )
+
+            info.addView(
+                text(
+                    item.second,
+                    12f,
+                    Color.rgb(105, 105, 105),
+                    Typeface.NORMAL
+                ).apply {
+                    includeFontPadding = false
+                    maxLines = 1
+                },
+                LinearLayout.LayoutParams(-1, dp(21))
+            )
+
+            row.addView(
+                info,
+                LinearLayout.LayoutParams(0, dp(64), 1f)
+            )
+
+            row.addView(
+                text(
+                    "⋮",
+                    24f,
+                    Color.rgb(85, 85, 85),
+                    Typeface.NORMAL
+                ).apply {
+                    gravity = Gravity.CENTER
+                },
+                LinearLayout.LayoutParams(dp(34), dp(64))
+            )
+
+            list.addView(
+                row,
+                LinearLayout.LayoutParams(-1, dp(78))
+            )
+        }
+    }
+
+
+    private fun showSearch() {
+
+        setActiveNavigation(1)
+        content.removeAllViews()
+
+        val scroll = android.widget.ScrollView(this).apply {
+            isFillViewport = true
+            clipToPadding = false
+            setBackgroundColor(Color.WHITE)
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
+
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(12), dp(18), dp(32))
+            clipToPadding = false
+        }
+
+        // ------------------------------------------------------------
+        // Header
+        // ------------------------------------------------------------
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val headerText = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val title = TextView(this).apply {
+            text = "Search"
+            textSize = 30f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            includeFontPadding = false
+        }
+
+        val subtitle = TextView(this).apply {
+            text = "Find your next favorite song"
+            textSize = 13f
+            setTextColor(Color.rgb(105, 105, 105))
+            includeFontPadding = false
+            setPadding(0, dp(5), 0, 0)
+        }
+
+        headerText.addView(title)
+        headerText.addView(subtitle)
+
+        header.addView(
+            headerText,
+            LinearLayout.LayoutParams(0, -2, 1f)
+        )
+
+        val searchBadge = TextView(this).apply {
+            text = "⌕"
+            textSize = 23f
+            gravity = Gravity.CENTER
+            setTextColor(Color.BLACK)
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(244, 244, 244))
+                shape = GradientDrawable.OVAL
+            }
+        }
+
+        header.addView(
+            searchBadge,
+            LinearLayout.LayoutParams(dp(44), dp(44))
+        )
+
+        page.addView(
+            header,
+            LinearLayout.LayoutParams(-1, -2)
+        )
+
+        // ------------------------------------------------------------
+        // Floating Search Bar
+        // ------------------------------------------------------------
+
+        val searchShadow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), 0, dp(7), 0)
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(17).toFloat()
+                setStroke(dp(1), Color.rgb(232, 232, 232))
+            }
+            elevation = dp(4).toFloat()
+        }
+
+        val searchIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_nav_search)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setColorFilter(
+                Color.rgb(55, 55, 55),
+                android.graphics.PorterDuff.Mode.SRC_IN
+            )
+        }
+
+        searchShadow.addView(
+            searchIcon,
+            LinearLayout.LayoutParams(dp(24), dp(24))
+        )
+
+        val searchInput = EditText(this).apply {
+            hint = "What do you want to listen to?"
+            textSize = 15f
+            setTextColor(Color.BLACK)
+            setHintTextColor(Color.rgb(115, 115, 115))
+            background = null
+            singleLine = true
+            maxLines = 1
+            includeFontPadding = false
+            setPadding(dp(10), 0, dp(5), 0)
+            imeOptions =
+                android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+            inputType =
+                android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        }
+
+        searchShadow.addView(
+            searchInput,
+            LinearLayout.LayoutParams(0, -1, 1f)
+        )
+
+        val clearButton = TextView(this).apply {
+            text = "×"
+            textSize = 23f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(90, 90, 90))
+            visibility = View.GONE
+            includeFontPadding = false
+
+            setOnClickListener {
+                searchInput.text.clear()
+                searchInput.requestFocus()
+            }
+        }
+
+        searchShadow.addView(
+            clearButton,
+            LinearLayout.LayoutParams(dp(32), -1)
+        )
+
+        page.addView(
+            searchShadow,
+            LinearLayout.LayoutParams(-1, dp(56)).apply {
+                topMargin = dp(18)
+            }
+        )
+
+        // ------------------------------------------------------------
+        // Results
+        // ------------------------------------------------------------
+
+        val resultsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        page.addView(
+            resultsContainer,
+            LinearLayout.LayoutParams(-1, -2)
+        )
+
+        fun addSearchSectionTitle(textValue: String) {
+
+            val sectionTitle = TextView(this).apply {
+                text = textValue
+                textSize = 21f
+                setTextColor(Color.BLACK)
+                typeface =
+                    Typeface.create(
+                        Typeface.DEFAULT,
+                        Typeface.BOLD
+                    )
+                includeFontPadding = false
+                setPadding(
+                    dp(2),
+                    dp(25),
+                    dp(2),
+                    dp(11)
+                )
+            }
+
+            resultsContainer.addView(sectionTitle)
+        }
+
+        // ------------------------------------------------------------
+        // Artwork based browse card
+        // ------------------------------------------------------------
+
+        fun createBrowseArtwork(
+            songsForArtwork: List<Song>,
+            fallback: Int
+        ): ImageView {
+
+            val image = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                setBackgroundColor(fallback)
+                clipToOutline = true
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(18).toFloat()
+                    setColor(fallback)
+                }
+            }
+
+            val song =
+                songsForArtwork.firstOrNull()
+
+            if (song != null) {
+
+                val bitmap = getAlbumArt(song)
+
+                if (bitmap != null) {
+                    image.setImageBitmap(bitmap)
+                }
+            }
+
+            return image
+        }
+
+        fun addBrowseCard(
+            parent: LinearLayout,
+            label: String,
+            songsForArtwork: List<Song>,
+            fallback: Int,
+            icon: String
+        ) {
+
+            val card = FrameLayout(this).apply {
+                isClickable = true
+                isFocusable = true
+                elevation = dp(2).toFloat()
+                clipChildren = true
+                clipToPadding = true
+
+                background = GradientDrawable().apply {
+                    setColor(fallback)
+                    cornerRadius = dp(18).toFloat()
+                }
+            }
+
+            val artwork = createBrowseArtwork(
+                songsForArtwork,
+                fallback
+            )
+
+            card.addView(
+                artwork,
+                FrameLayout.LayoutParams(
+                    -1,
+                    -1
+                )
+            )
+
+            val shade =
+                View(this).apply {
+                    background =
+                        GradientDrawable(
+                            GradientDrawable.Orientation.TOP_BOTTOM,
+                            intArrayOf(
+                                Color.argb(15, 0, 0, 0),
+                                Color.argb(205, 0, 0, 0)
+                            )
+                        )
+                }
+
+            card.addView(
+                shade,
+                FrameLayout.LayoutParams(-1, -1)
+            )
+
+            val iconBubble = TextView(this).apply {
+                text = icon
+                textSize = 22f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                background = GradientDrawable().apply {
+                    setColor(Color.argb(115, 0, 0, 0))
+                    shape = GradientDrawable.OVAL
+                }
+            }
+
+            card.addView(
+                iconBubble,
+                FrameLayout.LayoutParams(
+                    dp(44),
+                    dp(44)
+                ).apply {
+                    leftMargin = dp(12)
+                    topMargin = dp(12)
+                }
+            )
+
+            val labelView = TextView(this).apply {
+                text = label
+                textSize = 17f
+                setTextColor(Color.WHITE)
+                typeface =
+                    Typeface.create(
+                        Typeface.DEFAULT,
+                        Typeface.BOLD
+                    )
+                includeFontPadding = false
+                maxLines = 1
+                ellipsize =
+                    android.text.TextUtils.TruncateAt.END
+                gravity = Gravity.BOTTOM
+                setPadding(
+                    dp(14),
+                    0,
+                    dp(14),
+                    dp(14)
+                )
+            }
+
+            card.addView(
+                labelView,
+                FrameLayout.LayoutParams(
+                    -1,
+                    dp(54),
+                    Gravity.BOTTOM
+                )
+            )
+
+            parent.addView(
+                card,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(142),
+                    1f
+                ).apply {
+                    rightMargin = dp(8)
+                    bottomMargin = dp(9)
+                }
+            )
+        }
+
+        // ------------------------------------------------------------
+        // Browse state
+        // ------------------------------------------------------------
+
+        fun showBrowseState() {
+
+            resultsContainer.removeAllViews()
+
+            addSearchSectionTitle("Browse all")
+
+            val browseGrid =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.VERTICAL
+                }
+
+            val firstRow =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                }
+
+            val artworkA =
+                songs.take(1)
+
+            val artworkB =
+                if (songs.size > 1)
+                    songs.drop(1).take(1)
+                else songs.take(1)
+
+            addBrowseCard(
+                firstRow,
+                "Songs",
+                artworkA,
+                Color.rgb(215, 229, 246),
+                "♫"
+            )
+
+            addBrowseCard(
+                firstRow,
+                "Artists",
+                artworkB,
+                Color.rgb(230, 215, 239),
+                "♪"
+            )
+
+            browseGrid.addView(
+                firstRow,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(151)
+                )
+            )
+
+            val secondRow =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                }
+
+            val artworkC =
+                if (songs.size > 2)
+                    songs.drop(2).take(1)
+                else songs.take(1)
+
+            val artworkD =
+                if (songs.size > 3)
+                    songs.drop(3).take(1)
+                else songs.take(1)
+
+            addBrowseCard(
+                secondRow,
+                "Albums",
+                artworkC,
+                Color.rgb(215, 235, 221),
+                "▣"
+            )
+
+            addBrowseCard(
+                secondRow,
+                "Recently played",
+                artworkD,
+                Color.rgb(244, 225, 204),
+                "◷"
+            )
+
+            browseGrid.addView(
+                secondRow,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(151)
+                )
+            )
+
+            resultsContainer.addView(
+                browseGrid
+            )
+
+            val recent =
+                getRecentlyPlayedSongs()
+
+            if (recent.isNotEmpty()) {
+
+                addSearchSectionTitle(
+                    "Recently played"
+                )
+
+                recent.take(5).forEach { song ->
+
+                    val row =
+                        createRealSongRow(song) {
+                            playSong(song)
+                        }
+
+                    resultsContainer.addView(
+                        row,
+                        LinearLayout.LayoutParams(
+                            -1,
+                            -2
+                        )
+                    )
+                }
+            } else if (songs.isNotEmpty()) {
+
+                addSearchSectionTitle(
+                    "Your music"
+                )
+
+                songs.take(5).forEach { song ->
+
+                    resultsContainer.addView(
+                        createRealSongRow(song) {
+                            playSong(song)
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            -2
+                        )
+                    )
+                }
+            }
+        }
+
+        // ------------------------------------------------------------
+        // Search results
+        // ------------------------------------------------------------
+
+        fun updateResults(query: String) {
+
+            resultsContainer.removeAllViews()
+
+            val normalized =
+                query.trim().lowercase()
+
+            if (normalized.isBlank()) {
+
+                clearButton.visibility =
+                    View.GONE
+
+                showBrowseState()
+
+                return
+            }
+
+            clearButton.visibility =
+                View.VISIBLE
+
+            val matches =
+                songs.filter { song ->
+
+                    song.title
+                        .lowercase()
+                        .contains(normalized) ||
+                    song.artist
+                        .lowercase()
+                        .contains(normalized)
+                }
+
+            addSearchSectionTitle(
+                if (matches.isEmpty())
+                    "No results"
+                else
+                    "${matches.size.coerceAtMost(50)} results"
+            )
+
+            if (matches.isEmpty()) {
+
+                val empty =
+                    LinearLayout(this).apply {
+                        orientation =
+                            LinearLayout.VERTICAL
+                        gravity =
+                            Gravity.CENTER_HORIZONTAL
+                        setPadding(
+                            dp(20),
+                            dp(50),
+                            dp(20),
+                            dp(60)
+                        )
+                    }
+
+                val icon =
+                    TextView(this).apply {
+                        text = "⌕"
+                        textSize = 42f
+                        gravity = Gravity.CENTER
+                        setTextColor(
+                            Color.rgb(80, 80, 80)
+                        )
+                    }
+
+                val emptyTitle =
+                    TextView(this).apply {
+                        text = "Nothing found"
+                        textSize = 19f
+                        setTextColor(Color.BLACK)
+                        gravity = Gravity.CENTER
+                        typeface =
+                            Typeface.create(
+                                Typeface.DEFAULT,
+                                Typeface.BOLD
+                            )
+                        setPadding(
+                            0,
+                            dp(9),
+                            0,
+                            0
+                        )
+                    }
+
+                val emptyText =
+                    TextView(this).apply {
+                        text =
+                            "Try another song or artist."
+                        textSize = 13f
+                        setTextColor(
+                            Color.rgb(
+                                110,
+                                110,
+                                110
+                            )
+                        )
+                        gravity = Gravity.CENTER
+                        setPadding(
+                            0,
+                            dp(7),
+                            0,
+                            0
+                        )
+                    }
+
+                empty.addView(icon)
+                empty.addView(emptyTitle)
+                empty.addView(emptyText)
+
+                resultsContainer.addView(empty)
+
+            } else {
+
+                matches.take(50).forEach { song ->
+
+                    val row =
+                        createRealSongRow(song) {
+                            playSong(song)
+                        }
+
+                    resultsContainer.addView(
+                        row,
+                        LinearLayout.LayoutParams(
+                            -1,
+                            -2
+                        )
+                    )
+
+                    row.alpha = 0f
+                    row.translationY = dp(8).toFloat()
+
+                    row.animate()
+                        .alpha(1f)
+                        .translationY(0f)
+                        .setDuration(180)
+                        .setStartDelay(
+                            (
+                                resultsContainer.childCount
+                                    .coerceAtMost(8) * 18
+                            ).toLong()
+                        )
+                        .start()
+                }
+            }
+        }
+
+        // ------------------------------------------------------------
+        // Input
+        // ------------------------------------------------------------
+
+        searchInput.addTextChangedListener(
+            object : android.text.TextWatcher {
+
+                override fun beforeTextChanged(
+                    text: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int
+                ) {}
+
+                override fun onTextChanged(
+                    text: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int
+                ) {
+                    updateResults(
+                        text?.toString() ?: ""
+                    )
+                }
+
+                override fun afterTextChanged(
+                    text: android.text.Editable?
+                ) {}
+            }
+        )
+
+        searchInput.setOnEditorActionListener {
+            _, actionId, _ ->
+
+            if (
+                actionId ==
+                android.view.inputmethod.EditorInfo
+                    .IME_ACTION_SEARCH
+            ) {
+
+                val imm =
+                    getSystemService(
+                        android.content.Context
+                            .INPUT_METHOD_SERVICE
+                    ) as android.view.inputmethod
+                        .InputMethodManager
+
+                imm.hideSoftInputFromWindow(
+                    searchInput.windowToken,
+                    0
+                )
+
+                true
+            } else {
+                false
+            }
+        }
+
+        // Initial state
+        showBrowseState()
+
+        scroll.addView(page)
+
+        content.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
+    }
+
+    private fun createMiniPlayer(): LinearLayout {
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(7), dp(6), dp(8), dp(6))
+
+            background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    shape =
+                        android.graphics.drawable.GradientDrawable.RECTANGLE
+                    cornerRadius = dp(16).toFloat()
+                    setColor(Color.rgb(248, 248, 248))
+                }
+
+            elevation = dp(2).toFloat()
+        }
+
+        // ---------- ALBUM ART ----------
+        miniCover = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             clipToOutline = true
 
@@ -966,1608 +3047,263 @@ class MainActivity : ComponentActivity() {
                         view: android.view.View,
                         outline: android.graphics.Outline
                     ) {
-                        outline.setOval(
+                        outline.setRoundRect(
                             0,
                             0,
                             view.width,
-                            view.height
+                            view.height,
+                            dp(8).toFloat()
                         )
                     }
                 }
 
             background =
-                android.graphics.drawable.GradientDrawable().apply {
-                    shape =
-                        android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(Color.rgb(235, 235, 235))
+                android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                    intArrayOf(
+                        Color.rgb(95, 95, 95),
+                        Color.rgb(28, 28, 28)
+                    )
+                ).apply {
+                    cornerRadius = dp(8).toFloat()
                 }
-
-            setImageResource(android.R.drawable.ic_menu_myplaces)
-
-            setOnClickListener {
-                showProfileDialog()
-            }
         }
 
-        header.addView(
-            profile,
+        layout.addView(
+            miniCover,
             LinearLayout.LayoutParams(
-                dp(40),
-                dp(40)
+                dp(46),
+                dp(46)
             )
         )
 
-        homeContainer.addView(
-            header,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
-            ).apply {
-                topMargin = dp(18)
-            }
-        )
-
-        // ---------- HOME SCROLL CONTENT ----------
-        val homeScroll = ScrollView(this).apply {
-            isFillViewport = true
-            overScrollMode = View.OVER_SCROLL_NEVER
-        }
-
-        val homeScrollContent = LinearLayout(this).apply {
+        // ---------- SONG INFO ----------
+        val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(
-                0,
-                0,
-                0,
-                dp(24)
-            )
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(11), 0, dp(4), 0)
         }
 
-        homeScroll.addView(
-            homeScrollContent,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        homeContainer.addView(
-            homeScroll,
-            LinearLayout.LayoutParams(
-                -1,
-                0,
-                1f
-            )
-        )
-
-        // ---------- TOP PICKS ----------
-        val picksTitle = text(
-            "Top Picks for You",
-            21f,
-            Color.rgb(15, 15, 15),
+        miniTitle = text(
+            "Nothing Playing",
+            13f,
+            Color.rgb(18, 18, 18),
             Typeface.BOLD
         ).apply {
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
             includeFontPadding = false
         }
 
-        homeScrollContent.addView(
-            picksTitle,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(34)
-            ).apply {
-                topMargin = dp(14)
-            }
-        )
-
-        val picksSubtitle = text(
-            "Favorites",
-            13f,
-            Color.rgb(120, 120, 120),
+        miniArtist = text(
+            "Choose a song",
+            11f,
+            Color.rgb(105, 105, 105),
             Typeface.NORMAL
         ).apply {
-            includeFontPadding = false
-        }
-
-        homeScrollContent.addView(
-            picksSubtitle,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(22)
-            )
-        )
-
-        // ---------- FEATURED ----------
-        if (songs.isNotEmpty()) {
-
-            val screenWidthDp =
-                resources.displayMetrics.widthPixels /
-                    resources.displayMetrics.density
-
-            // Base size at 360dp:
-            // Width  = 7.3cm
-            // Height = 9.5cm
-            val screenScale =
-                screenWidthDp / 360f
-
-            val featuredWidth =
-                (dp(276) * screenScale).toInt()
-
-            val featuredHeight =
-                (dp(359) * screenScale).toInt()
-
-            val featuredScroll =
-                HorizontalScrollView(this).apply {
-                    isHorizontalScrollBarEnabled = false
-                    overScrollMode =
-                        View.OVER_SCROLL_NEVER
-                    clipToPadding = false
-                }
-
-            val featuredRow =
-                LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    setPadding(0, 0, dp(4), 0)
-                }
-
-            songs.take(6).forEach { song ->
-
-                val card =
-                    LinearLayout(this).apply {
-                        orientation = LinearLayout.VERTICAL
-                        setPadding(0, 0, 0, 0)
-                        clipToOutline = true
-                        background =
-                            android.graphics.drawable.GradientDrawable().apply {
-                                cornerRadius =
-                                    dp(16).toFloat()
-                                setColor(
-                                    Color.rgb(
-                                        246,
-                                        246,
-                                        248
-                                    )
-                                )
-                            }
-                        elevation = dp(2).toFloat()
-                    }
-
-                val cover =
-                    ImageView(this).apply {
-                        scaleType =
-                            ImageView.ScaleType.CENTER_CROP
-
-                        clipToOutline = true
-
-                        outlineProvider =
-                            object :
-                                android.view.ViewOutlineProvider() {
-                                override fun getOutline(
-                                    view: android.view.View,
-                                    outline: android.graphics.Outline
-                                ) {
-                                    outline.setRoundRect(
-                                        0,
-                                        0,
-                                        view.width,
-                                        view.height,
-                                        dp(16).toFloat()
-                                    )
-                                }
-                            }
-
-                        background =
-                            android.graphics.drawable.GradientDrawable().apply {
-                                cornerRadius =
-                                    dp(16).toFloat()
-                                setColor(
-                                    Color.rgb(
-                                        235,
-                                        235,
-                                        235
-                                    )
-                                )
-                            }
-
-                        getAlbumArt(song)?.let {
-                            setImageBitmap(it)
-                        }
-
-                        setOnClickListener {
-                            playSong(song)
-                        }
-                    }
-
-                card.addView(
-                    cover,
-                    LinearLayout.LayoutParams(
-                        -1,
-                        featuredHeight - dp(78)
-                    )
-                )
-
-                val info =
-                    LinearLayout(this).apply {
-                        orientation =
-                            LinearLayout.VERTICAL
-                        gravity =
-                            Gravity.CENTER_VERTICAL
-                        setPadding(
-                            dp(14),
-                            dp(4),
-                            dp(14),
-                            dp(8)
-                        )
-                    }
-
-                val title =
-                    text(
-                        song.title,
-                        16f,
-                        Color.rgb(18, 18, 18),
-                        Typeface.BOLD
-                    ).apply {
-                        includeFontPadding = false
-                        maxLines = 1
-                        ellipsize =
-                            android.text.TextUtils.TruncateAt.END
-                    }
-
-                val artist =
-                    text(
-                        song.artist,
-                        13f,
-                        Color.rgb(105, 105, 110),
-                        Typeface.NORMAL
-                    ).apply {
-                        includeFontPadding = false
-                        maxLines = 1
-                        ellipsize =
-                            android.text.TextUtils.TruncateAt.END
-                    }
-
-                info.addView(
-                    title,
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(24)
-                    )
-                )
-
-                info.addView(
-                    artist,
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(21)
-                    )
-                )
-
-                card.addView(
-                    info,
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(78)
-                    )
-                )
-
-                card.setOnLongClickListener {
-                    showSongPopup(card, song)
-                    true
-                }
-
-                featuredRow.addView(
-                    card,
-                    LinearLayout.LayoutParams(
-                        featuredWidth,
-                        featuredHeight
-                    ).apply {
-                        rightMargin = dp(12)
-                    }
-                )
-            }
-
-            featuredScroll.addView(
-                featuredRow,
-                android.widget.FrameLayout.LayoutParams(
-                    -2,
-                    featuredHeight
-                )
-            )
-
-            homeScrollContent.addView(
-                featuredScroll,
-                LinearLayout.LayoutParams(
-                    -1,
-                    featuredHeight
-                ).apply {
-                    topMargin = dp(6)
-                }
-            )
-        }
-
-        // ---------- RECENTLY PLAYED ----------
-        val recentTitle = text(
-            "Recently Played",
-            21f,
-            Color.rgb(15, 15, 15),
-            Typeface.BOLD
-        ).apply {
-            includeFontPadding = false
-        }
-
-        homeScrollContent.addView(
-            recentTitle,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(32)
-            ).apply {
-                topMargin = dp(20)
-            }
-        )
-
-        val recentScroll =
-            HorizontalScrollView(this).apply {
-                isHorizontalScrollBarEnabled = false
-                overScrollMode =
-                    android.view.View.OVER_SCROLL_NEVER
-            }
-
-        val recentRow =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-            }
-
-        val recentSongs =
-            songs.take(8)
-
-        for (song in recentSongs) {
-
-            val item =
-                LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER_HORIZONTAL
-                    setOnClickListener {
-                        playbackQueue.clear()
-                        playbackIndex = -1
-                        playSong(song)
-                    }
-                }
-
-            val cover =
-                ImageView(this).apply {
-                    scaleType =
-                        ImageView.ScaleType.CENTER_CROP
-                    clipToOutline = true
-
-                    outlineProvider =
-                        object :
-                            android.view.ViewOutlineProvider() {
-                            override fun getOutline(
-                                view: android.view.View,
-                                outline: android.graphics.Outline
-                            ) {
-                                outline.setOval(
-                                    0,
-                                    0,
-                                    view.width,
-                                    view.height
-                                )
-                            }
-                        }
-
-                    background =
-                        android.graphics.drawable.GradientDrawable().apply {
-                            shape =
-                                android.graphics.drawable.GradientDrawable.OVAL
-                            setColor(
-                                Color.rgb(
-                                    235,
-                                    235,
-                                    235
-                                )
-                            )
-                        }
-
-                    getAlbumArt(song)?.let {
-                        setImageBitmap(it)
-                    }
-                }
-
-            item.addView(
-                cover,
-                LinearLayout.LayoutParams(
-                    dp(96),
-                    dp(96)
-                )
-            )
-
-            val songTitle =
-                text(
-                    song.title,
-                    12f,
-                    Color.rgb(35, 35, 35),
-                    Typeface.NORMAL
-                ).apply {
-                    gravity = Gravity.CENTER
-                    maxLines = 1
-                    ellipsize =
-                        android.text.TextUtils.TruncateAt.END
-                    includeFontPadding = false
-                }
-
-            item.addView(
-                songTitle,
-                LinearLayout.LayoutParams(
-                    dp(92),
-                    dp(18)
-                ).apply {
-                    topMargin = dp(6)
-                }
-            )
-
-            recentRow.addView(
-                item,
-                LinearLayout.LayoutParams(
-                    dp(102),
-                    dp(118)
-                ).apply {
-                    rightMargin = dp(10)
-                }
-            )
-        }
-
-        recentScroll.addView(
-            recentRow,
-            LinearLayout.LayoutParams(
-                -2,
-                dp(126)
-            )
-        )
-
-        homeScrollContent.addView(
-            recentScroll,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(126)
-            ).apply {
-                topMargin = dp(4)
-            }
-        )
-    }
-
-    private fun showLibrary() {
-
-        content.removeAllViews()
-
-        // ---------- LIBRARY CONTAINER ----------
-        val libraryContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        content.addView(
-            libraryContainer,
-            LinearLayout.LayoutParams(-1, -1)
-        )
-
-        // ---------- FIXED HEADER ----------
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(
-                0,
-                dp(12),
-                0,
-                dp(10)
-            )
-        }
-
-        val title = text(
-            "Songs",
-            32f,
-            Color.rgb(15, 15, 15),
-            Typeface.BOLD
-        ).apply {
-            includeFontPadding = false
-        }
-
-        header.addView(
-            title,
-            LinearLayout.LayoutParams(-1, dp(40)).apply {
-                leftMargin = dp(18)
-                rightMargin = dp(18)
-            }
-        )
-
-        // ---------- SEARCH ----------
-        val search = EditText(this).apply {
-
-            hint = "Search in songs"
-            textSize = 14f
-            setTextColor(Color.rgb(35, 35, 35))
-            setHintTextColor(Color.rgb(105, 105, 105))
-
             maxLines = 1
-
-            setPadding(
-                dp(16),
-                0,
-                dp(16),
-                0
-            )
-
-            background = GradientDrawable().apply {
-                cornerRadius = dp(22).toFloat()
-                setColor(Color.rgb(232, 232, 232))
-            }
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
+            includeFontPadding = false
         }
 
-        header.addView(
-            search,
+        info.addView(
+            miniTitle,
             LinearLayout.LayoutParams(
                 -1,
-                dp(48)
-            ).apply {
-                leftMargin = 0
-                rightMargin = 0
-                bottomMargin = dp(12)
-            }
-        )
-
-        // ---------- PLAY / SHUFFLE ----------
-        val actions = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-
-        fun actionButton(
-            icon: String,
-            label: String,
-            click: () -> Unit
-        ): LinearLayout {
-
-            val button = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-                setPadding(
-                    dp(8),
-                    0,
-                    dp(8),
-                    0
-                )
-
-                background = GradientDrawable().apply {
-                    cornerRadius = dp(12).toFloat()
-                    setColor(Color.rgb(232, 232, 232))
-                }
-
-                setOnClickListener {
-                    click()
-                }
-            }
-
-            if (icon == "SHUFFLE_ICON") {
-
-                val iconView = ImageView(this).apply {
-                    setImageResource(R.drawable.ic_player_shuffle)
-                    scaleType = ImageView.ScaleType.CENTER
-                    alpha = 0.92f
-                }
-
-                button.addView(
-                    iconView,
-                    LinearLayout.LayoutParams(
-                        dp(25),
-                        -1
-                    )
-                )
-
-            } else {
-
-                val iconView = text(
-                    icon,
-                    19f,
-                    Color.rgb(25, 25, 25),
-                    Typeface.NORMAL
-                ).apply {
-                    gravity = Gravity.CENTER
-                    includeFontPadding = false
-                }
-
-                button.addView(
-                    iconView,
-                    LinearLayout.LayoutParams(
-                        dp(25),
-                        -1
-                    )
-                )
-            }
-
-            val labelView = text(
-                label,
-                14f,
-                Color.rgb(25, 25, 25),
-                Typeface.BOLD
-            ).apply {
-                gravity = Gravity.CENTER_VERTICAL
-                includeFontPadding = false
-            }
-
-            button.addView(
-                labelView,
-                LinearLayout.LayoutParams(
-                    -2,
-                    -1
-                )
-            )
-
-            return button
-        }
-
-        val playAction = actionButton(
-            "▶",
-            "Play"
-        ) {
-            if (songs.isNotEmpty()) {
-
-                playbackQueue =
-                    if (isDuplicateSongsBlocked()) {
-                        songs
-                            .distinctBy { it.id }
-                            .toMutableList()
-                    } else {
-                        songs.toMutableList()
-                    }
-
-                playbackIndex = 0
-
-                playSong(
-                    playbackQueue[playbackIndex]
-                )
-            }
-        }
-
-        val shuffleAction = actionButton(
-            "SHUFFLE_ICON",
-            "Shuffle"
-        ) {
-            if (songs.isNotEmpty()) {
-
-                playbackQueue =
-                    if (isDuplicateSongsBlocked()) {
-                        songs
-                            .distinctBy { it.id }
-                            .shuffled()
-                            .toMutableList()
-                    } else {
-                        songs
-                            .shuffled()
-                            .toMutableList()
-                    }
-
-                playbackIndex = 0
-
-                playSong(
-                    playbackQueue[playbackIndex]
-                )
-            }
-        }
-
-        actions.setPadding(
-            0,
-            0,
-            0,
-            0
-        )
-
-        actions.addView(
-            playAction,
-            LinearLayout.LayoutParams(
-                0,
-                dp(48),
-                1f
-            )
-        )
-
-        actions.addView(
-            Space(this),
-            LinearLayout.LayoutParams(
-                dp(10),
-                dp(48)
-            )
-        )
-
-        actions.addView(
-            shuffleAction,
-            LinearLayout.LayoutParams(
-                0,
-                dp(48),
-                1f
-            )
-        )
-
-        header.addView(
-            actions,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(48)
-            ).apply {
-                leftMargin = 0
-                rightMargin = 0
-                bottomMargin = dp(18)
-            }
-        )
-
-        libraryContainer.addView(
-            header,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        // ---------- SONG LIST ----------
-        val scroll = ScrollView(this).apply {
-            isVerticalScrollBarEnabled = false
-            clipToPadding = false
-            overScrollMode =
-                android.view.View.OVER_SCROLL_NEVER
-        }
-
-        val list = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(
-                dp(18),
-                0,
-                dp(18),
                 dp(20)
             )
-        }
-
-        fun renderSongs(query: String = "") {
-
-            list.removeAllViews()
-
-            val q = query.trim()
-
-            val filtered = if (q.isEmpty()) {
-                songs
-            } else {
-                songs.filter {
-                    it.title.contains(q, ignoreCase = true) ||
-                    it.artist.contains(q, ignoreCase = true)
-                }
-            }
-
-            filtered.forEach { song ->
-
-                val row = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-
-                    setPadding(
-                        0,
-                        dp(6),
-                        0,
-                        dp(6)
-                    )
-
-                    setOnClickListener {
-                        playSong(song)
-                    }
-                }
-
-                // COVER
-                val cover = ImageView(this).apply {
-
-                    scaleType =
-                        ImageView.ScaleType.CENTER_CROP
-
-                    clipToOutline = true
-
-                    outlineProvider =
-                        object : ViewOutlineProvider() {
-                            override fun getOutline(
-                                view: View,
-                                outline: android.graphics.Outline
-                            ) {
-                                outline.setRoundRect(
-                                    0,
-                                    0,
-                                    view.width,
-                                    view.height,
-                                    dp(10).toFloat()
-                                )
-                            }
-                        }
-
-                    background =
-                        GradientDrawable().apply {
-                            cornerRadius =
-                                dp(10).toFloat()
-                            setColor(
-                                Color.rgb(
-                                    235,
-                                    235,
-                                    235
-                                )
-                            )
-                        }
-
-                    getAlbumArt(song)?.let {
-                        setImageBitmap(it)
-                    }
-                }
-
-                row.addView(
-                    cover,
-                    LinearLayout.LayoutParams(
-                        dp(48),
-                        dp(48)
-                    )
-                )
-
-                // INFO
-                val info = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER_VERTICAL
-
-                    setPadding(
-                        dp(12),
-                        0,
-                        dp(6),
-                        0
-                    )
-                }
-
-                val songTitle = text(
-                    song.title,
-                    14f,
-                    Color.rgb(18, 18, 18),
-                    Typeface.BOLD
-                ).apply {
-                    maxLines = 1
-                    ellipsize =
-                        TextUtils.TruncateAt.END
-                    includeFontPadding = false
-                }
-
-                val artist = text(
-                    song.artist,
-                    11f,
-                    Color.rgb(125, 125, 125),
-                    Typeface.NORMAL
-                ).apply {
-                    maxLines = 1
-                    ellipsize =
-                        TextUtils.TruncateAt.END
-                    includeFontPadding = false
-
-                    setPadding(
-                        0,
-                        dp(4),
-                        0,
-                        0
-                    )
-                }
-
-                info.addView(
-                    songTitle,
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(20)
-                    )
-                )
-
-                info.addView(
-                    artist,
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(18)
-                    )
-                )
-
-                row.addView(
-                    info,
-                    LinearLayout.LayoutParams(
-                        0,
-                        dp(56),
-                        1f
-                    )
-                )
-
-                val more = text(
-                    "•••",
-                    12f,
-                    Color.rgb(125, 125, 125),
-                    Typeface.BOLD
-                ).apply {
-                    gravity = Gravity.CENTER
-                    includeFontPadding = false
-
-                    setOnClickListener { view ->
-                        showSongMenu(view, song)
-                    }
-                }
-
-                row.addView(
-                    more,
-                    LinearLayout.LayoutParams(
-                        dp(34),
-                        dp(56)
-                    )
-                )
-
-                list.addView(
-                    row,
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(68)
-                    )
-                )
-
-                list.addView(
-                    View(this).apply {
-                        setBackgroundColor(
-                            Color.rgb(232, 232, 232)
-                        )
-                    },
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(1)
-                    )
-                )
-            }
-        }
-
-        renderSongs()
-
-        scroll.addView(
-            list,
-            ViewGroup.LayoutParams(-1, -2)
         )
 
-        libraryContainer.addView(
-            scroll,
+        info.addView(
+            miniArtist,
             LinearLayout.LayoutParams(
                 -1,
+                dp(18)
+            )
+        )
+
+        layout.addView(
+            info,
+            LinearLayout.LayoutParams(
                 0,
+                -1,
                 1f
             )
         )
 
-        // ---------- SEARCH FUNCTION ----------
-        search.addTextChangedListener(
-            object : android.text.TextWatcher {
-
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int
-                ) {}
-
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int
-                ) {
-                    renderSongs(
-                        s?.toString() ?: ""
-                    )
-                }
-
-                override fun afterTextChanged(
-                    s: android.text.Editable?
-                ) {}
-            }
-        )
-    }
-
-    private fun showSettings() {
-
-        content.removeAllViews()
-        content.setPadding(
-            dp(20),
-            dp(18),
-            dp(20),
-            dp(26)
-        )
-        content.setBackgroundColor(Color.rgb(246, 246, 246))
-
-        val scroll = ScrollView(this).apply {
-            isFillViewport = true
-            clipToPadding = false
-            overScrollMode = View.OVER_SCROLL_NEVER
-            setBackgroundColor(Color.rgb(246, 246, 246))
-        }
-
-        val page = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, dp(28))
-            setBackgroundColor(Color.rgb(246, 246, 246))
-        }
-
-        page.addView(
-            text(
-                "Settings",
-                32f,
-                Color.rgb(24, 23, 27),
-                Typeface.BOLD
-            ).apply {
-                includeFontPadding = false
-                letterSpacing = -0.02f
-            },
-            LinearLayout.LayoutParams(-1, dp(46)).apply {
-                bottomMargin = dp(18)
-            }
-        )
-
-        // ---------- PLAYBACK ----------
-
-        addModernSettingsSection(
-            page,
-            "Playback"
-        )
-
-        addModernSettingsCard(
-            page,
-            listOf(
-                ModernSetting(
-                    "Sleep timer",
-                    getSleepTimerLabel()
-                ) {
-                    showSleepTimerDialog()
-                },
-                ModernSetting(
-                    "Play speed",
-                    getPlaybackSpeedLabel()
-                ) {
-                    showPlaybackSpeedDialog()
-                },
-                ModernSetting(
-                    "Cross fade",
-                    if (getSettingsPrefs().getBoolean(
-                            "cross_fade",
-                            false
-                        )
-                    ) "On" else "Off"
-                ) {
-                    toggleSetting(
-                        "cross_fade",
-                        "Cross fade"
-                    )
-                },
-                ModernSetting(
-                    "Skip silence between tracks",
-                    if (getSettingsPrefs().getBoolean(
-                            "skip_silence",
-                            false
-                        )
-                    ) "On" else "Off"
-                ) {
-                    toggleSetting(
-                        "skip_silence",
-                        "Skip silence between tracks"
-                    )
-                },
-                ModernSetting(
-                    "Control music from lock screen",
-                    if (getSettingsPrefs().getBoolean(
-                            "lock_screen_controls",
-                            true
-                        )
-                    ) "On" else "Off"
-                ) {
-                    toggleSetting(
-                        "lock_screen_controls",
-                        "Control music from lock screen"
-                    )
-                }
-            )
-        )
-
-        // ---------- PLAYLIST ----------
-
-        addModernSettingsSection(
-            page,
-            "Playlist"
-        )
-
-        addModernSettingsCard(
-            page,
-            listOf(
-                ModernSetting(
-                    "Queue settings",
-                    "Playback queue"
-                ) {
-                    showQueueSettingsDialog()
-                },
-                ModernSetting(
-                    "Don't allow duplicate songs",
-                    if (getSettingsPrefs().getBoolean(
-                            "no_duplicate_songs",
-                            false
-                        )
-                    ) "On" else "Off"
-                ) {
-                    toggleSetting(
-                        "no_duplicate_songs",
-                        "Don't allow duplicate songs"
-                    )
-                },
-                ModernSetting(
-                    "Manage Playlists",
-                    "Create and manage playlists"
-                ) {
-                    showManagePlaylistsDialog()
-                }
-            )
-        )
-
-        // ---------- GENERAL ----------
-
-        addModernSettingsSection(
-            page,
-            "General"
-        )
-
-        addModernSettingsCard(
-            page,
-            listOf(
-                ModernSetting(
-                    "Manage tabs",
-                    "Home, Library, Settings"
-                ) {
-                    showManageTabsDialog()
-                },
-                ModernSetting(
-                    "Dark mode",
-                    if (getSettingsPrefs().getBoolean(
-                            "dark_mode",
-                            false
-                        )
-                    ) "On" else "Off"
-                ) {
-                    toggleDarkMode()
-                },
-                ModernSetting(
-                    "Allow external device to start playback",
-                    if (getSettingsPrefs().getBoolean(
-                            "external_playback",
-                            true
-                        )
-                    ) "On" else "Off"
-                ) {
-                    toggleSetting(
-                        "external_playback",
-                        "Allow external device to start playback"
-                    )
-                }
-            )
-        )
-
-        // ---------- PRIVACY ----------
-
-        addModernSettingsSection(
-            page,
-            "Privacy"
-        )
-
-        addModernSettingsCard(
-            page,
-            listOf(
-                ModernSetting(
-                    "Permissions",
-                    "Music and notifications"
-                ) {
-                    showPermissionsDialog()
-                }
-            )
-        )
-
-        // ---------- ABOUT ----------
-
-        addModernSettingsSection(
-            page,
-            "About Music"
-        )
-
-        addModernSettingsCard(
-            page,
-            listOf(
-                ModernSetting(
-                    "About Music",
-                    "Version 1.0"
-                ) {
-                    showAboutMusicDialog()
-                }
-            )
-        )
-
-        scroll.addView(
-            page,
-            ViewGroup.LayoutParams(-1, -2)
-        )
-
-        content.addView(
-            scroll,
-            LinearLayout.LayoutParams(
-                -1,
-                0,
-                1f
-            )
-        )
-    }
-
-    private data class ModernSetting(
-        val title: String,
-        val value: String,
-        val action: () -> Unit
-    )
-
-    private fun getSettingsPrefs() =
-        getSharedPreferences(
-            "music_settings",
-            MODE_PRIVATE
-        )
-
-    private fun addModernSettingsSection(
-        parent: LinearLayout,
-        titleValue: String
-    ) {
-
-        val title = text(
-            titleValue,
-            13f,
-            Color.rgb(95, 95, 95),
-            Typeface.BOLD
-        ).apply {
+        // ---------- PLAY / PAUSE ----------
+        playButton = TextView(this).apply {
+            text = "▶"
+            textSize = 21f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
             includeFontPadding = false
-            letterSpacing = 0.015f
-        }
+            background = null
 
-        parent.addView(
-            title,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(32)
-            ).apply {
-                topMargin = dp(18)
-                leftMargin = dp(8)
-                rightMargin = dp(4)
-            }
-        )
-    }
-
-    private fun addModernSettingsCard(
-        parent: LinearLayout,
-        settings: List<ModernSetting>
-    ) {
-
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-
-            background =
-                android.graphics.drawable.GradientDrawable().apply {
-                    setColor(Color.WHITE)
-                    cornerRadius = dp(18).toFloat()
-                }
-
-            elevation = 0f
-            clipToOutline = true
-        }
-
-        settings.forEachIndexed { index, setting ->
-
-            if (setting.title == "Play speed") {
-                addPlaybackSliderCard(
-                    card,
-                    "Play speed",
-                    getPlaybackSpeedValue()
-                )
-                return@forEachIndexed
-            }
-
-            if (setting.title == "Cross fade") {
-                addPlaybackSliderCard(
-                    card,
-                    "Cross fade",
-                    getCrossFadeValue()
-                )
-                return@forEachIndexed
-            }
-
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-
-                setPadding(
-                    dp(18),
-                    dp(6),
-                    dp(14),
-                    dp(6)
-                )
-
-                isClickable = true
-                isFocusable = true
-            }
-
-            val names = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER_VERTICAL
-            }
-
-            val title = text(
-                setting.title,
-                16f,
-                Color.BLACK,
-                Typeface.NORMAL
-            ).apply {
-                includeFontPadding = false
-                maxLines = 2
-                setSingleLine(false)
-            }
-
-            names.addView(
-                title,
-                LinearLayout.LayoutParams(
-                    0,
-                    -2,
-                    1f
-                )
-            )
-
-            if (setting.value.isNotBlank()) {
-                names.addView(
-                    text(
-                        setting.value,
-                        12.5f,
-                        Color.BLACK,
-                        Typeface.NORMAL
-                    ).apply {
-                        includeFontPadding = false
-                        maxLines = 2
-                        setPadding(
-                            0,
-                            dp(3),
-                            0,
-                            0
-                        )
-                    },
-                    LinearLayout.LayoutParams(
-                        -1,
-                        -2
-                    )
-                )
-            }
-
-            row.addView(
-                names,
-                LinearLayout.LayoutParams(
-                    0,
-                    -2,
-                    1f
-                ).apply {
-                    rightMargin = dp(8)
-                }
-            )
-
-            val isToggle =
-                setting.title == "Skip silence between tracks" ||
-                setting.title == "Control music from lock screen" ||
-                setting.title == "Don't allow duplicate songs" ||
-                setting.title == "Dark mode" ||
-                setting.title == "Allow external device to start playback"
-
-            if (isToggle) {
-
-                val prefs = getSettingsPrefs()
-
-                val key =
-                    when (setting.title) {
-                        "Skip silence between tracks" ->
-                            "skip_silence"
-
-                        "Control music from lock screen" ->
-                            "lock_screen_controls"
-
-                        "Don't allow duplicate songs" ->
-                            "no_duplicate_songs"
-
-                        "Dark mode" ->
-                            "dark_mode"
-
-                        else ->
-                            "external_playback"
-                    }
-
-                val defaultValue =
-                    when (key) {
-                        "lock_screen_controls" -> true
-                        "external_playback" -> true
-                        else -> false
-                    }
-
-                val switchView =
-                    android.widget.Switch(this).apply {
-
-                        isChecked =
-                            prefs.getBoolean(
-                                key,
-                                defaultValue
-                            )
-
-                        showText = false
-                        minWidth = dp(48)
-
-                        scaleX = 0.82f
-                        scaleY = 0.82f
-
-                        try {
-                            val track = android.content.res.ColorStateList(
-                                arrayOf(
-                                    intArrayOf(android.R.attr.state_checked),
-                                    intArrayOf(-android.R.attr.state_checked)
-                                ),
-                                intArrayOf(
-                                    Color.rgb(42, 118, 224),
-                                    Color.rgb(185, 185, 185)
-                                )
-                            )
-
-                            val thumb = android.content.res.ColorStateList(
-                                arrayOf(
-                                    intArrayOf(android.R.attr.state_checked),
-                                    intArrayOf(-android.R.attr.state_checked)
-                                ),
-                                intArrayOf(
-                                    Color.WHITE,
-                                    Color.WHITE
-                                )
-                            )
-
-                            if (Build.VERSION.SDK_INT >= 21) {
-                                trackTintList = track
-                                thumbTintList = thumb
-                            }
-                        } catch (_: Exception) {}
-
-                        setOnCheckedChangeListener { _, checked ->
-
-                            prefs.edit()
-                                .putBoolean(
-                                    key,
-                                    checked
-                                )
-                                .apply()
-
-                            showSettings()
+            setOnClickListener {
+                mediaPlayer?.let {
+                    try {
+                        if (it.isPlaying) {
+                            it.pause()
+                            playButton.text = "▶"
+                        } else {
+                            it.start()
+                            playButton.text = "Ⅱ"
                         }
+                    } catch (_: Exception) {
                     }
-
-                row.addView(
-                    switchView,
-                    LinearLayout.LayoutParams(
-                        dp(48),
-                        dp(40)
-                    )
-                )
-
-                row.setOnClickListener {
-                    switchView.isChecked =
-                        !switchView.isChecked
                 }
-
-            } else {
-
-                val rightSide =
-                    LinearLayout(this).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        gravity = Gravity.CENTER_VERTICAL
-                    }
-
-                rightSide.addView(
-                    text(
-                        if (
-                            setting.title == "Skip silence between tracks" ||
-                            setting.title == "Control music from lock screen"
-                        ) "" else setting.value,
-                        13.5f,
-                        Color.BLACK,
-                        Typeface.NORMAL
-                    ).apply {
-                        gravity = Gravity.CENTER_VERTICAL
-                        includeFontPadding = false
-                        maxLines = 1
-                        ellipsize =
-                            android.text.TextUtils.TruncateAt.END
-                        textAlignment = View.TEXT_ALIGNMENT_VIEW_END
-                    },
-                    LinearLayout.LayoutParams(
-                        dp(100),
-                        dp(40)
-                    )
-                )
-
-                rightSide.addView(
-                    text(
-                        "›",
-                        20f,
-                        Color.rgb(150, 150, 150),
-                        Typeface.NORMAL
-                    ).apply {
-                        gravity = Gravity.CENTER
-                        includeFontPadding = false
-                    },
-                    LinearLayout.LayoutParams(
-                        dp(20),
-                        dp(40)
-                    )
-                )
-
-                row.addView(
-                    rightSide,
-                    LinearLayout.LayoutParams(
-                        dp(120),
-                        dp(40)
-                    )
-                )
-
-                row.setOnClickListener {
-                    showSettingFullScreen(
-                        setting.title,
-                        setting.value,
-                        setting.action
-                    )
-                }
-            }
-
-            card.addView(
-                row,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(58)
-                )
-            )
-
-            if (index < settings.lastIndex) {
-                card.addView(
-                    View(this).apply {
-                        setBackgroundColor(
-                            Color.rgb(238, 238, 238)
-                        )
-                    },
-                    LinearLayout.LayoutParams(
-                        -1,
-                        1
-                    ).apply {
-                        leftMargin = dp(18)
-                        rightMargin = dp(18)
-                    }
-                )
             }
         }
 
-        parent.addView(
-            card,
+        layout.addView(
+            playButton,
             LinearLayout.LayoutParams(
-                -1,
-                -2
-            ).apply {
-                bottomMargin = dp(16)
-            }
+                dp(46),
+                dp(46)
+            )
         )
+
+        // ---------- OPEN NOW PLAYING ----------
+        miniCover.setOnClickListener {
+            if (currentSong != null) {
+                showNowPlaying()
+            }
+        }
+
+        miniTitle.setOnClickListener {
+            if (currentSong != null) {
+                showNowPlaying()
+            }
+        }
+
+        miniArtist.setOnClickListener {
+            if (currentSong != null) {
+                showNowPlaying()
+            }
+        }
+
+        setupMiniPlayerGestures(layout)
+
+        return layout
     }
 
+    private fun findAdjacentSong(
+        currentId: Long,
+        next: Boolean
+    ): Song? {
 
+        val songs = mutableListOf<Song>()
 
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST
+        )
 
-    private fun showSleepTimerDialog() {
-        showSettingFullScreen(
-            "Sleep timer",
-            getSleepTimerLabel()
-        ) {}
+        try {
+
+            contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                "${MediaStore.Audio.Media.IS_MUSIC} != 0",
+                null,
+                "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
+            )?.use { cursor ->
+
+                val idColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media._ID
+                    )
+
+                val titleColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media.TITLE
+                    )
+
+                val artistColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media.ARTIST
+                    )
+
+                while (cursor.moveToNext()) {
+
+                    songs.add(
+                        Song(
+                            cursor.getLong(idColumn),
+                            cursor.getString(titleColumn) ?: "Unknown",
+                            cursor.getString(artistColumn) ?: "Unknown Artist"
+                        )
+                    )
+                }
+            }
+
+        } catch (_: Exception) {
+            return null
+        }
+
+        val index =
+            songs.indexOfFirst {
+                it.id == currentId
+            }
+
+        if (index < 0) {
+            return null
+        }
+
+        val target =
+            if (next) index + 1 else index - 1
+
+        if (target !in songs.indices) {
+            return null
+        }
+
+        return songs[target]
+    }
+
+    private fun fullMiniExpansionProgress(): Float {
+        val card = miniExpansionCard
+            ?: return 0f
+
+        val screenHeight =
+            resources.displayMetrics.heightPixels
+                .toFloat()
+
+        val miniHeight =
+            miniPlayer.height.coerceAtLeast(dp(60))
+
+        val maxUp =
+            (
+                screenHeight -
+                    miniHeight
+            ).coerceAtLeast(1f)
+
+        val top =
+            (
+                card.layoutParams
+                    as? FrameLayout.LayoutParams
+            )?.topMargin
+                ?: miniPlayerTopInDecor().toInt()
+
+        val upward =
+            (
+                miniPlayerTopInDecor() -
+                    top
+            ).coerceAtLeast(0f)
+
+        return (
+            upward /
+                maxUp
+        )
+            .coerceIn(0f, 1f)
+    }
+
+    private fun getCrossFadeValue(): Int {
+        return getSettingsPrefs()
+            .getInt("cross_fade_seconds", 0)
+            .coerceIn(0, 12)
     }
 
     private fun getPlaybackSpeedLabel(): String {
@@ -2582,41 +3318,838 @@ class MainActivity : ComponentActivity() {
         return "${speed}x"
     }
 
-    private fun showPlaybackSpeedDialog() {
-        showSettingFullScreen(
-            "Play speed",
-            getPlaybackSpeedLabel()
-        ) {}
+    private fun getPlaybackSpeedValue(): Float {
+        return getSettingsPrefs()
+            .getFloat("playback_speed", 1.0f)
+            .coerceIn(0.5f, 2.0f)
     }
 
-    private fun toggleSetting(
-        key: String,
-        titleValue: String
+    private fun getSettingsPrefs() =
+        getSharedPreferences(
+            "music_settings",
+            MODE_PRIVATE
+        )
+
+    private fun getSleepTimerLabel(): String {
+
+        val minutes =
+            getSettingsPrefs()
+                .getInt("sleep_timer_minutes", 0)
+
+        return if (minutes <= 0)
+            "Off"
+        else
+            "$minutes min"
+    }
+
+    private fun miniPlayerTopInDecor(): Float {
+
+        val location =
+            IntArray(2)
+
+        val decorLocation =
+            IntArray(2)
+
+        miniPlayer.getLocationOnScreen(
+            location
+        )
+
+        window.decorView.getLocationOnScreen(
+            decorLocation
+        )
+
+        return (
+            location[1] -
+            decorLocation[1]
+        ).toFloat()
+    }
+
+    private fun playMiniNext() {
+
+        val current = currentSong ?: return
+
+        val index =
+            playbackQueue.indexOfFirst {
+                it.id == current.id
+            }
+
+        if (index >= 0 && index < playbackQueue.lastIndex) {
+            playSong(playbackQueue[index + 1])
+            return
+        }
+
+        /*
+         * If queue only contains current song, try the
+         * currently loaded Library list through MediaStore.
+         */
+        val next = findAdjacentSong(current.id, true)
+
+        if (next != null) {
+            playSong(next, smoothMiniChange = true, miniTextDirection = 1)
+        }
+    }
+
+    private fun playMiniNextAnimated() {
+
+        val current =
+            currentSong
+                ?: return
+
+        val index =
+            playbackQueue.indexOfFirst {
+                it.id == current.id
+            }
+
+        val next =
+            if (
+                index >= 0 &&
+                index < playbackQueue.lastIndex
+            ) {
+                playbackQueue[index + 1]
+            } else {
+                findAdjacentSong(
+                    current.id,
+                    true
+                )
+            }
+
+        if (next == null) {
+            return
+        }
+
+        playSong(
+            next,
+            smoothMiniChange = true,
+            miniTextDirection = 1
+        )
+    }
+
+    private fun playMiniPrevious() {
+
+        val current = currentSong ?: return
+
+        val index =
+            playbackQueue.indexOfFirst {
+                it.id == current.id
+            }
+
+        if (index > 0) {
+            playSong(playbackQueue[index - 1])
+            return
+        }
+
+        val previous = findAdjacentSong(current.id, false)
+
+        if (previous != null) {
+            playSong(previous, smoothMiniChange = true, miniTextDirection = -1)
+        }
+    }
+
+    private fun playMiniPreviousAnimated() {
+
+        val current =
+            currentSong
+                ?: return
+
+        val index =
+            playbackQueue.indexOfFirst {
+                it.id == current.id
+            }
+
+        val previous =
+            if (index > 0) {
+                playbackQueue[index - 1]
+            } else {
+                findAdjacentSong(
+                    current.id,
+                    false
+                )
+            }
+
+        if (previous == null) {
+            return
+        }
+
+        playSong(
+            previous,
+            smoothMiniChange = true,
+            miniTextDirection = -1
+        )
+    }
+
+    private fun removeMiniExpansionCard() {
+
+        miniExpansionCard?.let { card ->
+
+            (card.parent as? ViewGroup)
+                ?.removeView(card)
+        }
+
+        miniExpansionCard = null
+        miniExpansionCover = null
+        miniExpansionTitle = null
+        miniExpansionArtist = null
+
+        if (::miniPlayer.isInitialized) {
+            miniPlayer.alpha = 1f
+        }
+
+        miniBottomNavigation?.let { nav ->
+            nav.translationY = 0f
+            nav.alpha = 1f
+        }
+        miniFullTargetCenterX = Float.NaN
+        miniFullTargetCenterY = Float.NaN
+        miniFullTargetSize = 0
+
+    }
+
+    private fun restorePlayerState() {
+
+        val songId =
+            playerPrefs.getLong("song_id", -1L)
+
+        if (songId <= 0L) {
+            return
+        }
+
+        val savedPosition =
+            playerPrefs.getInt("position", 0)
+
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST
+        )
+
+        try {
+
+            contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                "${MediaStore.Audio.Media._ID} = ?",
+                arrayOf(songId.toString()),
+                null
+            )?.use { cursor ->
+
+                if (cursor.moveToFirst()) {
+
+                    val song =
+                        Song(
+                            cursor.getLong(
+                                cursor.getColumnIndexOrThrow(
+                                    MediaStore.Audio.Media._ID
+                                )
+                            ),
+                            cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                    MediaStore.Audio.Media.TITLE
+                                )
+                            ) ?: "Unknown",
+                            cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                    MediaStore.Audio.Media.ARTIST
+                                )
+                            ) ?: "Unknown Artist"
+                        )
+
+                    playSong(
+                        song,
+                        startPosition = savedPosition
+                    )
+                }
+            }
+
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun loadRecentlyPlayed() {
+
+        recentSongIds.clear()
+
+        val stored =
+            playerPrefs.getString(
+                "recent_song_ids",
+                ""
+            ) ?: ""
+
+        if (stored.isNotBlank()) {
+
+            stored
+                .split(",")
+                .forEach { value ->
+
+                    value
+                        .toLongOrNull()
+                        ?.let { id ->
+                            recentSongIds.add(id)
+                        }
+                }
+        }
+    }
+
+    private fun recordRecentlyPlayed(song: Song) {
+
+        recentSongIds.remove(song.id)
+        recentSongIds.add(0, song.id)
+
+        while (recentSongIds.size > 20) {
+            recentSongIds.removeAt(
+                recentSongIds.lastIndex
+            )
+        }
+
+        playerPrefs.edit()
+            .putString(
+                "recent_song_ids",
+                recentSongIds.joinToString(",")
+            )
+            .apply()
+    }
+
+    private fun getRecentlyPlayedSongs(): List<Song> {
+
+        if (recentSongIds.isEmpty()) {
+            loadRecentlyPlayed()
+        }
+
+        val byId =
+            songs.associateBy { it.id }
+
+        return recentSongIds.mapNotNull { id ->
+            byId[id]
+        }
+    }
+
+    private fun savePlayerState() {
+
+        val song = currentSong ?: return
+
+        val position =
+            try {
+                mediaPlayer?.currentPosition ?: 0
+            } catch (_: Exception) {
+                0
+            }
+
+        playerPrefs.edit()
+            .putLong("song_id", song.id)
+            .putInt("position", position)
+            .apply()
+    }
+
+    private fun scheduleMiniHide(layout: View) {
+
+        cancelMiniHide()
+
+        val runnable = Runnable {
+
+            if (!miniGestureDragging) {
+                return@Runnable
+            }
+
+            layout.animate()
+                .alpha(0f)
+                .translationY(dp(18).toFloat())
+                .setDuration(420L)
+                .setInterpolator(
+                    android.view.animation.DecelerateInterpolator()
+                )
+                .withEndAction {
+                    layout.visibility = View.INVISIBLE
+                    layout.translationY = 0f
+                    layout.alpha = 1f
+
+                    miniCover.rotation = 0f
+                    miniCover.scaleX = 1f
+                    miniCover.scaleY = 1f
+                }
+                .start()
+
+            miniGestureDragging = false
+        }
+
+        miniHideRunnable = runnable
+        layout.postDelayed(runnable, 3000L)
+    }
+
+    private fun setupMiniPlayerGestures(
+        layout: LinearLayout
     ) {
 
-        val prefs = getSettingsPrefs()
+        val touchSlop =
+            android.view.ViewConfiguration
+                .get(this)
+                .scaledTouchSlop
 
-        val newValue =
-            !prefs.getBoolean(key, false)
+        val gestureListener =
+            View.OnTouchListener { _, event ->
 
-        prefs.edit()
-            .putBoolean(key, newValue)
-            .apply()
+                when (event.actionMasked) {
 
-        Toast.makeText(
-            this,
-            "$titleValue: ${if (newValue) "On" else "Off"}",
-            Toast.LENGTH_SHORT
-        ).show()
+                    android.view.MotionEvent.ACTION_DOWN -> {
 
-        showSettings()
+                        miniGestureDownX = event.rawX
+                        miniGestureDownY = event.rawY
+                        miniGestureLastX = event.rawX
+                        miniGestureLastY = event.rawY
+
+                        miniGestureDragging = false
+                        miniGestureVertical = false
+
+                        cancelMiniHide()
+
+                        false
+                    }
+
+                    android.view.MotionEvent.ACTION_MOVE -> {
+
+                        val dx =
+                            event.rawX - miniGestureDownX
+
+                        val dy =
+                            event.rawY - miniGestureDownY
+
+                        if (!miniGestureDragging) {
+
+                            if (
+                                kotlin.math.abs(dx) > touchSlop ||
+                                kotlin.math.abs(dy) > touchSlop
+                            ) {
+
+                                miniGestureDragging = true
+
+                                miniGestureVertical =
+                                    kotlin.math.abs(dy) >
+                                    kotlin.math.abs(dx)
+
+                                if (miniGestureVertical) {
+                                    /*
+                                     * Mini -> Full transition exists ONLY
+                                     * for an upward gesture.
+                                     *
+                                     * A downward drag while Mini is visible
+                                     * must not create the Full Player background
+                                     * or change the Mini Player colors.
+                                     */
+                                    if (dy < 0f) {
+                                        createMiniExpansionCard()
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!miniGestureDragging) {
+                            return@OnTouchListener false
+                        }
+
+                        if (miniGestureVertical) {
+
+                            /*
+                             * Downward drag from Mini is intentionally inert.
+                             * Do not create, colorize, move or fade anything.
+                             */
+                            if (dy >= 0f) {
+                                layout.translationX = 0f
+                                layout.translationY = 0f
+                                miniPlayer.alpha = 1f
+
+                                miniCover.rotation = 0f
+                                miniCover.scaleX = 1f
+                                miniCover.scaleY = 1f
+
+                                miniGestureLastY = event.rawY
+
+                                true
+                            } else {
+
+                                updateMiniExpansionCard(
+                                    dy = dy
+                                )
+
+                                val screenHeight =
+                                    resources.displayMetrics.heightPixels
+                                        .toFloat()
+
+                                val miniHeight =
+                                    miniPlayer.height.coerceAtLeast(dp(60))
+
+                                val maxUp =
+                                    (
+                                        screenHeight -
+                                            miniHeight
+                                    ).coerceAtLeast(1f)
+
+                                val upward =
+                                    (-dy)
+                                        .coerceAtLeast(0f)
+                                        .coerceAtMost(maxUp)
+
+                                val progress =
+                                    (
+                                        upward / maxUp
+                                    ).coerceIn(0f, 1f)
+
+                                miniFullTransitionProgress = progress
+
+                                updateMiniFullTransition(
+                                    progress
+                                )
+
+                                miniGestureLastY = event.rawY
+
+                                true
+                            }
+
+                        } else {
+
+                            /*
+                             * IMPORTANT:
+                             * The Mini Player itself does NOT move.
+                             */
+                            layout.translationX = 0f
+                            layout.translationY = 0f
+
+                            miniCover.rotation = 0f
+                            miniCover.scaleX = 1f
+                            miniCover.scaleY = 1f
+
+                            true
+                        }
+                    }
+
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+
+                        cancelMiniHide()
+
+                        if (!miniGestureDragging) {
+                            return@OnTouchListener false
+                        }
+
+                        val dx =
+                            event.rawX - miniGestureDownX
+
+                        val dy =
+                            event.rawY - miniGestureDownY
+
+                        if (miniGestureVertical) {
+
+                            val screenHeight =
+                                resources.displayMetrics
+                                    .heightPixels
+                                    .toFloat()
+
+                            val maxUp =
+                                (
+                                    screenHeight -
+                                    miniPlayer.height
+                                ).coerceAtLeast(1f)
+
+                            val upward =
+                                (-dy).coerceAtLeast(0f)
+
+                            val progress =
+                                (
+                                    upward / maxUp
+                                ).coerceIn(0f, 1f)
+
+                            if (progress >= 0.5f) {
+
+                                completeMiniExpansion(
+                                    layout
+                                )
+
+                            } else {
+
+                                cancelMiniExpansion(
+                                    layout
+                                )
+                            }
+
+                            miniGestureDragging = false
+                            true
+
+                        } else {
+
+                            /*
+                             * Horizontal swipe:
+                             * NO Mini Player movement.
+                             */
+                            layout.translationX = 0f
+                            layout.translationY = 0f
+
+                            if (
+                                dx <
+                                -dp(70)
+                            ) {
+
+                                playMiniNextAnimated()
+
+                            } else if (
+                                dx >
+                                dp(70)
+                            ) {
+
+                                playMiniPreviousAnimated()
+                            }
+
+                            miniGestureDragging = false
+                            true
+                        }
+                    }
+
+                    else -> false
+                }
+            }
+
+        layout.setOnTouchListener(
+            gestureListener
+        )
+
+        miniCover.setOnTouchListener(
+            gestureListener
+        )
+
+        miniTitle.setOnTouchListener(
+            gestureListener
+        )
+
+        miniArtist.setOnTouchListener(
+            gestureListener
+        )
+
+        layout.isClickable = true
+        layout.isFocusable = false
     }
 
-    private fun showQueueSettingsDialog() {
-        showSettingFullScreen(
-            "Queue settings",
-            "Playback queue"
-        ) {}
+    private fun showAboutMusicDialog() {
+
+        val root =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundColor(
+                    Color.rgb(
+                        246,
+                        246,
+                        246
+                    )
+                )
+                setPadding(
+                    dp(20),
+                    dp(22),
+                    dp(20),
+                    dp(24)
+                )
+            }
+
+        val dialog =
+            android.app.Dialog(this)
+
+        val header =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                gravity =
+                    Gravity.CENTER_VERTICAL
+            }
+
+        header.addView(
+            text(
+                "‹",
+                38f,
+                Color.BLACK,
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+
+                setOnClickListener {
+                    dialog.dismiss()
+                }
+            },
+            LinearLayout.LayoutParams(
+                dp(48),
+                dp(48)
+            )
+        )
+
+        header.addView(
+            text(
+                "About Music",
+                27f,
+                Color.BLACK,
+                Typeface.BOLD
+            ).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        root.addView(
+            header,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(54)
+            ).apply {
+                bottomMargin = dp(20)
+            }
+        )
+
+        val card =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                gravity =
+                    Gravity.CENTER_HORIZONTAL
+
+                setPadding(
+                    dp(20),
+                    dp(36),
+                    dp(20),
+                    dp(36)
+                )
+
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        setColor(Color.WHITE)
+                        cornerRadius =
+                            dp(16).toFloat()
+                    }
+            }
+
+        card.addView(
+            text(
+                "Music",
+                34f,
+                Color.BLACK,
+                Typeface.BOLD
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        val version =
+            try {
+                packageManager
+                    .getPackageInfo(
+                        packageName,
+                        0
+                    )
+                    .versionName
+                    ?: "1.0"
+            } catch (_: Exception) {
+                "1.0"
+            }
+
+        card.addView(
+            text(
+                "Version $version",
+                14f,
+                Color.BLACK,
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                setPadding(
+                    0,
+                    dp(10),
+                    0,
+                    0
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        card.addView(
+            text(
+                "You're using the latest version",
+                15f,
+                Color.BLACK,
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                setPadding(
+                    0,
+                    dp(22),
+                    0,
+                    0
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        root.addView(
+            card,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        dialog.window?.setBackgroundDrawableResource(
+            android.R.color.transparent
+        )
+
+        dialog.setContentView(root)
+        dialog.show()
+
+        dialog.window?.setLayout(
+            -1,
+            -1
+        )
+    }
+
+    private fun showCreatePlaylistDialog() {
+
+        val input = EditText(this).apply {
+            hint = "Playlist name"
+            setSingleLine(true)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Create playlist")
+            .setView(input)
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "Create"
+            ) { _, _ ->
+
+                val name =
+                    input.text
+                        .toString()
+                        .trim()
+
+                if (name.isNotEmpty()) {
+
+                    Toast.makeText(
+                        this,
+                        "Playlist \"$name\" created",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .show()
     }
 
     private fun showManagePlaylistsDialog() {
@@ -2633,33 +4166,173 @@ class MainActivity : ComponentActivity() {
         ) {}
     }
 
-    private fun toggleDarkMode() {
+    private fun showMiniPlayer() {
 
-        val prefs = getSettingsPrefs()
+        if (!::miniPlayer.isInitialized) {
+            return
+        }
 
-        val enabled =
-            !prefs.getBoolean(
-                "dark_mode",
-                false
+        cancelMiniHide()
+
+        miniPlayer.visibility = View.VISIBLE
+        miniPlayer.animate()
+            .cancel()
+
+        miniPlayer.alpha = 0f
+        miniPlayer.translationY = dp(10).toFloat()
+
+        miniCover.rotation = 0f
+        miniCover.scaleX = 1f
+        miniCover.scaleY = 1f
+
+        miniPlayer.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(280L)
+            .setInterpolator(
+                android.view.animation.DecelerateInterpolator()
+            )
+            .start()
+    }
+
+    private fun showMultiSelectionFullScreen(
+        title: String,
+        options: List<String>,
+        selected: MutableList<Boolean>,
+        onChanged: (List<Boolean>) -> Unit
+    ) {
+        val dialog = android.app.Dialog(this)
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.rgb(246, 246, 246))
+            setPadding(dp(20), dp(18), dp(20), dp(24))
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val back = TextView(this).apply {
+            text = "←"
+            textSize = 28f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            setPadding(0, 0, dp(12), 0)
+            setOnClickListener {
+                onChanged(selected.toList())
+                dialog.dismiss()
+            }
+        }
+
+        val titleView = TextView(this).apply {
+            text = title
+            textSize = 24f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        header.addView(back, LinearLayout.LayoutParams(dp(42), dp(52)))
+        header.addView(
+            titleView,
+            LinearLayout.LayoutParams(0, dp(52), 1f)
+        )
+        root.addView(
+            header,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
+        )
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(16).toFloat()
+            }
+            clipToOutline = true
+        }
+
+        val cardTitle = TextView(this).apply {
+            text = title
+            textSize = 18f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(18), dp(20), dp(10))
+        }
+
+        card.addView(
+            cardTitle,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
+        )
+
+        options.forEachIndexed { index, option ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(18), dp(10), dp(18), dp(10))
+                isClickable = true
+                isFocusable = true
+            }
+
+            val indicator = TextView(this).apply {
+                text = if (selected.getOrNull(index) == true) "●" else "○"
+                textSize = 23f
+                setTextColor(Color.BLACK)
+                gravity = Gravity.CENTER
+            }
+
+            val label = TextView(this).apply {
+                text = option
+                textSize = 17f
+                setTextColor(Color.BLACK)
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            row.addView(indicator, LinearLayout.LayoutParams(dp(38), dp(52)))
+            row.addView(
+                label,
+                LinearLayout.LayoutParams(0, dp(52), 1f)
             )
 
-        prefs.edit()
-            .putBoolean(
-                "dark_mode",
-                enabled
+            row.setOnClickListener {
+                selected[index] = !selected[index]
+                indicator.text = if (selected[index]) "●" else "○"
+            }
+
+            card.addView(
+                row,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(72)
+                )
             )
-            .apply()
+        }
 
-        Toast.makeText(
-            this,
-            if (enabled)
-                "Dark mode enabled"
-            else
-                "Dark mode disabled",
-            Toast.LENGTH_SHORT
-        ).show()
+        root.addView(
+            card,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
 
-        showSettings()
+        dialog.setContentView(root)
+        dialog.show()
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setLayout(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
     }
 
     private fun showPermissionsDialog() {
@@ -2944,583 +4617,156 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private fun showAboutMusicDialog() {
+    private fun showPlaybackSpeedDialog() {
+        showSettingFullScreen(
+            "Play speed",
+            getPlaybackSpeedLabel()
+        ) {}
+    }
 
-        val root =
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setBackgroundColor(
-                    Color.rgb(
-                        246,
-                        246,
-                        246
-                    )
-                )
-                setPadding(
-                    dp(20),
-                    dp(22),
-                    dp(20),
-                    dp(24)
-                )
-            }
+    private fun showQueueSettingsDialog() {
+        showSettingFullScreen(
+            "Queue settings",
+            "Playback queue"
+        ) {}
+    }
 
-        val dialog =
-            android.app.Dialog(this)
+    private fun showSelectionFullScreen(
+        title: String,
+        options: List<String>,
+        selectedIndex: Int,
+        onSelected: (Int) -> Unit
+    ) {
+        val dialog = android.app.Dialog(this)
 
-        val header =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-                gravity =
-                    Gravity.CENTER_VERTICAL
-            }
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.rgb(246, 246, 246))
+            setPadding(dp(20), dp(18), dp(20), dp(24))
+        }
 
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val back = TextView(this).apply {
+            text = "←"
+            textSize = 28f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            setPadding(0, 0, dp(12), 0)
+            setOnClickListener { dialog.dismiss() }
+        }
+
+        val titleView = TextView(this).apply {
+            text = title
+            textSize = 24f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        header.addView(back, LinearLayout.LayoutParams(dp(42), dp(52)))
         header.addView(
-            text(
-                "‹",
-                38f,
-                Color.BLACK,
-                Typeface.NORMAL
-            ).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-
-                setOnClickListener {
-                    dialog.dismiss()
-                }
-            },
-            LinearLayout.LayoutParams(
-                dp(48),
-                dp(48)
-            )
+            titleView,
+            LinearLayout.LayoutParams(0, dp(52), 1f)
         )
-
-        header.addView(
-            text(
-                "About Music",
-                27f,
-                Color.BLACK,
-                Typeface.BOLD
-            ).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
-        )
-
         root.addView(
             header,
             LinearLayout.LayoutParams(
-                -1,
-                dp(54)
-            ).apply {
-                bottomMargin = dp(20)
-            }
-        )
-
-        val card =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                gravity =
-                    Gravity.CENTER_HORIZONTAL
-
-                setPadding(
-                    dp(20),
-                    dp(36),
-                    dp(20),
-                    dp(36)
-                )
-
-                background =
-                    android.graphics.drawable.GradientDrawable().apply {
-                        setColor(Color.WHITE)
-                        cornerRadius =
-                            dp(16).toFloat()
-                    }
-            }
-
-        card.addView(
-            text(
-                "Music",
-                34f,
-                Color.BLACK,
-                Typeface.BOLD
-            ).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                -2
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
             )
         )
 
-        val version =
-            try {
-                packageManager
-                    .getPackageInfo(
-                        packageName,
-                        0
-                    )
-                    .versionName
-                    ?: "1.0"
-            } catch (_: Exception) {
-                "1.0"
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(16).toFloat()
+            }
+            clipToOutline = true
+        }
+
+        val cardTitle = TextView(this).apply {
+            text = title
+            textSize = 18f
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(18), dp(20), dp(10))
+        }
+
+        card.addView(
+            cardTitle,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
+        )
+
+        options.forEachIndexed { index, option ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(18), dp(10), dp(18), dp(10))
+                isClickable = true
+                isFocusable = true
             }
 
-        card.addView(
-            text(
-                "Version $version",
-                14f,
-                Color.BLACK,
-                Typeface.NORMAL
-            ).apply {
+            val indicator = TextView(this).apply {
+                text = if (index == selectedIndex) "●" else "○"
+                textSize = 23f
+                setTextColor(Color.BLACK)
                 gravity = Gravity.CENTER
-                includeFontPadding = false
-                setPadding(
-                    0,
-                    dp(10),
-                    0,
-                    0
-                )
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
+            }
 
-        card.addView(
-            text(
-                "You're using the latest version",
-                15f,
-                Color.BLACK,
-                Typeface.NORMAL
-            ).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-                setPadding(
-                    0,
-                    dp(22),
-                    0,
-                    0
-                )
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                -2
+            val label = TextView(this).apply {
+                text = option
+                textSize = 17f
+                setTextColor(Color.BLACK)
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            row.addView(indicator, LinearLayout.LayoutParams(dp(38), dp(52)))
+            row.addView(
+                label,
+                LinearLayout.LayoutParams(0, dp(52), 1f)
             )
-        )
+
+            row.setOnClickListener {
+                onSelected(index)
+                dialog.dismiss()
+            }
+
+            card.addView(
+                row,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(72)
+                )
+            )
+        }
 
         root.addView(
             card,
             LinearLayout.LayoutParams(
-                -1,
-                -2
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
-        )
-
-        dialog.window?.setBackgroundDrawableResource(
-            android.R.color.transparent
         )
 
         dialog.setContentView(root)
         dialog.show()
-
-        dialog.window?.setLayout(
-            -1,
-            -1
-        )
-    }
-
-    private fun applyPlaybackSpeed() {
-
-        if (android.os.Build.VERSION.SDK_INT >= 23) {
-
-            val speed =
-                getSettingsPrefs()
-                    .getFloat(
-                        "playback_speed",
-                        1.0f
-                    )
-
-            mediaPlayer?.let {
-                try {
-                    val params =
-                        it.playbackParams
-
-                    params.speed = speed
-
-                    it.playbackParams = params
-                } catch (_: Exception) {
-                }
-            }
-        }
-    }
-
-
-    private fun getSleepTimerLabel(): String {
-
-        val minutes =
-            getSettingsPrefs()
-                .getInt("sleep_timer_minutes", 0)
-
-        return if (minutes <= 0)
-            "Off"
-        else
-            "$minutes min"
-    }
-
-    private fun showCreatePlaylistDialog() {
-
-        val input = EditText(this).apply {
-            hint = "Playlist name"
-            setSingleLine(true)
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("Create playlist")
-            .setView(input)
-            .setNegativeButton(
-                "Cancel",
-                null
-            )
-            .setPositiveButton(
-                "Create"
-            ) { _, _ ->
-
-                val name =
-                    input.text
-                        .toString()
-                        .trim()
-
-                if (name.isNotEmpty()) {
-
-                    Toast.makeText(
-                        this,
-                        "Playlist \"$name\" created",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .show()
-    }
-
-    private fun getPlaybackSpeedValue(): Float {
-        return getSettingsPrefs()
-            .getFloat("playback_speed", 1.0f)
-            .coerceIn(0.5f, 2.0f)
-    }
-
-    private fun getCrossFadeValue(): Int {
-        return getSettingsPrefs()
-            .getInt("cross_fade_seconds", 0)
-            .coerceIn(0, 12)
-    }
-
-    private fun addPlaybackSliderCard(
-        parent: LinearLayout,
-        title: String,
-        currentValue: Number
-    ) {
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(
-                dp(10),
-                dp(14),
-                dp(10),
-                dp(14)
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setLayout(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
             )
         }
-
-        val titleText = TextView(this).apply {
-            text = title
-            textSize = 16f
-            setTextColor(Color.BLACK)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.START or Gravity.CENTER_VERTICAL
-            includeFontPadding = false
-        }
-
-        container.addView(
-            titleText,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(24)
-            )
-        )
-
-        val valueText = TextView(this).apply {
-            textSize = 13f
-            setTextColor(Color.rgb(70, 70, 70))
-            gravity = Gravity.CENTER
-            typeface = Typeface.DEFAULT_BOLD
-            includeFontPadding = false
-        }
-
-        container.addView(
-            valueText,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(22)
-            ).apply {
-                topMargin = dp(2)
-            }
-        )
-
-        val blue = Color.rgb(42, 118, 224)
-        val lightGray = Color.rgb(232, 232, 232)
-
-        val seekBar = object : SeekBar(this) {
-
-            private val trackPaint =
-                android.graphics.Paint(
-                    android.graphics.Paint.ANTI_ALIAS_FLAG
-                )
-
-            private val activePaint =
-                android.graphics.Paint(
-                    android.graphics.Paint.ANTI_ALIAS_FLAG
-                )
-
-            override fun onDraw(
-                canvas: android.graphics.Canvas
-            ) {
-                val trackHeight = dp(8).toFloat()
-                val radius = trackHeight / 2f
-
-                val left = paddingLeft.toFloat()
-                val right =
-                    (width - paddingRight).toFloat()
-
-                val centerY = height / 2f
-                val top = centerY - radius
-                val bottom = centerY + radius
-
-                trackPaint.color = lightGray
-
-                canvas.drawRoundRect(
-                    left,
-                    top,
-                    right,
-                    bottom,
-                    radius,
-                    radius,
-                    trackPaint
-                )
-
-                val fraction =
-                    if (max > 0) {
-                        progress.toFloat() /
-                            max.toFloat()
-                    } else {
-                        0f
-                    }
-
-                val activeRight =
-                    left +
-                        ((right - left) * fraction)
-
-                if (activeRight > left) {
-                    activePaint.color = blue
-
-                    canvas.drawRoundRect(
-                        left,
-                        top,
-                        activeRight,
-                        bottom,
-                        radius,
-                        radius,
-                        activePaint
-                    )
-                }
-
-                super.onDraw(canvas)
-            }
-        }.apply {
-
-            if (title == "Play speed") {
-                max = 15
-
-                val speed =
-                    currentValue
-                        .toFloat()
-                        .coerceIn(0.5f, 2.0f)
-
-                progress =
-                    ((speed - 0.5f) * 10f)
-                        .roundToInt()
-
-                valueText.text =
-                    String.format(
-                        java.util.Locale.US,
-                        "%.1fx",
-                        speed
-                    )
-            } else {
-                max = 12
-
-                val seconds =
-                    currentValue
-                        .toInt()
-                        .coerceIn(0, 12)
-
-                progress = seconds
-
-                valueText.text =
-                    if (seconds == 0) {
-                        "Off"
-                    } else {
-                        "${seconds}s"
-                    }
-            }
-
-            minHeight = dp(28)
-            maxHeight = dp(28)
-
-            setPadding(0, 0, 0, 0)
-
-            progressDrawable =
-                android.graphics.drawable.ColorDrawable(
-                    android.graphics.Color.TRANSPARENT
-                )
-
-            val thumbDrawable =
-                android.graphics.drawable.GradientDrawable()
-                    .apply {
-                        shape =
-                            android.graphics.drawable.GradientDrawable
-                                .OVAL
-
-                        setColor(Color.WHITE)
-
-                        setStroke(
-                            dp(1),
-                            blue
-                        )
-
-                        setSize(
-                            dp(20),
-                            dp(20)
-                        )
-                    }
-
-            thumb = thumbDrawable
-            splitTrack = false
-
-            setOnSeekBarChangeListener(
-                object :
-                    SeekBar.OnSeekBarChangeListener {
-
-                    override fun onProgressChanged(
-                        seekBar: SeekBar?,
-                        progress: Int,
-                        fromUser: Boolean
-                    ) {
-                        if (!fromUser) return
-
-                        if (title == "Play speed") {
-                            val speed =
-                                0.5f +
-                                    (progress / 10f)
-
-                            valueText.text =
-                                String.format(
-                                    java.util.Locale.US,
-                                    "%.1fx",
-                                    speed
-                                )
-
-                            getSettingsPrefs()
-                                .edit()
-                                .putFloat(
-                                    "playback_speed",
-                                    speed
-                                )
-                                .apply()
-
-                            applyPlaybackSpeed()
-                        } else {
-                            valueText.text =
-                                if (progress == 0) {
-                                    "Off"
-                                } else {
-                                    "${progress}s"
-                                }
-
-                            getSettingsPrefs()
-                                .edit()
-                                .putInt(
-                                    "cross_fade_seconds",
-                                    progress
-                                )
-                                .apply()
-                        }
-
-                        invalidate()
-                    }
-
-                    override fun onStartTrackingTouch(
-                        seekBar: SeekBar?
-                    ) {
-                        seekBar?.animate()?.cancel()
-
-                        seekBar?.animate()
-                            ?.scaleX(1.10f)
-                            ?.scaleY(1.10f)
-                            ?.setDuration(140)
-                            ?.setInterpolator(
-                                android.view.animation.DecelerateInterpolator()
-                            )
-                            ?.start()
-                    }
-
-                    override fun onStopTrackingTouch(
-                        seekBar: SeekBar?
-                    ) {
-                        seekBar?.animate()?.cancel()
-
-                        seekBar?.animate()
-                            ?.scaleX(1f)
-                            ?.scaleY(1f)
-                            ?.setDuration(280)
-                            ?.setInterpolator(
-                                android.view.animation.DecelerateInterpolator()
-                            )
-                            ?.start()
-                    }
-                }
-            )
-        }
-
-        container.addView(
-            seekBar,
-
-            LinearLayout.LayoutParams(
-                0,
-                dp(20),
-                0.82f
-            ).apply {
-                topMargin = dp(5)
-                gravity = Gravity.CENTER_HORIZONTAL
-            }
-        )
-
-        parent.addView(
-            container,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
     }
-
-
-
 
     private fun showSettingFullScreen(
         titleValue: String,
@@ -3717,808 +4963,411 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun showSelectionFullScreen(
-        title: String,
-        options: List<String>,
-        selectedIndex: Int,
-        onSelected: (Int) -> Unit
+    private fun showSleepTimerDialog() {
+        showSettingFullScreen(
+            "Sleep timer",
+            getSleepTimerLabel()
+        ) {}
+    }
+
+    private fun toggleDarkMode() {
+
+        val prefs = getSettingsPrefs()
+
+        val enabled =
+            !prefs.getBoolean(
+                "dark_mode",
+                false
+            )
+
+        prefs.edit()
+            .putBoolean(
+                "dark_mode",
+                enabled
+            )
+            .apply()
+
+        Toast.makeText(
+            this,
+            if (enabled)
+                "Dark mode enabled"
+            else
+                "Dark mode disabled",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        showSettings()
+    }
+
+    private fun toggleSetting(
+        key: String,
+        titleValue: String
     ) {
-        val dialog = android.app.Dialog(this)
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.rgb(246, 246, 246))
-            setPadding(dp(20), dp(18), dp(20), dp(24))
+        val prefs = getSettingsPrefs()
+
+        val newValue =
+            !prefs.getBoolean(key, false)
+
+        prefs.edit()
+            .putBoolean(key, newValue)
+            .apply()
+
+        Toast.makeText(
+            this,
+            "$titleValue: ${if (newValue) "On" else "Off"}",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        showSettings()
+    }
+
+    private fun updateMiniFullTransition(
+        progress: Float
+    ) {
+        val p =
+            progress.coerceIn(0f, 1f)
+
+        miniFullTransitionProgress = p
+
+        /*
+         * Navigation leaves together with the Expansion card.
+         */
+        miniBottomNavigation?.let { nav ->
+            nav.translationY =
+                dp(82).toFloat() * p
+
+            nav.alpha =
+                1f - p
         }
 
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        if (miniExpansionCard != null) {
+            miniPlayer.alpha = 0f
         }
 
-        val back = TextView(this).apply {
-            text = "←"
-            textSize = 28f
-            setTextColor(Color.BLACK)
-            gravity = Gravity.CENTER
-            setPadding(0, 0, dp(12), 0)
-            setOnClickListener { dialog.dismiss() }
+        /*
+         * During 0 -> 50% ONLY artwork/background is visible.
+         */
+        miniExpansionCover?.apply {
+            alpha = 1f
+            rotation = 0f
+            scaleX = 1f
+            scaleY = 1f
         }
 
-        val titleView = TextView(this).apply {
-            text = title
-            textSize = 24f
-            setTextColor(Color.BLACK)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER_VERTICAL
+        miniExpansionTitle?.alpha = 0f
+        miniExpansionArtist?.alpha = 0f
+
+        /*
+         * Create the real Full Player exactly at the 50%
+         * handoff. It remains invisible until the second half.
+         */
+        if (
+            p >= 0.5f &&
+            miniTransitionDialog == null &&
+            currentSong != null
+        ) {
+            miniExpansionOpening = true
+            showNowPlaying()
+            miniExpansionOpening = false
         }
 
-        header.addView(back, LinearLayout.LayoutParams(dp(42), dp(52)))
-        header.addView(
-            titleView,
-            LinearLayout.LayoutParams(0, dp(52), 1f)
-        )
-        root.addView(
-            header,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
-            )
-        )
+        val root =
+            miniTransitionRoot
+                ?: return
 
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.WHITE)
-                cornerRadius = dp(16).toFloat()
-            }
-            clipToOutline = true
+        val secondHalf =
+            ((p - 0.5f) / 0.5f)
+                .coerceIn(0f, 1f)
+
+        val eased =
+            secondHalf *
+                secondHalf *
+                (3f - 2f * secondHalf)
+
+        root.alpha = eased
+
+        miniTransitionFullCover?.apply {
+            alpha = eased
+            scaleX = 1f
+            scaleY = 1f
+            rotation = 0f
         }
 
-        val cardTitle = TextView(this).apply {
-            text = title
-            textSize = 18f
-            setTextColor(Color.BLACK)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(20), dp(18), dp(20), dp(10))
+        miniTransitionInfo?.apply {
+            translationY =
+                dp(32).toFloat() *
+                    (1f - eased)
+            alpha = eased
         }
 
-        card.addView(
-            cardTitle,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
-            )
-        )
-
-        options.forEachIndexed { index, option ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(18), dp(10), dp(18), dp(10))
-                isClickable = true
-                isFocusable = true
-            }
-
-            val indicator = TextView(this).apply {
-                text = if (index == selectedIndex) "●" else "○"
-                textSize = 23f
-                setTextColor(Color.BLACK)
-                gravity = Gravity.CENTER
-            }
-
-            val label = TextView(this).apply {
-                text = option
-                textSize = 17f
-                setTextColor(Color.BLACK)
-                gravity = Gravity.CENTER_VERTICAL
-            }
-
-            row.addView(indicator, LinearLayout.LayoutParams(dp(38), dp(52)))
-            row.addView(
-                label,
-                LinearLayout.LayoutParams(0, dp(52), 1f)
-            )
-
-            row.setOnClickListener {
-                onSelected(index)
-                dialog.dismiss()
-            }
-
-            card.addView(
-                row,
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(72)
-                )
-            )
+        miniTransitionSeekBar?.apply {
+            translationY =
+                dp(20).toFloat() *
+                    (1f - eased) -
+                    dp(6).toFloat()
+            alpha = eased
         }
 
-        root.addView(
-            card,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
+        miniTransitionTimeRow?.apply {
+            translationY =
+                dp(20).toFloat() *
+                    (1f - eased)
+            alpha = eased
+        }
 
-        dialog.setContentView(root)
-        dialog.show()
-        dialog.window?.apply {
-            setBackgroundDrawableResource(android.R.color.transparent)
-            setLayout(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            )
+        miniTransitionControls?.apply {
+            translationY =
+                dp(38).toFloat() *
+                    (1f - eased) -
+                    dp(10).toFloat()
+            alpha = eased
+        }
+
+        miniTransitionSecondary?.apply {
+            translationY =
+                dp(44).toFloat() *
+                    (1f - eased)
+            alpha = eased
         }
     }
 
-    private fun showMultiSelectionFullScreen(
-        title: String,
-        options: List<String>,
-        selected: MutableList<Boolean>,
-        onChanged: (List<Boolean>) -> Unit
-    ) {
-        val dialog = android.app.Dialog(this)
+    private fun showSettings() {
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        content.removeAllViews()
+        content.setPadding(
+            dp(20),
+            dp(18),
+            dp(20),
+            dp(26)
+        )
+        content.setBackgroundColor(Color.rgb(246, 246, 246))
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            clipToPadding = false
+            overScrollMode = View.OVER_SCROLL_NEVER
             setBackgroundColor(Color.rgb(246, 246, 246))
-            setPadding(dp(20), dp(18), dp(20), dp(24))
         }
 
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        val back = TextView(this).apply {
-            text = "←"
-            textSize = 28f
-            setTextColor(Color.BLACK)
-            gravity = Gravity.CENTER
-            setPadding(0, 0, dp(12), 0)
-            setOnClickListener {
-                onChanged(selected.toList())
-                dialog.dismiss()
-            }
-        }
-
-        val titleView = TextView(this).apply {
-            text = title
-            textSize = 24f
-            setTextColor(Color.BLACK)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        header.addView(back, LinearLayout.LayoutParams(dp(42), dp(52)))
-        header.addView(
-            titleView,
-            LinearLayout.LayoutParams(0, dp(52), 1f)
-        )
-        root.addView(
-            header,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
-            )
-        )
-
-        val card = LinearLayout(this).apply {
+        val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.WHITE)
-                cornerRadius = dp(16).toFloat()
-            }
-            clipToOutline = true
+            setPadding(0, 0, 0, dp(28))
+            setBackgroundColor(Color.rgb(246, 246, 246))
         }
 
-        val cardTitle = TextView(this).apply {
-            text = title
-            textSize = 18f
-            setTextColor(Color.BLACK)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(20), dp(18), dp(20), dp(10))
-        }
-
-        card.addView(
-            cardTitle,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
-            )
-        )
-
-        options.forEachIndexed { index, option ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(18), dp(10), dp(18), dp(10))
-                isClickable = true
-                isFocusable = true
-            }
-
-            val indicator = TextView(this).apply {
-                text = if (selected.getOrNull(index) == true) "●" else "○"
-                textSize = 23f
-                setTextColor(Color.BLACK)
-                gravity = Gravity.CENTER
-            }
-
-            val label = TextView(this).apply {
-                text = option
-                textSize = 17f
-                setTextColor(Color.BLACK)
-                gravity = Gravity.CENTER_VERTICAL
-            }
-
-            row.addView(indicator, LinearLayout.LayoutParams(dp(38), dp(52)))
-            row.addView(
-                label,
-                LinearLayout.LayoutParams(0, dp(52), 1f)
-            )
-
-            row.setOnClickListener {
-                selected[index] = !selected[index]
-                indicator.text = if (selected[index]) "●" else "○"
-            }
-
-            card.addView(
-                row,
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(72)
-                )
-            )
-        }
-
-        root.addView(
-            card,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
-
-        dialog.setContentView(root)
-        dialog.show()
-        dialog.window?.apply {
-            setBackgroundDrawableResource(android.R.color.transparent)
-            setLayout(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            )
-        }
-    }
-
-    private fun addSetting(
-        titleValue: String,
-        value: String,
-        action: () -> Unit
-    ) {
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(
-                dp(4),
-                0,
-                dp(4),
-                0
-            )
-            setBackgroundColor(Color.WHITE)
-            setOnClickListener {
-                action()
-            }
-        }
-
-        val title = text(
-            titleValue,
-            16f,
-            Color.rgb(25, 25, 25),
-            Typeface.NORMAL
-        ).apply {
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        row.addView(
-            title,
-            LinearLayout.LayoutParams(
-                0,
-                -1,
-                1f
-            )
-        )
-
-        val right = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        right.addView(
+        page.addView(
             text(
-                value,
-                15f,
-                Color.rgb(120, 120, 125),
-                Typeface.NORMAL
+                "Settings",
+                32f,
+                Color.rgb(24, 23, 27),
+                Typeface.BOLD
             ).apply {
-                gravity = Gravity.CENTER_VERTICAL
-            },
-            LinearLayout.LayoutParams(
-                -2,
-                -1
-            )
-        )
-
-        right.addView(
-            text(
-                "›",
-                25f,
-                Color.rgb(170, 170, 175),
-                Typeface.NORMAL
-            ).apply {
-                gravity = Gravity.CENTER
                 includeFontPadding = false
+                letterSpacing = -0.02f
             },
-            LinearLayout.LayoutParams(
-                dp(24),
-                -1
-            )
+            LinearLayout.LayoutParams(-1, dp(46)).apply {
+                bottomMargin = dp(18)
+            }
         )
 
-        row.addView(
-            right,
-            LinearLayout.LayoutParams(
-                -2,
-                -1
-            )
+        // ---------- PLAYBACK ----------
+
+        addModernSettingsSection(
+            page,
+            "Playback"
         )
 
-        content.addView(
-            row,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(56)
-            )
-        )
-
-        val separator = View(this).apply {
-            setBackgroundColor(Color.rgb(235, 235, 237))
-        }
-
-        content.addView(
-            separator,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(1)
-            )
-        )
-    }
-
-    private fun createMiniPlayer(): LinearLayout {
-
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(7), dp(6), dp(8), dp(6))
-
-            background =
-                android.graphics.drawable.GradientDrawable().apply {
-                    shape =
-                        android.graphics.drawable.GradientDrawable.RECTANGLE
-                    cornerRadius = dp(16).toFloat()
-                    setColor(Color.rgb(248, 248, 248))
-                }
-
-            elevation = dp(2).toFloat()
-        }
-
-        // ---------- ALBUM ART ----------
-        miniCover = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            clipToOutline = true
-
-            outlineProvider =
-                object : android.view.ViewOutlineProvider() {
-                    override fun getOutline(
-                        view: android.view.View,
-                        outline: android.graphics.Outline
-                    ) {
-                        outline.setRoundRect(
-                            0,
-                            0,
-                            view.width,
-                            view.height,
-                            dp(8).toFloat()
+        addModernSettingsCard(
+            page,
+            listOf(
+                ModernSetting(
+                    "Sleep timer",
+                    getSleepTimerLabel()
+                ) {
+                    showSleepTimerDialog()
+                },
+                ModernSetting(
+                    "Play speed",
+                    getPlaybackSpeedLabel()
+                ) {
+                    showPlaybackSpeedDialog()
+                },
+                ModernSetting(
+                    "Cross fade",
+                    if (getSettingsPrefs().getBoolean(
+                            "cross_fade",
+                            false
                         )
-                    }
-                }
-
-            background =
-                android.graphics.drawable.GradientDrawable(
-                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                    intArrayOf(
-                        Color.rgb(95, 95, 95),
-                        Color.rgb(28, 28, 28)
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "cross_fade",
+                        "Cross fade"
                     )
-                ).apply {
-                    cornerRadius = dp(8).toFloat()
+                },
+                ModernSetting(
+                    "Skip silence between tracks",
+                    if (getSettingsPrefs().getBoolean(
+                            "skip_silence",
+                            false
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "skip_silence",
+                        "Skip silence between tracks"
+                    )
+                },
+                ModernSetting(
+                    "Control music from lock screen",
+                    if (getSettingsPrefs().getBoolean(
+                            "lock_screen_controls",
+                            true
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "lock_screen_controls",
+                        "Control music from lock screen"
+                    )
                 }
-        }
-
-        layout.addView(
-            miniCover,
-            LinearLayout.LayoutParams(
-                dp(46),
-                dp(46)
             )
         )
 
-        // ---------- SONG INFO ----------
-        val info = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(11), 0, dp(4), 0)
-        }
+        // ---------- PLAYLIST ----------
 
-        miniTitle = text(
-            "Nothing Playing",
-            13f,
-            Color.rgb(18, 18, 18),
-            Typeface.BOLD
-        ).apply {
-            maxLines = 1
-            ellipsize =
-                android.text.TextUtils.TruncateAt.END
-            includeFontPadding = false
-        }
+        addModernSettingsSection(
+            page,
+            "Playlist"
+        )
 
-        miniArtist = text(
-            "Choose a song",
-            11f,
-            Color.rgb(105, 105, 105),
-            Typeface.NORMAL
-        ).apply {
-            maxLines = 1
-            ellipsize =
-                android.text.TextUtils.TruncateAt.END
-            includeFontPadding = false
-        }
+        addModernSettingsCard(
+            page,
+            listOf(
+                ModernSetting(
+                    "Queue settings",
+                    "Playback queue"
+                ) {
+                    showQueueSettingsDialog()
+                },
+                ModernSetting(
+                    "Don't allow duplicate songs",
+                    if (getSettingsPrefs().getBoolean(
+                            "no_duplicate_songs",
+                            false
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "no_duplicate_songs",
+                        "Don't allow duplicate songs"
+                    )
+                },
+                ModernSetting(
+                    "Manage Playlists",
+                    "Create and manage playlists"
+                ) {
+                    showManagePlaylistsDialog()
+                }
+            )
+        )
 
-        info.addView(
-            miniTitle,
+        // ---------- GENERAL ----------
+
+        addModernSettingsSection(
+            page,
+            "General"
+        )
+
+        addModernSettingsCard(
+            page,
+            listOf(
+                ModernSetting(
+                    "Manage tabs",
+                    "Home, Library, Settings"
+                ) {
+                    showManageTabsDialog()
+                },
+                ModernSetting(
+                    "Dark mode",
+                    if (getSettingsPrefs().getBoolean(
+                            "dark_mode",
+                            false
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleDarkMode()
+                },
+                ModernSetting(
+                    "Allow external device to start playback",
+                    if (getSettingsPrefs().getBoolean(
+                            "external_playback",
+                            true
+                        )
+                    ) "On" else "Off"
+                ) {
+                    toggleSetting(
+                        "external_playback",
+                        "Allow external device to start playback"
+                    )
+                }
+            )
+        )
+
+        // ---------- PRIVACY ----------
+
+        addModernSettingsSection(
+            page,
+            "Privacy"
+        )
+
+        addModernSettingsCard(
+            page,
+            listOf(
+                ModernSetting(
+                    "Permissions",
+                    "Music and notifications"
+                ) {
+                    showPermissionsDialog()
+                }
+            )
+        )
+
+        // ---------- ABOUT ----------
+
+        addModernSettingsSection(
+            page,
+            "About Music"
+        )
+
+        addModernSettingsCard(
+            page,
+            listOf(
+                ModernSetting(
+                    "About Music",
+                    "Version 1.0"
+                ) {
+                    showAboutMusicDialog()
+                }
+            )
+        )
+
+        scroll.addView(
+            page,
+            ViewGroup.LayoutParams(-1, -2)
+        )
+
+        content.addView(
+            scroll,
             LinearLayout.LayoutParams(
                 -1,
-                dp(20)
-            )
-        )
-
-        info.addView(
-            miniArtist,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(18)
-            )
-        )
-
-        layout.addView(
-            info,
-            LinearLayout.LayoutParams(
                 0,
-                -1,
                 1f
             )
         )
-
-        // ---------- PLAY / PAUSE ----------
-        playButton = TextView(this).apply {
-            text = "▶"
-            textSize = 21f
-            setTextColor(Color.BLACK)
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-            background = null
-
-            setOnClickListener {
-                mediaPlayer?.let {
-                    try {
-                        if (it.isPlaying) {
-                            it.pause()
-                            playButton.text = "▶"
-                        } else {
-                            it.start()
-                            playButton.text = "Ⅱ"
-                        }
-                    } catch (_: Exception) {
-                    }
-                }
-            }
-        }
-
-        layout.addView(
-            playButton,
-            LinearLayout.LayoutParams(
-                dp(46),
-                dp(46)
-            )
-        )
-
-        // ---------- OPEN NOW PLAYING ----------
-        miniCover.setOnClickListener {
-            if (currentSong != null) {
-                showNowPlaying()
-            }
-        }
-
-        miniTitle.setOnClickListener {
-            if (currentSong != null) {
-                showNowPlaying()
-            }
-        }
-
-        miniArtist.setOnClickListener {
-            if (currentSong != null) {
-                showNowPlaying()
-            }
-        }
-
-        setupMiniPlayerGestures(layout)
-
-        return layout
     }
 
-
-    private fun setupMiniPlayerGestures(
-        layout: LinearLayout
-    ) {
-
-        val touchSlop =
-            android.view.ViewConfiguration
-                .get(this)
-                .scaledTouchSlop
-
-        val gestureListener =
-            View.OnTouchListener { _, event ->
-
-                when (event.actionMasked) {
-
-                    android.view.MotionEvent.ACTION_DOWN -> {
-
-                        miniGestureDownX = event.rawX
-                        miniGestureDownY = event.rawY
-                        miniGestureLastX = event.rawX
-                        miniGestureLastY = event.rawY
-
-                        miniGestureDragging = false
-                        miniGestureVertical = false
-
-                        cancelMiniHide()
-
-                        false
-                    }
-
-                    android.view.MotionEvent.ACTION_MOVE -> {
-
-                        val dx =
-                            event.rawX - miniGestureDownX
-
-                        val dy =
-                            event.rawY - miniGestureDownY
-
-                        if (!miniGestureDragging) {
-
-                            if (
-                                kotlin.math.abs(dx) > touchSlop ||
-                                kotlin.math.abs(dy) > touchSlop
-                            ) {
-
-                                miniGestureDragging = true
-
-                                miniGestureVertical =
-                                    kotlin.math.abs(dy) >
-                                    kotlin.math.abs(dx)
-
-                                if (miniGestureVertical) {
-                                    /*
-                                     * Mini -> Full transition exists ONLY
-                                     * for an upward gesture.
-                                     *
-                                     * A downward drag while Mini is visible
-                                     * must not create the Full Player background
-                                     * or change the Mini Player colors.
-                                     */
-                                    if (dy < 0f) {
-                                        createMiniExpansionCard()
-                                    }
-                                }
-                            }
-                        }
-
-                        if (!miniGestureDragging) {
-                            return@OnTouchListener false
-                        }
-
-                        if (miniGestureVertical) {
-
-                            /*
-                             * Downward drag from Mini is intentionally inert.
-                             * Do not create, colorize, move or fade anything.
-                             */
-                            if (dy >= 0f) {
-                                layout.translationX = 0f
-                                layout.translationY = 0f
-                                miniPlayer.alpha = 1f
-
-                                miniCover.rotation = 0f
-                                miniCover.scaleX = 1f
-                                miniCover.scaleY = 1f
-
-                                miniGestureLastY = event.rawY
-
-                                true
-                            } else {
-
-                                updateMiniExpansionCard(
-                                    dy = dy
-                                )
-
-                                val screenHeight =
-                                    resources.displayMetrics.heightPixels
-                                        .toFloat()
-
-                                val miniHeight =
-                                    miniPlayer.height.coerceAtLeast(dp(60))
-
-                                val maxUp =
-                                    (
-                                        screenHeight -
-                                            miniHeight
-                                    ).coerceAtLeast(1f)
-
-                                val upward =
-                                    (-dy)
-                                        .coerceAtLeast(0f)
-                                        .coerceAtMost(maxUp)
-
-                                val progress =
-                                    (
-                                        upward / maxUp
-                                    ).coerceIn(0f, 1f)
-
-                                miniFullTransitionProgress = progress
-
-                                updateMiniFullTransition(
-                                    progress
-                                )
-
-                                miniGestureLastY = event.rawY
-
-                                true
-                            }
-
-                        } else {
-
-                            /*
-                             * IMPORTANT:
-                             * The Mini Player itself does NOT move.
-                             */
-                            layout.translationX = 0f
-                            layout.translationY = 0f
-
-                            miniCover.rotation = 0f
-                            miniCover.scaleX = 1f
-                            miniCover.scaleY = 1f
-
-                            true
-                        }
-                    }
-
-                    android.view.MotionEvent.ACTION_UP,
-                    android.view.MotionEvent.ACTION_CANCEL -> {
-
-                        cancelMiniHide()
-
-                        if (!miniGestureDragging) {
-                            return@OnTouchListener false
-                        }
-
-                        val dx =
-                            event.rawX - miniGestureDownX
-
-                        val dy =
-                            event.rawY - miniGestureDownY
-
-                        if (miniGestureVertical) {
-
-                            val screenHeight =
-                                resources.displayMetrics
-                                    .heightPixels
-                                    .toFloat()
-
-                            val maxUp =
-                                (
-                                    screenHeight -
-                                    miniPlayer.height
-                                ).coerceAtLeast(1f)
-
-                            val upward =
-                                (-dy).coerceAtLeast(0f)
-
-                            val progress =
-                                (
-                                    upward / maxUp
-                                ).coerceIn(0f, 1f)
-
-                            if (progress >= 0.5f) {
-
-                                completeMiniExpansion(
-                                    layout
-                                )
-
-                            } else {
-
-                                cancelMiniExpansion(
-                                    layout
-                                )
-                            }
-
-                            miniGestureDragging = false
-                            true
-
-                        } else {
-
-                            /*
-                             * Horizontal swipe:
-                             * NO Mini Player movement.
-                             */
-                            layout.translationX = 0f
-                            layout.translationY = 0f
-
-                            if (
-                                dx <
-                                -dp(70)
-                            ) {
-
-                                playMiniNextAnimated()
-
-                            } else if (
-                                dx >
-                                dp(70)
-                            ) {
-
-                                playMiniPreviousAnimated()
-                            }
-
-                            miniGestureDragging = false
-                            true
-                        }
-                    }
-
-                    else -> false
-                }
-            }
-
-        layout.setOnTouchListener(
-            gestureListener
-        )
-
-        miniCover.setOnTouchListener(
-            gestureListener
-        )
-
-        miniTitle.setOnTouchListener(
-            gestureListener
-        )
-
-        miniArtist.setOnTouchListener(
-            gestureListener
-        )
-
-        layout.isClickable = true
-        layout.isFocusable = false
-    }
 
     private fun createMiniExpansionCard() {
         if (miniExpansionCard != null) return
@@ -4838,6 +5687,7 @@ class MainActivity : ComponentActivity() {
         updateMiniFullTransition(progress)
     }
 
+
     private fun animateMiniExpansionTo(
         targetProgress: Float,
         duration: Long,
@@ -4898,44 +5748,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
             .start()
-    }
-
-
-    private fun fullMiniExpansionProgress(): Float {
-        val card = miniExpansionCard
-            ?: return 0f
-
-        val screenHeight =
-            resources.displayMetrics.heightPixels
-                .toFloat()
-
-        val miniHeight =
-            miniPlayer.height.coerceAtLeast(dp(60))
-
-        val maxUp =
-            (
-                screenHeight -
-                    miniHeight
-            ).coerceAtLeast(1f)
-
-        val top =
-            (
-                card.layoutParams
-                    as? FrameLayout.LayoutParams
-            )?.topMargin
-                ?: miniPlayerTopInDecor().toInt()
-
-        val upward =
-            (
-                miniPlayerTopInDecor() -
-                    top
-            ).coerceAtLeast(0f)
-
-        return (
-            upward /
-                maxUp
-        )
-            .coerceIn(0f, 1f)
     }
 
 
@@ -5029,1907 +5841,6 @@ class MainActivity : ComponentActivity() {
             miniFullTransitionProgress = 0f
             miniFullTransitionAnimating = false
         }
-    }
-
-
-    /*
-     * Drives the Full Player-like elements during the same
-     * Mini -> Full gesture.
-     *
-     * 0.0  = completely hidden
-     * 0.5  = controls begin entering
-     * 1.0  = final Full Player position
-     */
-    private fun updateMiniFullTransition(
-        progress: Float
-    ) {
-        val p =
-            progress.coerceIn(0f, 1f)
-
-        miniFullTransitionProgress = p
-
-        /*
-         * Navigation leaves together with the Expansion card.
-         */
-        miniBottomNavigation?.let { nav ->
-            nav.translationY =
-                dp(82).toFloat() * p
-
-            nav.alpha =
-                1f - p
-        }
-
-        if (miniExpansionCard != null) {
-            miniPlayer.alpha = 0f
-        }
-
-        /*
-         * During 0 -> 50% ONLY artwork/background is visible.
-         */
-        miniExpansionCover?.apply {
-            alpha = 1f
-            rotation = 0f
-            scaleX = 1f
-            scaleY = 1f
-        }
-
-        miniExpansionTitle?.alpha = 0f
-        miniExpansionArtist?.alpha = 0f
-
-        /*
-         * Create the real Full Player exactly at the 50%
-         * handoff. It remains invisible until the second half.
-         */
-        if (
-            p >= 0.5f &&
-            miniTransitionDialog == null &&
-            currentSong != null
-        ) {
-            miniExpansionOpening = true
-            showNowPlaying()
-            miniExpansionOpening = false
-        }
-
-        val root =
-            miniTransitionRoot
-                ?: return
-
-        val secondHalf =
-            ((p - 0.5f) / 0.5f)
-                .coerceIn(0f, 1f)
-
-        val eased =
-            secondHalf *
-                secondHalf *
-                (3f - 2f * secondHalf)
-
-        root.alpha = eased
-
-        miniTransitionFullCover?.apply {
-            alpha = eased
-            scaleX = 1f
-            scaleY = 1f
-            rotation = 0f
-        }
-
-        miniTransitionInfo?.apply {
-            translationY =
-                dp(32).toFloat() *
-                    (1f - eased)
-            alpha = eased
-        }
-
-        miniTransitionSeekBar?.apply {
-            translationY =
-                dp(20).toFloat() *
-                    (1f - eased) -
-                    dp(6).toFloat()
-            alpha = eased
-        }
-
-        miniTransitionTimeRow?.apply {
-            translationY =
-                dp(20).toFloat() *
-                    (1f - eased)
-            alpha = eased
-        }
-
-        miniTransitionControls?.apply {
-            translationY =
-                dp(38).toFloat() *
-                    (1f - eased) -
-                    dp(10).toFloat()
-            alpha = eased
-        }
-
-        miniTransitionSecondary?.apply {
-            translationY =
-                dp(44).toFloat() *
-                    (1f - eased)
-            alpha = eased
-        }
-    }
-
-    private fun miniPlayerTopInDecor(): Float {
-
-        val location =
-            IntArray(2)
-
-        val decorLocation =
-            IntArray(2)
-
-        miniPlayer.getLocationOnScreen(
-            location
-        )
-
-        window.decorView.getLocationOnScreen(
-            decorLocation
-        )
-
-        return (
-            location[1] -
-            decorLocation[1]
-        ).toFloat()
-    }
-
-    private fun createMiniExpansionBackground(
-        song: Song
-    ): GradientDrawable {
-
-        val bitmap =
-            getAlbumArt(song)
-
-        if (bitmap == null) {
-
-            return GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(
-                    Color.rgb(80, 80, 80),
-                    Color.rgb(20, 20, 20)
-                )
-            ).apply {
-
-                cornerRadii =
-                    floatArrayOf(
-                        dp(18).toFloat(),
-                        dp(18).toFloat(),
-                        dp(18).toFloat(),
-                        dp(18).toFloat(),
-                        0f,
-                        0f,
-                        0f,
-                        0f
-                    )
-            }
-        }
-
-        val points =
-            intArrayOf(
-                bitmap.getPixel(
-                    0,
-                    0
-                ),
-                bitmap.getPixel(
-                    bitmap.width / 2,
-                    bitmap.height / 2
-                ),
-                bitmap.getPixel(
-                    bitmap.width - 1,
-                    bitmap.height - 1
-                )
-            )
-
-        return GradientDrawable(
-            GradientDrawable.Orientation.TL_BR,
-            points
-        ).apply {
-
-            cornerRadii =
-                floatArrayOf(
-                    dp(18).toFloat(),
-                    dp(18).toFloat(),
-                    dp(18).toFloat(),
-                    dp(18).toFloat(),
-                    0f,
-                    0f,
-                    0f,
-                    0f
-                )
-        }
-    }
-
-    private fun removeMiniExpansionCard() {
-
-        miniExpansionCard?.let { card ->
-
-            (card.parent as? ViewGroup)
-                ?.removeView(card)
-        }
-
-        miniExpansionCard = null
-        miniExpansionCover = null
-        miniExpansionTitle = null
-        miniExpansionArtist = null
-
-        if (::miniPlayer.isInitialized) {
-            miniPlayer.alpha = 1f
-        }
-
-        miniBottomNavigation?.let { nav ->
-            nav.translationY = 0f
-            nav.alpha = 1f
-        }
-        miniFullTargetCenterX = Float.NaN
-        miniFullTargetCenterY = Float.NaN
-        miniFullTargetSize = 0
-
-    }
-
-    private fun playMiniNextAnimated() {
-
-        val current =
-            currentSong
-                ?: return
-
-        val index =
-            playbackQueue.indexOfFirst {
-                it.id == current.id
-            }
-
-        val next =
-            if (
-                index >= 0 &&
-                index < playbackQueue.lastIndex
-            ) {
-                playbackQueue[index + 1]
-            } else {
-                findAdjacentSong(
-                    current.id,
-                    true
-                )
-            }
-
-        if (next == null) {
-            return
-        }
-
-        playSong(
-            next,
-            smoothMiniChange = true,
-            miniTextDirection = 1
-        )
-    }
-
-    private fun playMiniPreviousAnimated() {
-
-        val current =
-            currentSong
-                ?: return
-
-        val index =
-            playbackQueue.indexOfFirst {
-                it.id == current.id
-            }
-
-        val previous =
-            if (index > 0) {
-                playbackQueue[index - 1]
-            } else {
-                findAdjacentSong(
-                    current.id,
-                    false
-                )
-            }
-
-        if (previous == null) {
-            return
-        }
-
-        playSong(
-            previous,
-            smoothMiniChange = true,
-            miniTextDirection = -1
-        )
-    }
-
-    private fun animateMiniSongTextChange(
-        song: Song,
-        direction: Int
-    ) {
-        val distance =
-            dp(22).toFloat()
-
-        val outX =
-            if (direction > 0) {
-                -distance
-            } else {
-                distance
-            }
-
-        val inX =
-            -outX
-
-        miniTitle.animate().cancel()
-        miniArtist.animate().cancel()
-
-        miniTitle.animate()
-            .alpha(0f)
-            .translationX(outX)
-            .setDuration(150L)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .withEndAction {
-
-                miniTitle.text =
-                    song.title
-
-                miniTitle.translationX =
-                    inX
-
-                miniTitle.alpha = 0f
-
-                miniTitle.animate()
-                    .alpha(1f)
-                    .translationX(0f)
-                    .setDuration(240L)
-                    .setInterpolator(
-                        DecelerateInterpolator()
-                    )
-                    .start()
-            }
-            .start()
-
-        miniArtist.animate()
-            .alpha(0f)
-            .translationX(outX)
-            .setDuration(150L)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .withEndAction {
-
-                miniArtist.text =
-                    song.artist
-
-                miniArtist.translationX =
-                    inX
-
-                miniArtist.alpha = 0f
-
-                miniArtist.animate()
-                    .alpha(1f)
-                    .translationX(0f)
-                    .setDuration(240L)
-                    .setInterpolator(
-                        DecelerateInterpolator()
-                    )
-                    .start()
-            }
-            .start()
-    }
-
-    private fun scheduleMiniHide(layout: View) {
-
-        cancelMiniHide()
-
-        val runnable = Runnable {
-
-            if (!miniGestureDragging) {
-                return@Runnable
-            }
-
-            layout.animate()
-                .alpha(0f)
-                .translationY(dp(18).toFloat())
-                .setDuration(420L)
-                .setInterpolator(
-                    android.view.animation.DecelerateInterpolator()
-                )
-                .withEndAction {
-                    layout.visibility = View.INVISIBLE
-                    layout.translationY = 0f
-                    layout.alpha = 1f
-
-                    miniCover.rotation = 0f
-                    miniCover.scaleX = 1f
-                    miniCover.scaleY = 1f
-                }
-                .start()
-
-            miniGestureDragging = false
-        }
-
-        miniHideRunnable = runnable
-        layout.postDelayed(runnable, 3000L)
-    }
-
-    private fun cancelMiniHide() {
-        miniHideRunnable?.let {
-            miniPlayer.removeCallbacks(it)
-        }
-
-        miniHideRunnable = null
-    }
-
-    private fun showMiniPlayer() {
-
-        if (!::miniPlayer.isInitialized) {
-            return
-        }
-
-        cancelMiniHide()
-
-        miniPlayer.visibility = View.VISIBLE
-        miniPlayer.animate()
-            .cancel()
-
-        miniPlayer.alpha = 0f
-        miniPlayer.translationY = dp(10).toFloat()
-
-        miniCover.rotation = 0f
-        miniCover.scaleX = 1f
-        miniCover.scaleY = 1f
-
-        miniPlayer.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .setDuration(280L)
-            .setInterpolator(
-                android.view.animation.DecelerateInterpolator()
-            )
-            .start()
-    }
-
-    private fun playMiniNext() {
-
-        val current = currentSong ?: return
-
-        val index =
-            playbackQueue.indexOfFirst {
-                it.id == current.id
-            }
-
-        if (index >= 0 && index < playbackQueue.lastIndex) {
-            playSong(playbackQueue[index + 1])
-            return
-        }
-
-        /*
-         * If queue only contains current song, try the
-         * currently loaded Library list through MediaStore.
-         */
-        val next = findAdjacentSong(current.id, true)
-
-        if (next != null) {
-            playSong(next, smoothMiniChange = true, miniTextDirection = 1)
-        }
-    }
-
-    private fun playMiniPrevious() {
-
-        val current = currentSong ?: return
-
-        val index =
-            playbackQueue.indexOfFirst {
-                it.id == current.id
-            }
-
-        if (index > 0) {
-            playSong(playbackQueue[index - 1])
-            return
-        }
-
-        val previous = findAdjacentSong(current.id, false)
-
-        if (previous != null) {
-            playSong(previous, smoothMiniChange = true, miniTextDirection = -1)
-        }
-    }
-
-    private fun findAdjacentSong(
-        currentId: Long,
-        next: Boolean
-    ): Song? {
-
-        val songs = mutableListOf<Song>()
-
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST
-        )
-
-        try {
-
-            contentResolver.query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                "${MediaStore.Audio.Media.IS_MUSIC} != 0",
-                null,
-                "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
-            )?.use { cursor ->
-
-                val idColumn =
-                    cursor.getColumnIndexOrThrow(
-                        MediaStore.Audio.Media._ID
-                    )
-
-                val titleColumn =
-                    cursor.getColumnIndexOrThrow(
-                        MediaStore.Audio.Media.TITLE
-                    )
-
-                val artistColumn =
-                    cursor.getColumnIndexOrThrow(
-                        MediaStore.Audio.Media.ARTIST
-                    )
-
-                while (cursor.moveToNext()) {
-
-                    songs.add(
-                        Song(
-                            cursor.getLong(idColumn),
-                            cursor.getString(titleColumn) ?: "Unknown",
-                            cursor.getString(artistColumn) ?: "Unknown Artist"
-                        )
-                    )
-                }
-            }
-
-        } catch (_: Exception) {
-            return null
-        }
-
-        val index =
-            songs.indexOfFirst {
-                it.id == currentId
-            }
-
-        if (index < 0) {
-            return null
-        }
-
-        val target =
-            if (next) index + 1 else index - 1
-
-        if (target !in songs.indices) {
-            return null
-        }
-
-        return songs[target]
-    }
-
-    private fun savePlayerState() {
-
-        val song = currentSong ?: return
-
-        val position =
-            try {
-                mediaPlayer?.currentPosition ?: 0
-            } catch (_: Exception) {
-                0
-            }
-
-        playerPrefs.edit()
-            .putLong("song_id", song.id)
-            .putInt("position", position)
-            .apply()
-    }
-
-    private fun restorePlayerState() {
-
-        val songId =
-            playerPrefs.getLong("song_id", -1L)
-
-        if (songId <= 0L) {
-            return
-        }
-
-        val savedPosition =
-            playerPrefs.getInt("position", 0)
-
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST
-        )
-
-        try {
-
-            contentResolver.query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                "${MediaStore.Audio.Media._ID} = ?",
-                arrayOf(songId.toString()),
-                null
-            )?.use { cursor ->
-
-                if (cursor.moveToFirst()) {
-
-                    val song =
-                        Song(
-                            cursor.getLong(
-                                cursor.getColumnIndexOrThrow(
-                                    MediaStore.Audio.Media._ID
-                                )
-                            ),
-                            cursor.getString(
-                                cursor.getColumnIndexOrThrow(
-                                    MediaStore.Audio.Media.TITLE
-                                )
-                            ) ?: "Unknown",
-                            cursor.getString(
-                                cursor.getColumnIndexOrThrow(
-                                    MediaStore.Audio.Media.ARTIST
-                                )
-                            ) ?: "Unknown Artist"
-                        )
-
-                    playSong(
-                        song,
-                        startPosition = savedPosition
-                    )
-                }
-            }
-
-        } catch (_: Exception) {
-        }
-    }
-
-    private fun createBottomNavigation(): LinearLayout {
-
-        val prefs = getSettingsPrefs()
-
-        val showHome =
-            prefs.getBoolean("tab_home", true)
-
-        val showLibrary =
-            prefs.getBoolean("tab_library", true)
-
-        val showSettings =
-            prefs.getBoolean("tab_settings", true)
-
-        val enabledCount =
-            listOf(
-                showHome,
-                showLibrary,
-                showSettings
-            ).count { it }
-
-        val nav = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, 0)
-            setBackgroundColor(Color.WHITE)
-        }
-
-        /*
-         * Settings is always kept accessible.
-         * This prevents the user from hiding every navigation
-         * destination and getting stuck in the app.
-         */
-        val finalShowSettings =
-            showSettings || enabledCount == 0
-
-        val items = mutableListOf<Pair<String, () -> Unit>>()
-
-        if (showHome) {
-            items.add(
-                "Home" to {
-                    showHome()
-                }
-            )
-        }
-
-        if (showLibrary) {
-            items.add(
-                "Library" to {
-                    showLibrary()
-                }
-            )
-        }
-
-        if (finalShowSettings) {
-            items.add(
-                "Settings" to {
-                    showSettings()
-                }
-            )
-        }
-
-        val weight =
-            1f / items.size.coerceAtLeast(1)
-
-        items.forEach { item ->
-
-            val label = item.first
-            val action = item.second
-
-            val icon =
-                when (label) {
-                    "Home" -> "⌂"
-                    "Library" -> "♫"
-                    else -> "⚙"
-                }
-
-            nav.addView(
-                navItem(
-                    icon,
-                    label,
-                    action
-                ),
-                LinearLayout.LayoutParams(
-                    0,
-                    dp(64),
-                    weight
-                )
-            )
-        }
-
-        miniBottomNavigation = nav
-        return nav
-    }
-
-    private fun navItem(
-        icon: String,
-        label: String,
-        action: () -> Unit
-    ): LinearLayout {
-
-        val item = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(0, dp(1), 0, dp(1))
-
-            setOnClickListener {
-                action()
-            }
-        }
-
-        val iconView = text(
-            icon,
-            28f,
-            Color.rgb(15, 15, 15),
-            Typeface.BOLD
-        ).apply {
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-            paint.isFakeBoldText = true
-        }
-
-        val labelView = text(
-            label,
-            10f,
-            Color.rgb(70, 70, 70),
-            Typeface.NORMAL
-        ).apply {
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-        }
-
-        item.addView(
-            iconView,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(32)
-            )
-        )
-
-        item.addView(
-            labelView,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(18)
-            )
-        )
-
-        return item
-    }
-
-    private fun showProfileDialog() {
-
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(35, 30, 35, 25)
-            setBackgroundColor(Color.WHITE)
-        }
-
-        val title = text(
-            "Profile",
-            24f,
-            Color.BLACK,
-            Typeface.BOLD
-        )
-
-        box.addView(title)
-
-        val profileAvatar = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            setBackgroundColor(Color.BLACK)
-        }
-
-        updateAvatar(profileAvatar)
-
-        box.addView(
-            profileAvatar,
-            LinearLayout.LayoutParams(110, 110).apply {
-                topMargin = 20
-                bottomMargin = 20
-            }
-        )
-
-        val change = Button(this).apply {
-            text = "Upload Photo"
-            setOnClickListener {
-                imagePicker.launch("image/*")
-            }
-        }
-
-        val remove = Button(this).apply {
-            text = "Remove Photo"
-            setOnClickListener {
-                deleteAvatar()
-                updateAvatar()
-            }
-        }
-
-        box.addView(change)
-        box.addView(remove)
-
-        val dialog = android.app.Dialog(
-            this,
-            android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen
-        )
-
-        dialog.setContentView(box)
-
-        dialog.window?.setBackgroundDrawableResource(
-            android.R.color.transparent
-        )
-
-        dialog.show()
-    }
-
-    private fun updateAvatar(target: ImageView? = null) {
-
-        val image = target ?: avatar
-
-        val file = File(
-            filesDir,
-            "profile_avatar.jpg"
-        )
-
-        if (file.exists()) {
-            image.setImageURI(Uri.fromFile(file))
-        } else {
-            image.setImageResource(android.R.drawable.ic_menu_myplaces)
-            image.setColorFilter(Color.WHITE)
-        }
-    }
-
-    private fun saveAvatar(uri: Uri) {
-
-        try {
-
-            contentResolver.openInputStream(uri)?.use { input ->
-
-                FileOutputStream(
-                    File(filesDir, "profile_avatar.jpg")
-                ).use { output ->
-
-                    input.copyTo(output)
-                }
-            }
-
-            Toast.makeText(
-                this,
-                "Profile photo updated",
-                Toast.LENGTH_SHORT
-            ).show()
-
-        } catch (e: Exception) {
-
-            Toast.makeText(
-                this,
-                "Could not save photo",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    private fun deleteAvatar() {
-
-        File(
-            filesDir,
-            "profile_avatar.jpg"
-        ).delete()
-
-        updateAvatar()
-
-        Toast.makeText(
-            this,
-            "Profile photo removed",
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-
-    private fun showSongMenu(
-        anchor: View,
-        song: Song
-    ) {
-
-        val popup = PopupWindow(
-            this
-        )
-
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(22, 12, 22, 12)
-            setBackgroundColor(Color.WHITE)
-        }
-
-        val play = text(
-            "Play",
-            16f,
-            Color.BLACK,
-            Typeface.NORMAL
-        ).apply {
-            setPadding(8, 16, 30, 16)
-            setOnClickListener {
-                playSong(song)
-                popup.dismiss()
-            }
-        }
-
-        val favorite = text(
-            "Add to Favorites",
-            16f,
-            Color.BLACK,
-            Typeface.NORMAL
-        ).apply {
-            setPadding(8, 16, 30, 16)
-            setOnClickListener {
-                Toast.makeText(
-                    this@MainActivity,
-                    "Added to Favorites",
-                    Toast.LENGTH_SHORT
-                ).show()
-                popup.dismiss()
-            }
-        }
-
-        val info = text(
-            "Song Info",
-            16f,
-            Color.BLACK,
-            Typeface.NORMAL
-        ).apply {
-            setPadding(8, 16, 30, 16)
-            setOnClickListener {
-                Toast.makeText(
-                    this@MainActivity,
-                    song.title,
-                    Toast.LENGTH_SHORT
-                ).show()
-                popup.dismiss()
-            }
-        }
-
-        box.addView(play)
-        box.addView(favorite)
-        box.addView(info)
-
-        popup.contentView = box
-        popup.width = 230
-        popup.height = -2
-        popup.isFocusable = true
-        popup.elevation = 12f
-
-        popup.showAsDropDown(anchor, -210, -160)
-    }
-
-    private fun showSongPopup(
-        anchor: View,
-        song: Song
-    ) {
-        val box =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                setPadding(
-                    dp(6),
-                    dp(6),
-                    dp(6),
-                    dp(6)
-                )
-
-                background =
-                    android.graphics.drawable.GradientDrawable().apply {
-                        cornerRadius =
-                            dp(16).toFloat()
-                        setColor(Color.WHITE)
-                    }
-
-                elevation = dp(18).toFloat()
-            }
-
-        fun addPopupItem(
-            title: String,
-            action: () -> Unit
-        ) {
-            val item =
-                TextView(this).apply {
-                    text = title
-                    textSize = 15f
-                    setTextColor(
-                        Color.rgb(
-                            25,
-                            25,
-                            27
-                        )
-                    )
-                    gravity =
-                        Gravity.CENTER_VERTICAL
-                    setPadding(
-                        dp(14),
-                        0,
-                        dp(14),
-                        0
-                    )
-
-                    setOnClickListener {
-                        action()
-                    }
-                }
-
-            box.addView(
-                item,
-                LinearLayout.LayoutParams(
-                    dp(190),
-                    dp(46)
-                )
-            )
-        }
-
-        addPopupItem("Play Next") {
-            playSong(song)
-        }
-
-        addPopupItem("Add to Queue") {
-            Toast.makeText(
-                this,
-                "Added to queue",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-        addPopupItem("Add to Favorites") {
-            Toast.makeText(
-                this,
-                "Added to favorites",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-        addPopupItem("Song Info") {
-            showChoiceDialog(
-                song.title,
-                arrayOf(
-                    song.artist,
-                    "Music"
-                )
-            )
-        }
-
-        showBlurPopup(
-            box,
-            anchor
-        )
-    }
-
-    private fun showBlurPopup(
-        contentView: View,
-        anchor: View
-    ) {
-        val scrim =
-            View(this).apply {
-                setBackgroundColor(
-                    Color.argb(
-                        55,
-                        0,
-                        0,
-                        0
-                    )
-                )
-            }
-
-        val overlay =
-            FrameLayout(this).apply {
-                addView(
-                    scrim,
-                    FrameLayout.LayoutParams(
-                        -1,
-                        -1
-                    )
-                )
-
-                addView(
-                    contentView,
-                    FrameLayout.LayoutParams(
-                        -2,
-                        -2,
-                        Gravity.CENTER
-                    )
-                )
-            }
-
-        val dialog =
-            android.app.Dialog(this)
-
-        dialog.window?.setBackgroundDrawable(
-            android.graphics.drawable.ColorDrawable(
-                Color.TRANSPARENT
-            )
-        )
-
-        dialog.setContentView(overlay)
-
-        scrim.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        contentView.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.window?.setDimAmount(0.18f)
-        dialog.show()
-
-        dialog.window?.setLayout(
-            -1,
-            -1
-        )
-    }
-
-    private fun showChoiceDialog(
-        titleValue: String,
-        options: Array<String>
-    ) {
-
-        android.app.AlertDialog.Builder(this)
-            .setTitle(titleValue)
-            .setItems(options) { _, which ->
-                Toast.makeText(
-                    this,
-                    options[which],
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-            .show()
-    }
-
-    private fun animateSongChange(
-        song: Song,
-        root: ViewGroup,
-        cover: ImageView,
-        title: TextView,
-        artist: TextView,
-        seekBar: SeekBar,
-        elapsed: TextView,
-        remaining: TextView
-    ) {
-
-        val decelerate =
-            android.view.animation.DecelerateInterpolator()
-
-        // Cancel any previous transition so rapid Next/Previous
-        // presses do not stack animations.
-        listOf<View>(
-            cover,
-            title,
-            artist,
-            seekBar,
-            elapsed,
-            remaining
-        ).forEach {
-            it.animate().cancel()
-        }
-
-        // -------------------------------------------------
-        // TITLE + ARTIST
-        // -------------------------------------------------
-
-        title.animate()
-            .alpha(0f)
-            .translationY(dp(4).toFloat())
-            .setDuration(130L)
-            .setInterpolator(decelerate)
-            .withEndAction {
-
-                title.text = song.title
-                title.translationY = -dp(4).toFloat()
-
-                title.animate()
-                    .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(240L)
-                    .setInterpolator(decelerate)
-                    .start()
-            }
-            .start()
-
-        artist.animate()
-            .alpha(0f)
-            .translationY(dp(4).toFloat())
-            .setDuration(130L)
-            .setInterpolator(decelerate)
-            .withEndAction {
-
-                artist.text = song.artist
-                artist.translationY = -dp(4).toFloat()
-
-                artist.animate()
-                    .alpha(0.68f)
-                    .translationY(0f)
-                    .setDuration(240L)
-                    .setInterpolator(decelerate)
-                    .start()
-            }
-            .start()
-
-        // -------------------------------------------------
-        // SEEK BAR + TIME
-        // -------------------------------------------------
-
-        seekBar.animate()
-            .alpha(0.35f)
-            .setDuration(110L)
-            .setInterpolator(decelerate)
-            .withEndAction {
-
-                seekBar.progress = 0
-
-                seekBar.animate()
-                    .alpha(1f)
-                    .setDuration(300L)
-                    .setInterpolator(decelerate)
-                    .start()
-            }
-            .start()
-
-        elapsed.animate()
-            .alpha(0f)
-            .setDuration(110L)
-            .setInterpolator(decelerate)
-            .withEndAction {
-
-                elapsed.text = "0:00"
-
-                elapsed.animate()
-                    .alpha(0.62f)
-                    .setDuration(260L)
-                    .setInterpolator(decelerate)
-                    .start()
-            }
-            .start()
-
-        remaining.animate()
-            .alpha(0f)
-            .setDuration(110L)
-            .setInterpolator(decelerate)
-            .withEndAction {
-
-                val duration =
-                    mediaPlayer?.duration ?: 0
-
-                val totalSeconds =
-                    (duration / 1000).coerceAtLeast(0)
-
-                val minutes =
-                    totalSeconds / 60
-
-                val seconds =
-                    totalSeconds % 60
-
-                remaining.text =
-                    "-${String.format("%d:%02d", minutes, seconds)}"
-
-                remaining.animate()
-                    .alpha(0.62f)
-                    .setDuration(260L)
-                    .setInterpolator(decelerate)
-                    .start()
-            }
-            .start()
-
-        // -------------------------------------------------
-        // COVER
-        // -------------------------------------------------
-
-        cover.animate()
-            .alpha(0.18f)
-            .scaleX(0.955f)
-            .scaleY(0.955f)
-            .setDuration(180L)
-            .setInterpolator(decelerate)
-            .withEndAction {
-
-                getAlbumArt(song)?.let {
-                    cover.setImageBitmap(it)
-                } ?: run {
-                    cover.setImageResource(R.drawable.ic_music)
-                }
-
-                cover.animate()
-                    .alpha(1f)
-                    .scaleX(
-                        if (mediaPlayer?.isPlaying == true)
-                            1f
-                        else
-                            0.94f
-                    )
-                    .scaleY(
-                        if (mediaPlayer?.isPlaying == true)
-                            1f
-                        else
-                            0.94f
-                    )
-                    .setDuration(480L)
-                    .setInterpolator(decelerate)
-                    .start()
-            }
-            .start()
-
-        // -------------------------------------------------
-        // BACKGROUND
-        // -------------------------------------------------
-
-        getAlbumArt(song)?.let { bitmap ->
-
-            val colors = run {
-
-                val w = bitmap.width.coerceAtLeast(1)
-                val h = bitmap.height.coerceAtLeast(1)
-
-                val points = arrayOf(
-                    intArrayOf(w / 2, h / 4),
-                    intArrayOf(w / 2, h / 2),
-                    intArrayOf(w / 3, (h * 3) / 4),
-                    intArrayOf((w * 2) / 3, (h * 3) / 4)
-                )
-
-                var r1 = 0
-                var g1 = 0
-                var b1 = 0
-
-                var r2 = 0
-                var g2 = 0
-                var b2 = 0
-
-                var r3 = 0
-                var g3 = 0
-                var b3 = 0
-
-                points.forEachIndexed { index, point ->
-
-                    val x = point[0].coerceIn(0, w - 1)
-                    val y = point[1].coerceIn(0, h - 1)
-
-                    val c = bitmap.getPixel(x, y)
-
-                    if (index < 2) {
-                        r1 += Color.red(c)
-                        g1 += Color.green(c)
-                        b1 += Color.blue(c)
-                    }
-
-                    if (index >= 1) {
-                        r2 += Color.red(c)
-                        g2 += Color.green(c)
-                        b2 += Color.blue(c)
-                    }
-
-                    r3 += Color.red(c)
-                    g3 += Color.green(c)
-                    b3 += Color.blue(c)
-                }
-
-                intArrayOf(
-                    Color.rgb(
-                        (r1 / 2).coerceIn(0, 255),
-                        (g1 / 2).coerceIn(0, 255),
-                        (b1 / 2).coerceIn(0, 255)
-                    ),
-                    Color.rgb(
-                        (r2 / 3).coerceIn(0, 255),
-                        (g2 / 3).coerceIn(0, 255),
-                        (b2 / 3).coerceIn(0, 255)
-                    ),
-                    Color.rgb(
-                        (r3 / 4).coerceIn(0, 255),
-                        (g3 / 4).coerceIn(0, 255),
-                        (b3 / 4).coerceIn(0, 255)
-                    )
-                )
-            }
-
-            val newBackground =
-                android.graphics.drawable.GradientDrawable(
-                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                    colors
-                )
-
-            // Briefly soften the entire surface while swapping
-            // the background, then restore it.
-            root.animate()
-                .alpha(0.88f)
-                .setDuration(150L)
-                .setInterpolator(decelerate)
-                .withEndAction {
-
-                    root.background = newBackground
-
-                    root.animate()
-                        .alpha(1f)
-                        .setDuration(360L)
-                        .setInterpolator(decelerate)
-                        .start()
-                }
-                .start()
-        }
-    }
-
-
-    // ============================================================
-    // FULL PLAYER -> MINI PLAYER GESTURE
-    // ============================================================
-
-    private var fullPlayerCloseDragging = false
-    private var fullPlayerCloseDownY = 0f
-    private var fullPlayerCloseProgress = 0f
-    private var fullPlayerCloseInitialScale = 1f
-    private var fullPlayerCloseStartCenterX = 0f
-    private var fullPlayerCloseStartCenterY = 0f
-
-    private fun setupFullPlayerCloseGesture(
-        dialog: android.app.Dialog,
-        root: View,
-        cover: ImageView,
-        coverContainer: View
-    ) {
-
-        coverContainer.setOnTouchListener { _, event ->
-
-            when (event.actionMasked) {
-
-                android.view.MotionEvent.ACTION_DOWN -> {
-
-                    if (fullPlayerCloseDragging) {
-                        return@setOnTouchListener true
-                    }
-
-                    fullPlayerCloseDownY =
-                        event.rawY
-
-                    fullPlayerCloseProgress = 0f
-
-                    fullPlayerCloseInitialScale =
-                        cover.scaleX
-
-                    val coverLocation =
-                        IntArray(2)
-
-                    cover.getLocationOnScreen(
-                        coverLocation
-                    )
-
-                    fullPlayerCloseStartCenterX =
-                        coverLocation[0] +
-                            cover.width / 2f
-
-                    fullPlayerCloseStartCenterY =
-                        coverLocation[1] +
-                            cover.height / 2f
-
-                    true
-                }
-
-                android.view.MotionEvent.ACTION_MOVE -> {
-
-                    val dy =
-                        event.rawY -
-                            fullPlayerCloseDownY
-
-                    if (!fullPlayerCloseDragging) {
-
-                        if (dy < dp(10)) {
-                            return@setOnTouchListener true
-                        }
-
-                        fullPlayerCloseDragging = true
-
-                        miniPlayer.alpha = 0f
-                    }
-
-                    val screenHeight =
-                        resources.displayMetrics
-                            .heightPixels
-                            .toFloat()
-
-                    val progress =
-                        (
-                            dy /
-                                (screenHeight * 0.72f)
-                        )
-                            .coerceIn(0f, 1f)
-
-                    fullPlayerCloseProgress =
-                        progress
-
-                    updateFullPlayerCloseGesture(
-                        root,
-                        cover,
-                        coverContainer,
-                        progress
-                    )
-
-                    true
-                }
-
-                android.view.MotionEvent.ACTION_UP,
-                android.view.MotionEvent.ACTION_CANCEL -> {
-
-                    if (!fullPlayerCloseDragging) {
-                        return@setOnTouchListener true
-                    }
-
-                    fullPlayerCloseDragging = false
-
-                    if (fullPlayerCloseProgress >= 0.5f) {
-
-                        finishFullPlayerClose(
-                            dialog,
-                            root,
-                            cover,
-                            coverContainer
-                        )
-
-                    } else {
-
-                        restoreFullPlayerFromGesture(
-                            root,
-                            cover
-                        )
-                    }
-
-                    true
-                }
-
-                else -> true
-            }
-        }
-    }
-
-
-    private fun updateFullPlayerCloseGesture(
-        root: View,
-        cover: ImageView,
-        coverContainer: View,
-        progress: Float
-    ) {
-
-        val miniLocation =
-            IntArray(2)
-
-        miniCover.getLocationOnScreen(
-            miniLocation
-        )
-
-        val fullWidth =
-            cover.width
-                .coerceAtLeast(1)
-                .toFloat()
-
-        val fullCenterX =
-            fullPlayerCloseStartCenterX
-
-        val fullCenterY =
-            fullPlayerCloseStartCenterY
-
-        val miniSize =
-            dp(46).toFloat()
-
-        val miniCenterX =
-            miniLocation[0] +
-                miniSize / 2f
-
-        val miniCenterY =
-            miniLocation[1] +
-                miniSize / 2f
-
-        // Interpolate the artwork center directly
-        // between Full Player and Mini Player.
-        val centerX =
-            fullCenterX +
-                (
-                    miniCenterX -
-                        fullCenterX
-                ) * progress
-
-        val centerY =
-            fullCenterY +
-                (
-                    miniCenterY -
-                        fullCenterY
-                ) * progress
-
-        val containerLocation =
-            IntArray(2)
-
-        coverContainer.getLocationOnScreen(
-            containerLocation
-        )
-
-        val containerCenterX =
-            containerLocation[0] +
-                coverContainer.width / 2f
-
-        val containerCenterY =
-            containerLocation[1] +
-                coverContainer.height / 2f
-
-        cover.translationX =
-            centerX -
-                containerCenterX
-
-        cover.translationY =
-            centerY -
-                containerCenterY
-
-        val targetScale =
-            miniSize / fullWidth
-
-        val scale =
-            fullPlayerCloseInitialScale +
-                (
-                    targetScale -
-                        fullPlayerCloseInitialScale
-                ) * progress
-
-        cover.scaleX = scale
-        cover.scaleY = scale
-
-        // Fade the lower Full Player controls.
-        root.alpha =
-            1f -
-                progress * 0.35f
-
-        // Reveal Mini Player underneath.
-        miniPlayer.alpha =
-            progress
-
-        miniBottomNavigation?.let { nav ->
-
-            nav.translationY =
-                dp(82).toFloat() *
-                    (1f - progress)
-
-            nav.alpha =
-                progress
-        }
-    }
-
-
-    private fun restoreFullPlayerFromGesture(
-        root: View,
-        cover: ImageView
-    ) {
-
-        root.animate()
-            .alpha(1f)
-            .setDuration(300L)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .start()
-
-        cover.animate()
-            .translationX(0f)
-            .translationY(0f)
-            .scaleX(
-                fullPlayerCloseInitialScale
-            )
-            .scaleY(
-                fullPlayerCloseInitialScale
-            )
-            .setDuration(320L)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .start()
-
-        miniPlayer.animate()
-            .alpha(0f)
-            .setDuration(220L)
-            .start()
-
-        miniBottomNavigation?.animate()
-            ?.translationY(dp(82).toFloat())
-            ?.alpha(0f)
-            ?.setDuration(220L)
-            ?.start()
-
-        fullPlayerCloseProgress = 0f
-    }
-
-
-    private fun finishFullPlayerClose(
-        dialog: android.app.Dialog,
-        root: View,
-        cover: ImageView,
-        coverContainer: View
-    ) {
-
-        val miniLocation =
-            IntArray(2)
-
-        miniCover.getLocationOnScreen(
-            miniLocation
-        )
-
-        val fullWidth =
-            cover.width
-                .coerceAtLeast(1)
-                .toFloat()
-
-        val miniSize =
-            dp(46).toFloat()
-
-        val miniCenterX =
-            miniLocation[0] +
-                miniSize / 2f
-
-        val miniCenterY =
-            miniLocation[1] +
-                miniSize / 2f
-
-        val containerLocation =
-            IntArray(2)
-
-        coverContainer.getLocationOnScreen(
-            containerLocation
-        )
-
-        val containerCenterX =
-            containerLocation[0] +
-                coverContainer.width / 2f
-
-        val containerCenterY =
-            containerLocation[1] +
-                coverContainer.height / 2f
-
-        val finalX =
-            miniCenterX -
-                containerCenterX
-
-        val finalY =
-            miniCenterY -
-                containerCenterY
-
-        /*
-         * Full -> Mini is a continuous morph.
-         *
-         * Nothing fades away.
-         * The Full Player physically moves toward the Mini
-         * while its artwork shrinks into the exact Mini cover.
-         */
-        miniPlayer.alpha = 0f
-
-        miniBottomNavigation?.apply {
-            translationY = dp(82).toFloat()
-            alpha = 1f
-        }
-
-        val closeDuration = 360L
-
-        /*
-         * Move the whole Full Player downward toward Mini.
-         *
-         * The root itself remains fully visible during the
-         * transition. The visual transformation comes from
-         * translation/scale rather than alpha.
-         */
-        root.animate()
-            .translationY(
-                finalY
-            )
-            .setDuration(closeDuration)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .start()
-
-        /*
-         * Artwork follows the exact same destination as Mini.
-         */
-        cover.animate()
-            .translationX(finalX)
-            .translationY(finalY)
-            .scaleX(
-                miniSize / fullWidth
-            )
-            .scaleY(
-                miniSize / fullWidth
-            )
-            .setDuration(closeDuration)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .start()
-
-        /*
-         * Mini Player and Navigation appear only as the
-         * Full Player reaches them.
-         */
-        miniPlayer.animate()
-            .alpha(1f)
-            .setDuration(closeDuration)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .start()
-
-        miniBottomNavigation?.animate()
-            ?.translationY(0f)
-            ?.setDuration(closeDuration)
-            ?.setInterpolator(
-                DecelerateInterpolator()
-            )
-            ?.start()
-
-        root.animate()
-            .translationY(finalY)
-            .setDuration(closeDuration)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .withEndAction {
-
-                /*
-                 * Restore the Full Player's internal state
-                 * before dismissing the dialog.
-                 */
-                root.translationY = 0f
-
-                cover.translationX = 0f
-                cover.translationY = 0f
-
-                cover.scaleX =
-                    if (
-                        mediaPlayer?.isPlaying == true
-                    ) {
-                        1f
-                    } else {
-                        0.94f
-                    }
-
-                cover.scaleY =
-                    cover.scaleX
-
-                miniPlayer.alpha = 1f
-
-                miniBottomNavigation?.apply {
-                    translationY = 0f
-                    alpha = 1f
-                }
-
-                fullPlayerCloseProgress = 0f
-
-                dialog.dismiss()
-            }
-            .start()
     }
 
     private fun showNowPlaying() {
@@ -9254,6 +8165,9 @@ class MainActivity : ComponentActivity() {
         mediaPlayer = null
 
         currentSong = song
+
+
+    recordRecentlyPlayed(song)
 
         showMiniPlayer()
 
