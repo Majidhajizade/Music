@@ -3852,6 +3852,40 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    private fun getAlbumArt(song: Song): android.graphics.Bitmap? {
+
+        return try {
+            val uri = ContentUris.withAppendedId(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                song.id
+            )
+
+            val retriever = MediaMetadataRetriever()
+
+            retriever.setDataSource(
+                this,
+                uri
+            )
+
+            val data = retriever.embeddedPicture
+
+            retriever.release()
+
+            if (data != null) {
+                android.graphics.BitmapFactory.decodeByteArray(
+                    data,
+                    0,
+                    data.size
+                )
+            } else {
+                null
+            }
+
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun savePlayerState() {
         try {
             val prefs = getSharedPreferences(
