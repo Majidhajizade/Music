@@ -156,13 +156,15 @@ class MainActivity : ComponentActivity() {
         val icon = item.getChildAt(0) as? ImageView
         val label = item.getChildAt(1) as? TextView
 
-        icon?.setColorFilter(
+        val iconColor =
             if (selected) {
                 Color.BLACK
             } else {
                 Color.rgb(145, 145, 145)
             }
-        )
+
+        icon?.clearColorFilter()
+        icon?.setColorFilter(iconColor, android.graphics.PorterDuff.Mode.SRC_IN)
 
         label?.setTextColor(
             if (selected) {
@@ -6878,13 +6880,6 @@ class MainActivity : ComponentActivity() {
         val icon = ImageView(this).apply {
             setImageResource(iconRes)
             scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setColorFilter(
-                if (selected) {
-                    Color.BLACK
-                } else {
-                    Color.rgb(145, 145, 145)
-                }
-            )
         }
 
         item.addView(
@@ -6899,13 +6894,6 @@ class MainActivity : ComponentActivity() {
             text = title
             textSize = 11f
             gravity = Gravity.CENTER
-            setTextColor(
-                if (selected) {
-                    Color.BLACK
-                } else {
-                    Color.rgb(125, 125, 125)
-                }
-            )
             includeFontPadding = false
             setTypeface(Typeface.DEFAULT, Typeface.NORMAL)
         }
@@ -6919,22 +6907,26 @@ class MainActivity : ComponentActivity() {
 
         item.addView(label, labelParams)
 
+        // Set initial state
+        updateNavItem(item, selected)
+
         item.setOnClickListener {
 
+            // Smooth press animation
             icon.animate()
-                .scaleX(0.86f)
-                .scaleY(0.86f)
-                .setDuration(75)
+                .scaleX(0.84f)
+                .scaleY(0.84f)
+                .setDuration(70)
                 .withEndAction {
-
                     icon.animate()
                         .scaleX(1f)
                         .scaleY(1f)
-                        .setDuration(120)
+                        .setDuration(130)
                         .start()
                 }
                 .start()
 
+            // Change selected tab
             action()
         }
 
