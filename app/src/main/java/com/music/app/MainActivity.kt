@@ -2584,7 +2584,7 @@ class MainActivity : ComponentActivity() {
                     setBackgroundColor(Color.rgb(238, 238, 238))
                 }
 
-                loadAlbumArt(song.id) {
+                getAlbumArt(song)?.let {
                     cover.setImageBitmap(it)
                 }
 
@@ -2677,7 +2677,7 @@ class MainActivity : ComponentActivity() {
                     )
 
                     setOnClickListener {
-                        showSongPopup(song)
+                        showSongPopup(this, song)
                     }
                 }
 
