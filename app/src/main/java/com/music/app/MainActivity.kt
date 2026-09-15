@@ -4120,9 +4120,9 @@ class MainActivity : ComponentActivity() {
                 cornerRadius = dp(14).toFloat()
             }
 
-            onClick?.let {
+            if (onClick != null) {
                 setOnClickListener {
-                    it.invoke()
+                    onClick()
                 }
             }
         }
@@ -4263,7 +4263,6 @@ class MainActivity : ComponentActivity() {
 
     private fun showSearch() {
 
-        setActiveNavigation(1)
         content.removeAllViews()
 
         val scroll = android.widget.ScrollView(this).apply {
