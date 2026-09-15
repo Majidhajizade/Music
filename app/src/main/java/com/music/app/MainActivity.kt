@@ -3852,6 +3852,29 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    private fun savePlayerState() {
+        try {
+            val prefs = getSharedPreferences(
+                "player_state",
+                MODE_PRIVATE
+            )
+
+            val currentSongId = currentSong?.id ?: -1L
+            val position = mediaPlayer?.currentPosition ?: 0
+
+            prefs.edit()
+                .putLong("song_id", currentSongId)
+                .putInt("position", position)
+                .putBoolean(
+                    "is_playing",
+                    mediaPlayer?.isPlaying == true
+                )
+                .apply()
+        } catch (_: Exception) {
+            // Ignore state-save errors during lifecycle changes.
+        }
+    }
+
     private fun text(
         value: String,
         size: Float,
