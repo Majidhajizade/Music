@@ -2359,6 +2359,7 @@ class MainActivity : ComponentActivity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
+            background = android.graphics.drawable.ColorDrawable(Color.WHITE)
         }
 
         val header = LinearLayout(this).apply {
@@ -2378,6 +2379,8 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER
             includeFontPadding = false
+            isClickable = true
+            isFocusable = true
 
             setOnClickListener {
                 showLibrary()
@@ -2455,10 +2458,12 @@ class MainActivity : ComponentActivity() {
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
+            setBackgroundColor(Color.WHITE)
         }
 
         val list = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
             setPadding(
                 dp(12),
                 dp(4),
@@ -2677,7 +2682,10 @@ class MainActivity : ComponentActivity() {
                     )
 
                     setOnClickListener {
-                        showSongPopup(this, song)
+                        showLibrarySongPopup(
+                            this,
+                            song
+                        )
                     }
                 }
 
@@ -8034,6 +8042,255 @@ class MainActivity : ComponentActivity() {
         popup.elevation = 12f
 
         popup.showAsDropDown(anchor, -210, -160)
+    }
+
+    private fun showLibrarySongPopup(
+        anchor: View,
+        song: Song
+    ) {
+
+        val popup = android.widget.PopupWindow(
+            this
+        )
+
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(
+                dp(7),
+                dp(7),
+                dp(7),
+                dp(7)
+            )
+
+            background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(18).toFloat()
+                    setColor(Color.WHITE)
+                }
+
+            elevation = dp(18).toFloat()
+        }
+
+        fun popupItem(
+            icon: String,
+            title: String,
+            action: () -> Unit
+        ) {
+
+            val item = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = dp(12).toFloat()
+                        setColor(Color.WHITE)
+                    }
+
+                setPadding(
+                    dp(8),
+                    dp(3),
+                    dp(12),
+                    dp(3)
+                )
+
+                setOnClickListener {
+                    popup.dismiss()
+                    action()
+                }
+
+                setOnTouchListener { view, event ->
+
+                    when (event.action) {
+
+                        android.view.MotionEvent.ACTION_DOWN -> {
+                            view.animate()
+                                .scaleX(0.97f)
+                                .scaleY(0.97f)
+                                .setDuration(90)
+                                .start()
+                        }
+
+                        android.view.MotionEvent.ACTION_UP,
+                        android.view.MotionEvent.ACTION_CANCEL -> {
+                            view.animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(120)
+                                .start()
+                        }
+                    }
+
+                    false
+                }
+            }
+
+            val iconView = TextView(this).apply {
+                text = icon
+                textSize = 20f
+                gravity = Gravity.CENTER
+                setTextColor(Color.BLACK)
+                includeFontPadding = false
+            }
+
+            item.addView(
+                iconView,
+                LinearLayout.LayoutParams(
+                    dp(34),
+                    dp(44)
+                )
+            )
+
+            item.addView(
+                TextView(this).apply {
+                    text = title
+                    textSize = 15f
+                    setTextColor(Color.rgb(25, 25, 25))
+                    gravity = Gravity.CENTER_VERTICAL
+                    includeFontPadding = false
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(44),
+                    1f
+                )
+            )
+
+            box.addView(
+                item,
+                LinearLayout.LayoutParams(
+                    dp(240),
+                    dp(44)
+                )
+            )
+        }
+
+        popupItem(
+            "▶",
+            "Play"
+        ) {
+            playSong(song)
+        }
+
+        popupItem(
+            "♧",
+            "Add to Queue"
+        ) {
+            playbackQueue.add(song)
+
+            if (playbackQueue.size == 1) {
+                playbackIndex = 0
+            }
+
+            Toast.makeText(
+                this,
+                "Added to queue",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        popupItem(
+            if (isFavorite(song)) "♥" else "♡",
+            if (isFavorite(song))
+                "Remove from Favorites"
+            else
+                "Add to Favorites"
+        ) {
+            val newState = !isFavorite(song)
+
+            setFavorite(
+                song,
+                newState
+            )
+
+            Toast.makeText(
+                this,
+                if (newState)
+                    "Added to Favorites"
+                else
+                    "Removed from Favorites",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        popupItem(
+            "＋",
+            "Add to Playlist"
+        ) {
+            showCreatePlaylistDialog()
+        }
+
+        popupItem(
+            "ⓘ",
+            "Song Info"
+        ) {
+            showSongPopup(
+                anchor,
+                song
+            )
+        }
+
+        popup.contentView = box
+        popup.width = dp(254)
+        popup.height = -2
+        popup.isFocusable = true
+        popup.isOutsideTouchable = true
+        popup.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.TRANSPARENT
+            )
+        )
+        popup.elevation = dp(18).toFloat()
+
+        val location = IntArray(2)
+        anchor.getLocationOnScreen(location)
+
+        val anchorY = location[1]
+        val anchorHeight = anchor.height
+
+        val screenHeight =
+            resources.displayMetrics.heightPixels
+
+        val anchorCenter =
+            anchorY + (anchorHeight / 2)
+
+        val popupHeightEstimate =
+            dp(7 + (44 * 5) + 7)
+
+        val belowHalf =
+            anchorCenter < screenHeight / 2
+
+        popup.showAsDropDown(
+            anchor,
+            -dp(205),
+            if (belowHalf) {
+                -dp(2)
+            } else {
+                -(anchorHeight + popupHeightEstimate)
+            }
+        )
+
+        val content = popup.contentView
+
+        content.alpha = 0f
+        content.scaleX = 0.94f
+        content.scaleY = 0.94f
+        content.translationY =
+            if (belowHalf) dp(-8).toFloat()
+            else dp(8).toFloat()
+
+        content.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .translationY(0f)
+            .setDuration(190)
+            .setInterpolator(
+                android.view.animation.DecelerateInterpolator(1.7f)
+            )
+            .start()
     }
 
     private fun showSongPopup(
