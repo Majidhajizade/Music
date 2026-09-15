@@ -158,10 +158,24 @@ class MainActivity : ComponentActivity() {
         val icon = item.getChildAt(0) as? ImageView
         val label = item.getChildAt(1) as? TextView
 
+        // Selected tab gets a deep-blue rounded capsule.
+        item.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(18).toFloat()
+            setColor(
+                if (selected) {
+                    Color.rgb(18, 54, 115)
+                } else {
+                    Color.TRANSPARENT
+                }
+            )
+        }
+
         if (icon != null) {
+            icon.clearColorFilter()
             icon.setColorFilter(
                 if (selected) {
-                    Color.BLACK
+                    Color.WHITE
                 } else {
                     Color.rgb(145, 145, 145)
                 }
@@ -170,7 +184,7 @@ class MainActivity : ComponentActivity() {
 
         label?.setTextColor(
             if (selected) {
-                Color.BLACK
+                Color.WHITE
             } else {
                 Color.rgb(125, 125, 125)
             }
@@ -987,10 +1001,11 @@ class MainActivity : ComponentActivity() {
         val scroll = android.widget.ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setBackgroundColor(Color.TRANSPARENT)
+            setBackgroundColor(Color.WHITE)
         }
 
         val page = LinearLayout(this).apply {
+            setBackgroundColor(Color.WHITE)
             orientation = LinearLayout.VERTICAL
             setPadding(
                 dp(18),
@@ -5533,11 +5548,12 @@ class MainActivity : ComponentActivity() {
         val scroll = android.widget.ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setBackgroundColor(Color.TRANSPARENT)
+            setBackgroundColor(Color.WHITE)
             overScrollMode = View.OVER_SCROLL_NEVER
         }
 
         val page = LinearLayout(this).apply {
+            setBackgroundColor(Color.WHITE)
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(12), dp(18), dp(32))
             clipToPadding = false
@@ -5595,10 +5611,10 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(14), 0, dp(7), 0)
             background = GradientDrawable().apply {
                 setColor(Color.WHITE)
-                cornerRadius = dp(17).toFloat()
-                setStroke(dp(1), Color.rgb(232, 232, 232))
+                cornerRadius = dp(28).toFloat()
+                setStroke(dp(1), Color.rgb(225, 225, 225))
             }
-            elevation = dp(4).toFloat()
+            elevation = dp(1).toFloat()
         }
 
         val searchInput = EditText(this).apply {
@@ -5661,29 +5677,6 @@ class MainActivity : ComponentActivity() {
             resultsContainer,
             LinearLayout.LayoutParams(-1, -2)
         )
-
-        fun addSearchSectionTitle(textValue: String) {
-
-            val sectionTitle = TextView(this).apply {
-                text = textValue
-                textSize = 21f
-                setTextColor(Color.BLACK)
-                typeface =
-                    Typeface.create(
-                        Typeface.DEFAULT,
-                        Typeface.BOLD
-                    )
-                includeFontPadding = false
-                setPadding(
-                    dp(2),
-                    dp(25),
-                    dp(2),
-                    dp(11)
-                )
-            }
-
-            resultsContainer.addView(sectionTitle)
-        }
 
         // ------------------------------------------------------------
         // Artwork based browse card
@@ -5841,117 +5834,7 @@ class MainActivity : ComponentActivity() {
         // ------------------------------------------------------------
 
         fun showBrowseState() {
-
             resultsContainer.removeAllViews()
-
-
-            val browseGrid =
-                LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.VERTICAL
-                }
-
-            val firstRow =
-                LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.HORIZONTAL
-                }
-
-            val artworkA =
-                songs.take(1)
-
-            val artworkB =
-                if (songs.size > 1)
-                    songs.drop(1).take(1)
-                else songs.take(1)
-
-            addBrowseCard(
-                firstRow,
-                "Songs",
-                artworkA,
-                Color.rgb(215, 229, 246),
-                "♫"
-            )
-
-            addBrowseCard(
-                firstRow,
-                "Artists",
-                artworkB,
-                Color.rgb(230, 215, 239),
-                "♪"
-            )
-
-            browseGrid.addView(
-                firstRow,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(151)
-                )
-            )
-
-            val secondRow =
-                LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.HORIZONTAL
-                }
-
-            val artworkC =
-                if (songs.size > 2)
-                    songs.drop(2).take(1)
-                else songs.take(1)
-
-            val artworkD =
-                if (songs.size > 3)
-                    songs.drop(3).take(1)
-                else songs.take(1)
-
-            addBrowseCard(
-                secondRow,
-                "Albums",
-                artworkC,
-                Color.rgb(215, 235, 221),
-                "▣"
-            )
-
-            addBrowseCard(
-                secondRow,
-                "Recently played",
-                artworkD,
-                Color.rgb(244, 225, 204),
-                "◷"
-            )
-
-            browseGrid.addView(
-                secondRow,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(151)
-                )
-            )
-
-            resultsContainer.addView(
-                browseGrid
-            )
-
-            if (songs.isNotEmpty()) {
-
-                addSearchSectionTitle(
-                    "Your music"
-                )
-
-                songs.take(5).forEach { song ->
-
-                    resultsContainer.addView(
-                        createRealSongRow(song) {
-                            playSong(song)
-                        },
-                        LinearLayout.LayoutParams(
-                            -1,
-                            -2
-                        )
-                    )
-                }
-            }
         }
 
         // ------------------------------------------------------------
@@ -7773,14 +7656,10 @@ class MainActivity : ComponentActivity() {
                 dp(1)
             )
 
-            background = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                cornerRadius = dp(33).toFloat()
-                setColor(Color.WHITE)
-            }
+            background = android.graphics.drawable.ColorDrawable(Color.TRANSPARENT)
 
-            clipToOutline = true
-            elevation = dp(2).toFloat()
+            clipToOutline = false
+            elevation = 0f
         }
 
         val items = listOf(
