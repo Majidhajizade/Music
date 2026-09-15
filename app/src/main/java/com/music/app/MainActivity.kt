@@ -4097,6 +4097,170 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private fun createRealSongRow(
+        song: Song,
+        onClick: (() -> Unit)? = null
+    ): LinearLayout {
+
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
+            )
+
+            isClickable = true
+            isFocusable = true
+
+            background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                cornerRadius = dp(14).toFloat()
+            }
+
+            onClick?.let {
+                setOnClickListener {
+                    it.invoke()
+                }
+            }
+        }
+
+        val cover = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            clipToOutline = true
+
+            background = GradientDrawable().apply {
+                setColor(
+                    Color.rgb(
+                        235,
+                        235,
+                        235
+                    )
+                )
+                cornerRadius = dp(10).toFloat()
+            }
+        }
+
+        getAlbumArt(song)?.let {
+            cover.setImageBitmap(it)
+        }
+
+        row.addView(
+            cover,
+            LinearLayout.LayoutParams(
+                dp(58),
+                dp(58)
+            )
+        )
+
+        val info = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(
+                dp(12),
+                0,
+                dp(8),
+                0
+            )
+        }
+
+        val title = TextView(this).apply {
+            text = song.title
+            textSize = 15f
+            setTextColor(Color.BLACK)
+
+            typeface = Typeface.create(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+            )
+
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
+
+            includeFontPadding = false
+        }
+
+        val artist = TextView(this).apply {
+            text = song.artist
+            textSize = 12.5f
+
+            setTextColor(
+                Color.rgb(
+                    105,
+                    105,
+                    105
+                )
+            )
+
+            maxLines = 1
+            ellipsize =
+                android.text.TextUtils.TruncateAt.END
+
+            includeFontPadding = false
+
+            setPadding(
+                0,
+                dp(4),
+                0,
+                0
+            )
+        }
+
+        info.addView(
+            title,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(24)
+            )
+        )
+
+        info.addView(
+            artist,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(22)
+            )
+        )
+
+        row.addView(
+            info,
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        val more = TextView(this).apply {
+            text = "⋮"
+            textSize = 24f
+            gravity = Gravity.CENTER
+
+            setTextColor(
+                Color.rgb(
+                    100,
+                    100,
+                    100
+                )
+            )
+
+            includeFontPadding = false
+        }
+
+        row.addView(
+            more,
+            LinearLayout.LayoutParams(
+                dp(30),
+                dp(58)
+            )
+        )
+
+        return row
+    }
+
     private fun showSearch() {
 
         setActiveNavigation(1)
@@ -4209,7 +4373,7 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.BLACK)
             setHintTextColor(Color.rgb(115, 115, 115))
             background = null
-            singleLine = true
+            setSingleLine(true)
             maxLines = 1
             includeFontPadding = false
             setPadding(dp(10), 0, dp(5), 0)
@@ -4536,31 +4700,7 @@ class MainActivity : ComponentActivity() {
                 browseGrid
             )
 
-            val recent =
-                getRecentlyPlayedSongs()
-
-            if (recent.isNotEmpty()) {
-
-                addSearchSectionTitle(
-                    "Recently played"
-                )
-
-                recent.take(5).forEach { song ->
-
-                    val row =
-                        createRealSongRow(song) {
-                            playSong(song)
-                        }
-
-                    resultsContainer.addView(
-                        row,
-                        LinearLayout.LayoutParams(
-                            -1,
-                            -2
-                        )
-                    )
-                }
-            } else if (songs.isNotEmpty()) {
+            if (songs.isNotEmpty()) {
 
                 addSearchSectionTitle(
                     "Your music"
