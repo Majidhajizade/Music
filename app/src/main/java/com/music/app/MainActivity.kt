@@ -152,15 +152,22 @@ class MainActivity : ComponentActivity() {
         item: LinearLayout,
         selected: Boolean
     ) {
+
         val icon = item.getChildAt(0) as? ImageView
         val label = item.getChildAt(1) as? TextView
 
         val normalRes = icon?.tag as? Int
 
         val selectedRes = when (normalRes) {
-            R.drawable.ic_nav_home -> R.drawable.ic_nav_home_selected
-            R.drawable.ic_nav_search -> R.drawable.ic_nav_search_selected
-            R.drawable.ic_nav_library -> R.drawable.ic_nav_library_selected
+            R.drawable.ic_nav_home ->
+                R.drawable.ic_nav_home_selected
+
+            R.drawable.ic_nav_search ->
+                R.drawable.ic_nav_search_selected
+
+            R.drawable.ic_nav_library ->
+                R.drawable.ic_nav_library_selected
+
             else -> normalRes
         }
 
@@ -171,8 +178,11 @@ class MainActivity : ComponentActivity() {
         }
 
         label?.setTextColor(
-            if (selected) Color.BLACK
-            else Color.rgb(145, 145, 145)
+            if (selected) {
+                Color.BLACK
+            } else {
+                Color.rgb(125, 125, 125)
+            }
         )
     }
 
@@ -244,6 +254,7 @@ class MainActivity : ComponentActivity() {
 
         val icon = ImageView(this).apply {
             tag = iconRes
+            setImageResource(iconRes)
             scaleType = ImageView.ScaleType.CENTER_INSIDE
         }
 
@@ -269,11 +280,13 @@ class MainActivity : ComponentActivity() {
         )
 
         labelParams.topMargin = dp(2)
+
         item.addView(label, labelParams)
 
         updateNavItem(item, selected)
 
         item.setOnClickListener {
+
             icon.animate()
                 .scaleX(0.84f)
                 .scaleY(0.84f)
@@ -3850,111 +3863,6 @@ class MainActivity : ComponentActivity() {
         mediaPlayer = null
 
         super.onDestroy()
-    }
-
-    private fun getAlbumArt(song: Song): android.graphics.Bitmap? {
-
-        return try {
-            val uri = ContentUris.withAppendedId(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                song.id
-            )
-
-            val retriever = MediaMetadataRetriever()
-
-            retriever.setDataSource(
-                this,
-                uri
-            )
-
-            val data = retriever.embeddedPicture
-
-            retriever.release()
-
-            if (data != null) {
-                android.graphics.BitmapFactory.decodeByteArray(
-                    data,
-                    0,
-                    data.size
-                )
-            } else {
-                null
-            }
-
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
-
-    private fun showMain() {
-
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.WHITE)
-            setPadding(0, 0, 0, 18)
-        }
-
-        content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(24, 18, 24, 12)
-            clipToPadding = false
-        }
-
-        root.addView(
-            content,
-            LinearLayout.LayoutParams(-1, 0, 1f)
-        )
-
-        // Mini player with breathing room
-        root.addView(
-            createMiniPlayer(),
-            LinearLayout.LayoutParams(-1, 86).apply {
-                leftMargin = 8
-                rightMargin = 8
-                topMargin = 4
-                bottomMargin = 8
-            }
-        )
-
-        // Floating liquid-glass navigation
-        root.addView(
-            createBottomNavigation(),
-            LinearLayout.LayoutParams(-1, 78).apply {
-                leftMargin = 12
-                rightMargin = 12
-                bottomMargin = 2
-            }
-        )
-
-        setContentView(root)
-
-        showHome()
-    }
-
-    private fun savePlayerState() {
-        try {
-            val prefs = getSharedPreferences(
-                "player_state",
-                MODE_PRIVATE
-            )
-
-            val currentSongId = currentSong?.id ?: -1L
-            val position = mediaPlayer?.currentPosition ?: 0
-
-            prefs.edit()
-                .putLong("song_id", currentSongId)
-                .putInt("position", position)
-                .putBoolean(
-                    "is_playing",
-                    mediaPlayer?.isPlaying == true
-                )
-                .apply()
-        } catch (_: Exception) {
-            // Ignore state-save errors during lifecycle changes.
-        }
     }
 
     private fun text(
