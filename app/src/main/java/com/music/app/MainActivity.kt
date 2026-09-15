@@ -61,6 +61,22 @@ class MainActivity : ComponentActivity() {
     private var miniExpansionTitle: TextView? = null
     private var miniExpansionArtist: TextView? = null
 
+    // Mini -> Full gesture transition
+    private var miniFullTransitionProgress = 0f
+    private var miniFullTransitionAnimating = false
+
+    // Active Full Player views used by the Mini -> Full gesture.
+    private var miniTransitionDialog: android.app.Dialog? = null
+    private var miniTransitionRoot: View? = null
+    private var miniTransitionFullCover: View? = null
+    private var miniTransitionInfo: View? = null
+    private var miniTransitionSeekBar: View? = null
+    private var miniTransitionTimeRow: View? = null
+    private var miniTransitionControls: View? = null
+    private var miniTransitionSecondary: View? = null
+    private var miniTransitionCoverContainer: View? = null
+    private var miniExpansionOpening = false
+
     private val playerPrefs by lazy {
         getSharedPreferences("player_state", MODE_PRIVATE)
     }
@@ -4312,6 +4328,35 @@ class MainActivity : ComponentActivity() {
                                 dy = dy
                             )
 
+                            val screenHeight =
+                                resources.displayMetrics.heightPixels
+                                    .toFloat()
+
+                            val miniHeight =
+                                miniPlayer.height.coerceAtLeast(dp(60))
+
+                            val maxUp =
+                                (
+                                    screenHeight -
+                                        miniHeight
+                                ).coerceAtLeast(1f)
+
+                            val upward =
+                                (-dy)
+                                    .coerceAtLeast(0f)
+                                    .coerceAtMost(maxUp)
+
+                            val progress =
+                                (
+                                    upward / maxUp
+                                ).coerceIn(0f, 1f)
+
+                            miniFullTransitionProgress = progress
+
+                            updateMiniFullTransition(
+                                progress
+                            )
+
                             if (dy > dp(18)) {
                                 scheduleMiniHide(layout)
                             } else {
@@ -4721,19 +4766,21 @@ class MainActivity : ComponentActivity() {
         cover.scaleX = 1f
         cover.scaleY = 1f
 
-        title.alpha =
-            (
-                (progress - 0.18f) /
-                    0.30f
-            )
-                .coerceIn(0f, 1f)
+        /*
+         * The text transition is controlled centrally so that
+         * Navigation + artwork + Full Player controls all follow
+         * the same gesture progress.
+         */
+        title.alpha = 0f
+        artist.alpha = 0f
+        title.translationY = 0f
+        artist.translationY = 0f
 
-        artist.alpha =
-            (
-                (progress - 0.24f) /
-                    0.30f
-            )
-                .coerceIn(0f, 0.68f)
+        miniFullTransitionProgress = progress
+
+        updateMiniFullTransition(
+            progress
+        )
     }
 
 
@@ -4775,8 +4822,14 @@ class MainActivity : ComponentActivity() {
                         animator.animatedValue
                             as Float
 
+                    miniFullTransitionProgress = progress
+
                     updateMiniExpansionCard(
                         -maxUp * progress
+                    )
+
+                    updateMiniFullTransition(
+                        progress
                     )
                 }
 
@@ -4836,11 +4889,16 @@ class MainActivity : ComponentActivity() {
         layout: LinearLayout
     ) {
         if (miniExpansionCard == null) return
+        if (miniFullTransitionAnimating) return
+
+        miniFullTransitionAnimating = true
 
         animateMiniExpansionTo(
             targetProgress = 1f,
             duration = 360L
         ) {
+            updateMiniFullTransition(1f)
+
             removeMiniExpansionCard()
 
             layout.translationX = 0f
@@ -4851,9 +4909,13 @@ class MainActivity : ComponentActivity() {
             miniCover.scaleX = 1f
             miniCover.scaleY = 1f
 
-            if (currentSong != null) {
-                showNowPlaying()
+            miniBottomNavigation?.let { nav ->
+                nav.translationY = dp(82).toFloat()
+                nav.alpha = 0f
             }
+
+            miniFullTransitionProgress = 1f
+            miniFullTransitionAnimating = false
         }
     }
 
@@ -4863,13 +4925,36 @@ class MainActivity : ComponentActivity() {
     ) {
         if (miniExpansionCard == null) {
             miniPlayer.alpha = 1f
+            updateMiniFullTransition(0f)
             return
         }
+
+        if (miniFullTransitionAnimating) return
+
+        miniFullTransitionAnimating = true
 
         animateMiniExpansionTo(
             targetProgress = 0f,
             duration = 280L
         ) {
+            updateMiniFullTransition(0f)
+
+            miniTransitionDialog?.let { dialog ->
+                if (dialog.isShowing) {
+                    dialog.dismiss()
+                }
+            }
+
+            miniTransitionDialog = null
+            miniTransitionRoot = null
+            miniTransitionFullCover = null
+            miniTransitionInfo = null
+            miniTransitionSeekBar = null
+            miniTransitionTimeRow = null
+            miniTransitionControls = null
+            miniTransitionSecondary = null
+            miniTransitionCoverContainer = null
+
             removeMiniExpansionCard()
 
             layout.translationX = 0f
@@ -4879,6 +4964,165 @@ class MainActivity : ComponentActivity() {
             miniCover.rotation = 0f
             miniCover.scaleX = 1f
             miniCover.scaleY = 1f
+
+            miniBottomNavigation?.let { nav ->
+                nav.translationY = 0f
+                nav.alpha = 1f
+            }
+
+            miniFullTransitionProgress = 0f
+            miniFullTransitionAnimating = false
+        }
+    }
+
+
+    /*
+     * Drives the Full Player-like elements during the same
+     * Mini -> Full gesture.
+     *
+     * 0.0  = completely hidden
+     * 0.5  = controls begin entering
+     * 1.0  = final Full Player position
+     */
+    private fun updateMiniFullTransition(
+        progress: Float
+    ) {
+        val p = progress.coerceIn(0f, 1f)
+
+        miniFullTransitionProgress = p
+
+        /*
+         * Navigation moves downward and fades continuously
+         * from the beginning of the upward gesture.
+         */
+        miniBottomNavigation?.let { nav ->
+            nav.translationY =
+                dp(82).toFloat() * p
+
+            nav.alpha =
+                1f - p
+        }
+
+        /*
+         * Keep the real Mini Player hidden while the expansion
+         * surface represents it.
+         */
+        if (miniExpansionCard != null) {
+            miniPlayer.alpha = 0f
+        }
+
+        val card = miniExpansionCard
+        val expansionCover = miniExpansionCover
+        val expansionTitle = miniExpansionTitle
+        val expansionArtist = miniExpansionArtist
+
+        if (card != null &&
+            expansionCover != null &&
+            expansionTitle != null &&
+            expansionArtist != null
+        ) {
+            val secondHalf =
+                (
+                    (p - 0.5f) /
+                        0.5f
+                ).coerceIn(0f, 1f)
+
+            val eased =
+                secondHalf * secondHalf *
+                    (3f - 2f * secondHalf)
+
+            expansionTitle.alpha = eased
+
+            expansionArtist.alpha =
+                (eased * 0.68f)
+                    .coerceIn(0f, 0.68f)
+
+            expansionTitle.translationY =
+                -dp(92).toFloat() * eased
+
+            expansionArtist.translationY =
+                -dp(62).toFloat() * eased
+        }
+
+        /*
+         * The real Full Player is created exactly when the
+         * gesture crosses 50%.
+         *
+         * Its root starts transparent, so the expansion card
+         * remains visually continuous underneath it.
+         */
+        if (
+            p >= 0.5f &&
+            miniTransitionDialog == null &&
+            currentSong != null
+        ) {
+            miniExpansionOpening = true
+            showNowPlaying()
+            miniExpansionOpening = false
+        }
+
+        val dialog = miniTransitionDialog
+        val root = miniTransitionRoot
+
+        if (dialog != null && root != null) {
+
+            val secondHalf =
+                (
+                    (p - 0.5f) /
+                        0.5f
+                ).coerceIn(0f, 1f)
+
+            val eased =
+                secondHalf * secondHalf *
+                    (3f - 2f * secondHalf)
+
+            /*
+             * The Full Player becomes progressively visible only
+             * during the second half of the gesture.
+             */
+            root.alpha = eased
+
+            miniTransitionFullCover?.let { view ->
+                view.alpha = 0.70f + 0.30f * eased
+                view.scaleX = 0.96f + 0.04f * eased
+                view.scaleY = 0.96f + 0.04f * eased
+            }
+
+            /*
+             * Controls rise smoothly from below instead of
+             * appearing as a new page.
+             */
+            miniTransitionInfo?.let { view ->
+                view.translationY =
+                    dp(28).toFloat() * (1f - eased)
+                view.alpha = eased
+            }
+
+            miniTransitionSeekBar?.let { view ->
+                view.translationY =
+                    dp(18).toFloat() * (1f - eased) -
+                        dp(6).toFloat()
+                view.alpha = eased
+            }
+
+            miniTransitionTimeRow?.let { view ->
+                view.translationY =
+                    dp(18).toFloat() * (1f - eased)
+                view.alpha = eased
+            }
+
+            miniTransitionControls?.let { view ->
+                view.translationY =
+                    dp(34).toFloat() * (1f - eased) -
+                        dp(10).toFloat()
+                view.alpha = eased
+            }
+
+            miniTransitionSecondary?.let { view ->
+                view.translationY =
+                    dp(40).toFloat() * (1f - eased)
+                view.alpha = eased
+            }
         }
     }
 
@@ -4986,6 +5230,11 @@ class MainActivity : ComponentActivity() {
 
         if (::miniPlayer.isInitialized) {
             miniPlayer.alpha = 1f
+        }
+
+        miniBottomNavigation?.let { nav ->
+            nav.translationY = 0f
+            nav.alpha = 1f
         }
     }
 
@@ -8640,6 +8889,31 @@ class MainActivity : ComponentActivity() {
 
         dialog.setContentView(root)
 
+        /*
+         * Expose the real Full Player views to the Mini -> Full
+         * gesture controller.
+         */
+        if (miniExpansionOpening) {
+            miniTransitionDialog = dialog
+            miniTransitionRoot = root
+            miniTransitionFullCover = cover
+            miniTransitionInfo = info
+            miniTransitionSeekBar = seekBar
+            miniTransitionTimeRow = timeRow
+            miniTransitionControls = controls
+            miniTransitionSecondary = secondary
+            miniTransitionCoverContainer = coverContainer
+
+            root.alpha = 0f
+
+            cover.alpha = 0f
+            info.alpha = 0f
+            seekBar.alpha = 0f
+            timeRow.alpha = 0f
+            controls.alpha = 0f
+            secondary.alpha = 0f
+        }
+
         dialog.window?.setBackgroundDrawable(
             android.graphics.drawable.ColorDrawable(
                 Color.TRANSPARENT
@@ -8682,9 +8956,27 @@ class MainActivity : ComponentActivity() {
             handler.removeCallbacks(
                 colorUpdater
             )
+
+            if (miniTransitionDialog === dialog) {
+                miniTransitionDialog = null
+                miniTransitionRoot = null
+                miniTransitionFullCover = null
+                miniTransitionInfo = null
+                miniTransitionSeekBar = null
+                miniTransitionTimeRow = null
+                miniTransitionControls = null
+                miniTransitionSecondary = null
+                miniTransitionCoverContainer = null
+            }
         }
 
         dialog.show()
+
+        if (miniExpansionOpening) {
+            updateMiniFullTransition(
+                miniFullTransitionProgress
+            )
+        }
 
         dialog.window?.let { window ->
 
