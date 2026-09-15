@@ -409,7 +409,7 @@ class MainActivity : ComponentActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
             setPadding(
                 dp(28),
                 dp(38),
@@ -558,7 +558,7 @@ class MainActivity : ComponentActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
             setPadding(
                 dp(28),
                 dp(38),
@@ -879,7 +879,7 @@ class MainActivity : ComponentActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
             setPadding(0, 0, 0, dp(6))
         }
 
@@ -892,7 +892,7 @@ class MainActivity : ComponentActivity() {
         val homeScroll = ScrollView(this).apply {
         isFillViewport = true
         clipToPadding = false
-        setBackgroundColor(Color.WHITE)
+        setBackgroundColor(Color.TRANSPARENT)
     }
 
     homeScroll.addView(
@@ -999,7 +999,7 @@ class MainActivity : ComponentActivity() {
         val scroll = android.widget.ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
         }
 
         val page = LinearLayout(this).apply {
@@ -1070,7 +1070,16 @@ class MainActivity : ComponentActivity() {
         )
 
         val headerAvatar = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
+            setImageResource(
+                android.R.drawable.ic_menu_myplaces
+            )
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(
+                dp(9),
+                dp(9),
+                dp(9),
+                dp(9)
+            )
             background = GradientDrawable().apply {
                 setColor(
                     Color.rgb(
@@ -1081,15 +1090,7 @@ class MainActivity : ComponentActivity() {
                 )
                 shape = GradientDrawable.OVAL
             }
-            clipToOutline = true
-            isClickable = true
-            isFocusable = true
-            setOnClickListener {
-                showSettings()
-            }
         }
-
-        updateAvatar(headerAvatar)
 
         header.addView(
             headerAvatar,
@@ -4054,7 +4055,7 @@ class MainActivity : ComponentActivity() {
                 dp(4),
                 0
             )
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
             setOnClickListener {
                 action()
             }
@@ -4603,7 +4604,7 @@ class MainActivity : ComponentActivity() {
         val scroll = android.widget.ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
             overScrollMode = View.OVER_SCROLL_NEVER
         }
 
@@ -4685,15 +4686,6 @@ class MainActivity : ComponentActivity() {
                 setStroke(dp(1), Color.rgb(232, 232, 232))
             }
             elevation = dp(4).toFloat()
-        }
-
-        val searchIcon = ImageView(this).apply {
-            setImageResource(R.drawable.ic_nav_search)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setColorFilter(
-                Color.rgb(55, 55, 55),
-                android.graphics.PorterDuff.Mode.SRC_IN
-            )
         }
 
         searchShadow.addView(
@@ -6871,7 +6863,7 @@ class MainActivity : ComponentActivity() {
                 dp(1)
             )
 
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
 
             elevation = dp(2).toFloat()
         }
@@ -6977,7 +6969,7 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(35, 30, 35, 25)
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
         }
 
         val title = text(
@@ -7111,7 +7103,7 @@ class MainActivity : ComponentActivity() {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(22, 12, 22, 12)
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
         }
 
         val play = text(
