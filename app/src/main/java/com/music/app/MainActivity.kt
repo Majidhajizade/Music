@@ -5277,8 +5277,8 @@ class MainActivity : ComponentActivity() {
         layout.addView(
             miniCover,
             LinearLayout.LayoutParams(
-                dp(48),
-                dp(48)
+                dp(32),
+                dp(32)
             )
         )
 
