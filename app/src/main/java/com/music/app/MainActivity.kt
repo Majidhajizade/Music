@@ -877,7 +877,15 @@ class MainActivity : ComponentActivity() {
     )
 
         // ---------- MINI PLAYER ----------
-        miniPlayer = createMiniPlayer()
+        miniPlayer = createMiniPlayer().apply {
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = dp(30).toFloat()
+                setColor(Color.WHITE)
+            }
+            clipToOutline = true
+            elevation = dp(2).toFloat()
+        }
 
         root.addView(
             miniPlayer,
@@ -6808,8 +6816,15 @@ class MainActivity : ComponentActivity() {
                 dp(8),
                 dp(1)
             )
-            setBackgroundColor(Color.TRANSPARENT)
-            elevation = 0f
+
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = dp(33).toFloat()
+                setColor(Color.WHITE)
+            }
+
+            clipToOutline = true
+            elevation = dp(2).toFloat()
         }
 
         val items = listOf(
