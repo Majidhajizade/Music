@@ -5296,7 +5296,6 @@ class MainActivity : ComponentActivity() {
             Typeface.BOLD
         ).apply {
             maxLines = 1
-            singleLine = true
             ellipsize = android.text.TextUtils.TruncateAt.MARQUEE
             marqueeRepeatLimit = -1
             isSelected = true
