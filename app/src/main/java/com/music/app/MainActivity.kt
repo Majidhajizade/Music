@@ -7596,6 +7596,13 @@ class MainActivity : ComponentActivity() {
                         return@setOnTouchListener true
                     }
 
+                    root.animate().cancel()
+                    cover.animate().cancel()
+
+                    root.findViewWithTag<View>(
+                        "full_player_controls"
+                    )?.animate()?.cancel()
+
                     fullPlayerCloseDownY =
                         event.rawY
 
@@ -7698,7 +7705,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     private fun updateFullPlayerCloseGesture(
         root: View,
         cover: ImageView,
@@ -7713,17 +7719,6 @@ class MainActivity : ComponentActivity() {
             miniLocation
         )
 
-        val fullWidth =
-            cover.width
-                .coerceAtLeast(1)
-                .toFloat()
-
-        val fullCenterX =
-            fullPlayerCloseStartCenterX
-
-        val fullCenterY =
-            fullPlayerCloseStartCenterY
-
         val miniSize =
             dp(46).toFloat()
 
@@ -7735,20 +7730,39 @@ class MainActivity : ComponentActivity() {
             miniLocation[1] +
                 miniSize / 2f
 
-        // Interpolate the artwork center directly
-        // between Full Player and Mini Player.
+        val screenHeight =
+            resources.displayMetrics
+                .heightPixels
+                .toFloat()
+
+        /*
+         * The Full Player background follows the finger
+         * without fading.
+         */
+        val rootTranslationY =
+            screenHeight *
+                0.72f *
+                progress
+
+        root.translationY =
+            rootTranslationY
+
+        /*
+         * Artwork follows a direct screen-space path
+         * toward the Mini Player cover.
+         */
         val centerX =
-            fullCenterX +
+            fullPlayerCloseStartCenterX +
                 (
                     miniCenterX -
-                        fullCenterX
+                        fullPlayerCloseStartCenterX
                 ) * progress
 
         val centerY =
-            fullCenterY +
+            fullPlayerCloseStartCenterY +
                 (
                     miniCenterY -
-                        fullCenterY
+                        fullPlayerCloseStartCenterY
                 ) * progress
 
         val containerLocation =
@@ -7772,10 +7786,17 @@ class MainActivity : ComponentActivity() {
 
         cover.translationY =
             centerY -
-                containerCenterY
+                containerCenterY -
+                rootTranslationY
+
+        val fullWidth =
+            cover.width
+                .coerceAtLeast(1)
+                .toFloat()
 
         val targetScale =
-            miniSize / fullWidth
+            miniSize /
+                fullWidth
 
         val scale =
             fullPlayerCloseInitialScale +
@@ -7787,33 +7808,57 @@ class MainActivity : ComponentActivity() {
         cover.scaleX = scale
         cover.scaleY = scale
 
-        // Fade the lower Full Player controls.
-        root.alpha =
-            1f -
-                progress * 0.35f
+        /*
+         * Controls are completely gone when the finger
+         * reaches 50% of the physical screen height.
+         */
+        val controlProgress =
+            (
+                progress /
+                    (0.5f / 0.72f)
+            )
+                .coerceIn(0f, 1f)
 
-        // Reveal Mini Player underneath.
-        miniPlayer.alpha =
-            progress
+        root.findViewWithTag<View>(
+            "full_player_controls"
+        )?.apply {
 
-        miniBottomNavigation?.let { nav ->
+            translationY =
+                -dp(10).toFloat() +
+                    dp(120).toFloat() *
+                    controlProgress
 
-            nav.translationY =
-                dp(82).toFloat() *
-                    (1f - progress)
+            alpha =
+                1f -
+                    controlProgress
+        }
 
-            nav.alpha =
-                progress
+        /*
+         * Mini Player and navigation remain hidden
+         * during the interactive drag.
+         */
+        miniPlayer.alpha = 0f
+
+        miniBottomNavigation?.apply {
+            translationY =
+                dp(82).toFloat()
+
+            alpha = 0f
         }
     }
-
 
     private fun restoreFullPlayerFromGesture(
         root: View,
         cover: ImageView
     ) {
 
+        val controls =
+            root.findViewWithTag<View>(
+                "full_player_controls"
+            )
+
         root.animate()
+            .translationY(0f)
             .alpha(1f)
             .setDuration(300L)
             .setInterpolator(
@@ -7836,20 +7881,32 @@ class MainActivity : ComponentActivity() {
             )
             .start()
 
+        controls?.animate()
+            ?.translationY(
+                -dp(10).toFloat()
+            )
+            ?.alpha(1f)
+            ?.setDuration(300L)
+            ?.setInterpolator(
+                DecelerateInterpolator()
+            )
+            ?.start()
+
         miniPlayer.animate()
             .alpha(0f)
             .setDuration(220L)
             .start()
 
         miniBottomNavigation?.animate()
-            ?.translationY(dp(82).toFloat())
+            ?.translationY(
+                dp(82).toFloat()
+            )
             ?.alpha(0f)
             ?.setDuration(220L)
             ?.start()
 
         fullPlayerCloseProgress = 0f
     }
-
 
     private fun finishFullPlayerClose(
         dialog: android.app.Dialog,
@@ -7865,11 +7922,6 @@ class MainActivity : ComponentActivity() {
             miniLocation
         )
 
-        val fullWidth =
-            cover.width
-                .coerceAtLeast(1)
-                .toFloat()
-
         val miniSize =
             dp(46).toFloat()
 
@@ -7881,73 +7933,56 @@ class MainActivity : ComponentActivity() {
             miniLocation[1] +
                 miniSize / 2f
 
-        val containerLocation =
+        val currentCoverLocation =
             IntArray(2)
 
-        coverContainer.getLocationOnScreen(
-            containerLocation
+        cover.getLocationOnScreen(
+            currentCoverLocation
         )
 
-        val containerCenterX =
-            containerLocation[0] +
-                coverContainer.width / 2f
+        val currentCenterX =
+            currentCoverLocation[0] +
+                cover.width / 2f
 
-        val containerCenterY =
-            containerLocation[1] +
-                coverContainer.height / 2f
+        val currentCenterY =
+            currentCoverLocation[1] +
+                cover.height / 2f
 
         val finalX =
             miniCenterX -
-                containerCenterX
+                currentCenterX
 
         val finalY =
             miniCenterY -
-                containerCenterY
+                currentCenterY
 
-        /*
-         * Full -> Mini is a continuous morph.
-         *
-         * Nothing fades away.
-         * The Full Player physically moves toward the Mini
-         * while its artwork shrinks into the exact Mini cover.
-         */
+        val fullWidth =
+            cover.width
+                .coerceAtLeast(1)
+                .toFloat()
+
+        val closeDuration =
+            280L
+
         miniPlayer.alpha = 0f
 
         miniBottomNavigation?.apply {
-            translationY = dp(82).toFloat()
-            alpha = 1f
+            translationY =
+                dp(82).toFloat()
+
+            alpha = 0f
         }
 
-        val closeDuration = 360L
-
-        /*
-         * Move the whole Full Player downward toward Mini.
-         *
-         * The root itself remains fully visible during the
-         * transition. The visual transformation comes from
-         * translation/scale rather than alpha.
-         */
-        root.animate()
-            .translationY(
-                finalY
-            )
-            .setDuration(closeDuration)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .start()
-
-        /*
-         * Artwork follows the exact same destination as Mini.
-         */
         cover.animate()
-            .translationX(finalX)
-            .translationY(finalY)
+            .translationXBy(finalX)
+            .translationYBy(finalY)
             .scaleX(
-                miniSize / fullWidth
+                miniSize /
+                    fullWidth
             )
             .scaleY(
-                miniSize / fullWidth
+                miniSize /
+                    fullWidth
             )
             .setDuration(closeDuration)
             .setInterpolator(
@@ -7955,10 +7990,6 @@ class MainActivity : ComponentActivity() {
             )
             .start()
 
-        /*
-         * Mini Player and Navigation appear only as the
-         * Full Player reaches them.
-         */
         miniPlayer.animate()
             .alpha(1f)
             .setDuration(closeDuration)
@@ -7969,6 +8000,7 @@ class MainActivity : ComponentActivity() {
 
         miniBottomNavigation?.animate()
             ?.translationY(0f)
+            ?.alpha(1f)
             ?.setDuration(closeDuration)
             ?.setInterpolator(
                 DecelerateInterpolator()
@@ -7976,18 +8008,24 @@ class MainActivity : ComponentActivity() {
             ?.start()
 
         root.animate()
-            .translationY(finalY)
+            .translationY(root.translationY)
+            .alpha(1f)
             .setDuration(closeDuration)
             .setInterpolator(
                 DecelerateInterpolator()
             )
             .withEndAction {
 
-                /*
-                 * Restore the Full Player's internal state
-                 * before dismissing the dialog.
-                 */
                 root.translationY = 0f
+                root.alpha = 1f
+
+                root.findViewWithTag<View>(
+                    "full_player_controls"
+                )?.apply {
+                    translationY =
+                        -dp(10).toFloat()
+                    alpha = 1f
+                }
 
                 cover.translationX = 0f
                 cover.translationY = 0f
@@ -8238,6 +8276,7 @@ class MainActivity : ComponentActivity() {
                     coverSize
                 ).apply {
                     gravity = Gravity.CENTER
+                tag = "full_player_controls"
                 }
             )
         }
