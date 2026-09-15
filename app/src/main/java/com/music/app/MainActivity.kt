@@ -77,6 +77,11 @@ class MainActivity : ComponentActivity() {
     private var miniTransitionCoverContainer: View? = null
     private var miniExpansionOpening = false
 
+    private var miniFullTargetCenterX = Float.NaN
+    private var miniFullTargetCenterY = Float.NaN
+    private var miniFullTargetSize = 0
+
+
     private val playerPrefs by lazy {
         getSharedPreferences("player_state", MODE_PRIVATE)
     }
@@ -2930,6 +2935,9 @@ class MainActivity : ComponentActivity() {
         dialog.setContentView(root)
         dialog.show()
 
+
+
+
         dialog.window?.setLayout(
             -1,
             -1
@@ -4313,7 +4321,17 @@ class MainActivity : ComponentActivity() {
                                     kotlin.math.abs(dx)
 
                                 if (miniGestureVertical) {
-                                    createMiniExpansionCard()
+                                    /*
+                                     * Mini -> Full transition exists ONLY
+                                     * for an upward gesture.
+                                     *
+                                     * A downward drag while Mini is visible
+                                     * must not create the Full Player background
+                                     * or change the Mini Player colors.
+                                     */
+                                    if (dy < 0f) {
+                                        createMiniExpansionCard()
+                                    }
                                 }
                             }
                         }
@@ -4324,48 +4342,61 @@ class MainActivity : ComponentActivity() {
 
                         if (miniGestureVertical) {
 
-                            updateMiniExpansionCard(
-                                dy = dy
-                            )
+                            /*
+                             * Downward drag from Mini is intentionally inert.
+                             * Do not create, colorize, move or fade anything.
+                             */
+                            if (dy >= 0f) {
+                                layout.translationX = 0f
+                                layout.translationY = 0f
+                                miniPlayer.alpha = 1f
 
-                            val screenHeight =
-                                resources.displayMetrics.heightPixels
-                                    .toFloat()
+                                miniCover.rotation = 0f
+                                miniCover.scaleX = 1f
+                                miniCover.scaleY = 1f
 
-                            val miniHeight =
-                                miniPlayer.height.coerceAtLeast(dp(60))
+                                miniGestureLastY = event.rawY
 
-                            val maxUp =
-                                (
-                                    screenHeight -
-                                        miniHeight
-                                ).coerceAtLeast(1f)
-
-                            val upward =
-                                (-dy)
-                                    .coerceAtLeast(0f)
-                                    .coerceAtMost(maxUp)
-
-                            val progress =
-                                (
-                                    upward / maxUp
-                                ).coerceIn(0f, 1f)
-
-                            miniFullTransitionProgress = progress
-
-                            updateMiniFullTransition(
-                                progress
-                            )
-
-                            if (dy > dp(18)) {
-                                scheduleMiniHide(layout)
+                                true
                             } else {
-                                cancelMiniHide()
+
+                                updateMiniExpansionCard(
+                                    dy = dy
+                                )
+
+                                val screenHeight =
+                                    resources.displayMetrics.heightPixels
+                                        .toFloat()
+
+                                val miniHeight =
+                                    miniPlayer.height.coerceAtLeast(dp(60))
+
+                                val maxUp =
+                                    (
+                                        screenHeight -
+                                            miniHeight
+                                    ).coerceAtLeast(1f)
+
+                                val upward =
+                                    (-dy)
+                                        .coerceAtLeast(0f)
+                                        .coerceAtMost(maxUp)
+
+                                val progress =
+                                    (
+                                        upward / maxUp
+                                    ).coerceIn(0f, 1f)
+
+                                miniFullTransitionProgress = progress
+
+                                updateMiniFullTransition(
+                                    progress
+                                )
+
+                                miniGestureLastY = event.rawY
+
+                                true
                             }
-
-                            miniGestureLastY = event.rawY
-
-                            true
 
                         } else {
 
@@ -4638,25 +4669,15 @@ class MainActivity : ComponentActivity() {
     ) {
         val card = miniExpansionCard ?: return
         val cover = miniExpansionCover ?: return
-        val title = miniExpansionTitle ?: return
-        val artist = miniExpansionArtist ?: return
-
-        val screenWidth =
-            resources.displayMetrics.widthPixels
-                .toFloat()
 
         val screenHeight =
-            resources.displayMetrics.heightPixels
-                .toFloat()
+            resources.displayMetrics.heightPixels.toFloat()
 
         val miniHeight =
             miniPlayer.height.coerceAtLeast(dp(60))
 
         val maxUp =
-            (
-                screenHeight -
-                    miniHeight
-            ).coerceAtLeast(1f)
+            (screenHeight - miniHeight).coerceAtLeast(1f)
 
         val upward =
             (-dy)
@@ -4664,37 +4685,30 @@ class MainActivity : ComponentActivity() {
                 .coerceAtMost(maxUp)
 
         val progress =
-            (upward / maxUp)
-                .coerceIn(0f, 1f)
+            (upward / maxUp).coerceIn(0f, 1f)
 
         val lp =
-            card.layoutParams
-                as? FrameLayout.LayoutParams
+            card.layoutParams as? FrameLayout.LayoutParams
                 ?: return
 
-        lp.width = screenWidth.toInt()
+        lp.width =
+            resources.displayMetrics.widthPixels
+
         lp.height =
-            (
-                miniHeight +
-                    upward
-            ).toInt()
+            (miniHeight + upward).toInt()
 
         lp.leftMargin = 0
 
         lp.topMargin =
-            (
-                miniPlayerTopInDecor() -
-                    upward
-            ).toInt()
+            (miniPlayerTopInDecor() - upward).toInt()
 
         card.layoutParams = lp
 
-        val miniLocation =
-            IntArray(2)
-
-        miniCover.getLocationOnScreen(
-            miniLocation
-        )
+        /*
+         * Continuous Mini -> Full artwork path.
+         */
+        val miniLocation = IntArray(2)
+        miniCover.getLocationOnScreen(miniLocation)
 
         val miniCenterX =
             miniLocation[0] +
@@ -4704,85 +4718,125 @@ class MainActivity : ComponentActivity() {
             miniLocation[1] +
                 miniCover.height / 2f
 
+        val targetReady =
+            !miniFullTargetCenterX.isNaN() &&
+            !miniFullTargetCenterY.isNaN() &&
+            miniFullTargetSize > 0
+
+        /*
+         * Before the real Full Player is handed off at 50%,
+         * use the exact geometry of its current layout.
+         *
+         * Full Player lower panel:
+         *   info      = 55dp
+         *   seekbar   = 11dp
+         *   time      = 18dp
+         *   controls  = 72dp
+         *   secondary = 46dp
+         *
+         * Total = 202dp.
+         *
+         * coverContainer has 2dp top + 2dp bottom margins.
+         */
+        val fallbackTargetCenterX =
+            resources.displayMetrics.widthPixels / 2f
+
+        val bottomPanelHeight =
+            dp(202).toFloat()
+
+        val coverContainerHeight =
+            (
+                screenHeight -
+                    bottomPanelHeight -
+                    dp(4).toFloat()
+            ).coerceAtLeast(0f)
+
+        val fallbackTargetCenterY =
+            coverContainerHeight / 2f
+
+        val fallbackTargetSize =
+            (
+                resources.displayMetrics.widthPixels -
+                    dp(40)
+            )
+                .coerceAtMost(dp(390))
+                .coerceAtLeast(dp(250))
+
         val targetCenterX =
-            screenWidth / 2f
+            if (targetReady)
+                miniFullTargetCenterX
+            else
+                fallbackTargetCenterX
 
         val targetCenterY =
-            screenHeight / 2f
+            if (targetReady)
+                miniFullTargetCenterY
+            else
+                fallbackTargetCenterY
 
-        val desiredCenterX =
+        val targetSize =
+            if (targetReady)
+                miniFullTargetSize
+            else
+                fallbackTargetSize
+
+        val centerX =
             miniCenterX +
-                (
-                    targetCenterX -
-                        miniCenterX
-                ) * progress
+                (targetCenterX - miniCenterX) * progress
 
-        val desiredCenterY =
+        val centerY =
             miniCenterY +
-                (
-                    targetCenterY -
-                        miniCenterY
-                ) * progress
-
-        val cardTop =
-            lp.topMargin.toFloat()
-
-        val cardCenterX =
-            screenWidth / 2f
-
-        val cardCenterY =
-            cardTop +
-                lp.height / 2f
+                (targetCenterY - miniCenterY) * progress
 
         val coverSize =
             (
                 dp(46) +
-                    (
-                        screenWidth -
-                            dp(48) -
-                            dp(46)
-                    ) * progress
+                    (targetSize - dp(46)) * progress
             )
                 .toInt()
                 .coerceAtLeast(dp(46))
 
-        val coverLp =
-            cover.layoutParams
-
+        val coverLp = cover.layoutParams
         coverLp.width = coverSize
         coverLp.height = coverSize
         cover.layoutParams = coverLp
 
+        val cardLocation = IntArray(2)
+        card.getLocationOnScreen(cardLocation)
+
+        val cardCenterX =
+            cardLocation[0] +
+                card.width / 2f
+
+        val cardCenterY =
+            cardLocation[1] +
+                card.height / 2f
+
         cover.translationX =
-            desiredCenterX -
-                cardCenterX
+            centerX - cardCenterX
 
         cover.translationY =
-            desiredCenterY -
-                cardCenterY
+            centerY - cardCenterY
 
         cover.alpha = 1f
         cover.rotation = 0f
         cover.scaleX = 1f
         cover.scaleY = 1f
 
-        /*
-         * The text transition is controlled centrally so that
-         * Navigation + artwork + Full Player controls all follow
-         * the same gesture progress.
-         */
-        title.alpha = 0f
-        artist.alpha = 0f
-        title.translationY = 0f
-        artist.translationY = 0f
+        miniExpansionTitle?.apply {
+            alpha = 0f
+            translationY = 0f
+        }
+
+        miniExpansionArtist?.apply {
+            alpha = 0f
+            translationY = 0f
+        }
 
         miniFullTransitionProgress = progress
 
-        updateMiniFullTransition(
-            progress
-        )
+        updateMiniFullTransition(progress)
     }
-
 
     private fun animateMiniExpansionTo(
         targetProgress: Float,
@@ -4970,6 +5024,8 @@ class MainActivity : ComponentActivity() {
                 nav.alpha = 1f
             }
 
+            miniPlayer.alpha = 1f
+
             miniFullTransitionProgress = 0f
             miniFullTransitionAnimating = false
         }
@@ -4987,13 +5043,13 @@ class MainActivity : ComponentActivity() {
     private fun updateMiniFullTransition(
         progress: Float
     ) {
-        val p = progress.coerceIn(0f, 1f)
+        val p =
+            progress.coerceIn(0f, 1f)
 
         miniFullTransitionProgress = p
 
         /*
-         * Navigation moves downward and fades continuously
-         * from the beginning of the upward gesture.
+         * Navigation leaves together with the Expansion card.
          */
         miniBottomNavigation?.let { nav ->
             nav.translationY =
@@ -5003,53 +5059,26 @@ class MainActivity : ComponentActivity() {
                 1f - p
         }
 
-        /*
-         * Keep the real Mini Player hidden while the expansion
-         * surface represents it.
-         */
         if (miniExpansionCard != null) {
             miniPlayer.alpha = 0f
         }
 
-        val card = miniExpansionCard
-        val expansionCover = miniExpansionCover
-        val expansionTitle = miniExpansionTitle
-        val expansionArtist = miniExpansionArtist
-
-        if (card != null &&
-            expansionCover != null &&
-            expansionTitle != null &&
-            expansionArtist != null
-        ) {
-            val secondHalf =
-                (
-                    (p - 0.5f) /
-                        0.5f
-                ).coerceIn(0f, 1f)
-
-            val eased =
-                secondHalf * secondHalf *
-                    (3f - 2f * secondHalf)
-
-            expansionTitle.alpha = eased
-
-            expansionArtist.alpha =
-                (eased * 0.68f)
-                    .coerceIn(0f, 0.68f)
-
-            expansionTitle.translationY =
-                -dp(92).toFloat() * eased
-
-            expansionArtist.translationY =
-                -dp(62).toFloat() * eased
+        /*
+         * During 0 -> 50% ONLY artwork/background is visible.
+         */
+        miniExpansionCover?.apply {
+            alpha = 1f
+            rotation = 0f
+            scaleX = 1f
+            scaleY = 1f
         }
 
+        miniExpansionTitle?.alpha = 0f
+        miniExpansionArtist?.alpha = 0f
+
         /*
-         * The real Full Player is created exactly when the
-         * gesture crosses 50%.
-         *
-         * Its root starts transparent, so the expansion card
-         * remains visually continuous underneath it.
+         * Create the real Full Player exactly at the 50%
+         * handoff. It remains invisible until the second half.
          */
         if (
             p >= 0.5f &&
@@ -5061,71 +5090,65 @@ class MainActivity : ComponentActivity() {
             miniExpansionOpening = false
         }
 
-        val dialog = miniTransitionDialog
-        val root = miniTransitionRoot
+        val root =
+            miniTransitionRoot
+                ?: return
 
-        if (dialog != null && root != null) {
+        val secondHalf =
+            ((p - 0.5f) / 0.5f)
+                .coerceIn(0f, 1f)
 
-            val secondHalf =
-                (
-                    (p - 0.5f) /
-                        0.5f
-                ).coerceIn(0f, 1f)
+        val eased =
+            secondHalf *
+                secondHalf *
+                (3f - 2f * secondHalf)
 
-            val eased =
-                secondHalf * secondHalf *
-                    (3f - 2f * secondHalf)
+        root.alpha = eased
 
-            /*
-             * The Full Player becomes progressively visible only
-             * during the second half of the gesture.
-             */
-            root.alpha = eased
+        miniTransitionFullCover?.apply {
+            alpha = eased
+            scaleX = 1f
+            scaleY = 1f
+            rotation = 0f
+        }
 
-            miniTransitionFullCover?.let { view ->
-                view.alpha = 0.70f + 0.30f * eased
-                view.scaleX = 0.96f + 0.04f * eased
-                view.scaleY = 0.96f + 0.04f * eased
-            }
+        miniTransitionInfo?.apply {
+            translationY =
+                dp(32).toFloat() *
+                    (1f - eased)
+            alpha = eased
+        }
 
-            /*
-             * Controls rise smoothly from below instead of
-             * appearing as a new page.
-             */
-            miniTransitionInfo?.let { view ->
-                view.translationY =
-                    dp(28).toFloat() * (1f - eased)
-                view.alpha = eased
-            }
+        miniTransitionSeekBar?.apply {
+            translationY =
+                dp(20).toFloat() *
+                    (1f - eased) -
+                    dp(6).toFloat()
+            alpha = eased
+        }
 
-            miniTransitionSeekBar?.let { view ->
-                view.translationY =
-                    dp(18).toFloat() * (1f - eased) -
-                        dp(6).toFloat()
-                view.alpha = eased
-            }
+        miniTransitionTimeRow?.apply {
+            translationY =
+                dp(20).toFloat() *
+                    (1f - eased)
+            alpha = eased
+        }
 
-            miniTransitionTimeRow?.let { view ->
-                view.translationY =
-                    dp(18).toFloat() * (1f - eased)
-                view.alpha = eased
-            }
+        miniTransitionControls?.apply {
+            translationY =
+                dp(38).toFloat() *
+                    (1f - eased) -
+                    dp(10).toFloat()
+            alpha = eased
+        }
 
-            miniTransitionControls?.let { view ->
-                view.translationY =
-                    dp(34).toFloat() * (1f - eased) -
-                        dp(10).toFloat()
-                view.alpha = eased
-            }
-
-            miniTransitionSecondary?.let { view ->
-                view.translationY =
-                    dp(40).toFloat() * (1f - eased)
-                view.alpha = eased
-            }
+        miniTransitionSecondary?.apply {
+            translationY =
+                dp(44).toFloat() *
+                    (1f - eased)
+            alpha = eased
         }
     }
-
 
     private fun miniPlayerTopInDecor(): Float {
 
@@ -5236,6 +5259,10 @@ class MainActivity : ComponentActivity() {
             nav.translationY = 0f
             nav.alpha = 1f
         }
+        miniFullTargetCenterX = Float.NaN
+        miniFullTargetCenterY = Float.NaN
+        miniFullTargetSize = 0
+
     }
 
     private fun playMiniNextAnimated() {
@@ -6791,17 +6818,42 @@ class MainActivity : ComponentActivity() {
             miniCenterY -
                 containerCenterY
 
-        miniPlayer.alpha = 1f
+        /*
+         * Full -> Mini is a continuous morph.
+         *
+         * Nothing fades away.
+         * The Full Player physically moves toward the Mini
+         * while its artwork shrinks into the exact Mini cover.
+         */
+        miniPlayer.alpha = 0f
 
-        miniBottomNavigation?.animate()
-            ?.translationY(0f)
-            ?.alpha(1f)
-            ?.setDuration(280L)
-            ?.setInterpolator(
+        miniBottomNavigation?.apply {
+            translationY = dp(82).toFloat()
+            alpha = 1f
+        }
+
+        val closeDuration = 360L
+
+        /*
+         * Move the whole Full Player downward toward Mini.
+         *
+         * The root itself remains fully visible during the
+         * transition. The visual transformation comes from
+         * translation/scale rather than alpha.
+         */
+        root.animate()
+            .translationY(
+                finalY
+            )
+            .setDuration(closeDuration)
+            .setInterpolator(
                 DecelerateInterpolator()
             )
-            ?.start()
+            .start()
 
+        /*
+         * Artwork follows the exact same destination as Mini.
+         */
         cover.animate()
             .translationX(finalX)
             .translationY(finalY)
@@ -6811,19 +6863,45 @@ class MainActivity : ComponentActivity() {
             .scaleY(
                 miniSize / fullWidth
             )
-            .setDuration(360L)
+            .setDuration(closeDuration)
             .setInterpolator(
                 DecelerateInterpolator()
             )
             .start()
 
+        /*
+         * Mini Player and Navigation appear only as the
+         * Full Player reaches them.
+         */
+        miniPlayer.animate()
+            .alpha(1f)
+            .setDuration(closeDuration)
+            .setInterpolator(
+                DecelerateInterpolator()
+            )
+            .start()
+
+        miniBottomNavigation?.animate()
+            ?.translationY(0f)
+            ?.setDuration(closeDuration)
+            ?.setInterpolator(
+                DecelerateInterpolator()
+            )
+            ?.start()
+
         root.animate()
-            .alpha(0f)
-            .setDuration(330L)
+            .translationY(finalY)
+            .setDuration(closeDuration)
             .setInterpolator(
                 DecelerateInterpolator()
             )
             .withEndAction {
+
+                /*
+                 * Restore the Full Player's internal state
+                 * before dismissing the dialog.
+                 */
+                root.translationY = 0f
 
                 cover.translationX = 0f
                 cover.translationY = 0f
@@ -6840,7 +6918,12 @@ class MainActivity : ComponentActivity() {
                 cover.scaleY =
                     cover.scaleX
 
-                root.alpha = 1f
+                miniPlayer.alpha = 1f
+
+                miniBottomNavigation?.apply {
+                    translationY = 0f
+                    alpha = 1f
+                }
 
                 fullPlayerCloseProgress = 0f
 
@@ -8973,10 +9056,98 @@ class MainActivity : ComponentActivity() {
         dialog.show()
 
         if (miniExpansionOpening) {
-            updateMiniFullTransition(
-                miniFullTransitionProgress
-            )
+            /*
+             * Capture the real Full Player artwork destination
+             * after Android completes the layout pass.
+             */
+            cover.post {
+                if (
+                    cover.width > 0 &&
+                    cover.height > 0
+                ) {
+                    val fullLocation =
+                        IntArray(2)
+
+                    cover.getLocationOnScreen(
+                        fullLocation
+                    )
+
+                    miniFullTargetCenterX =
+                        fullLocation[0] +
+                            cover.width / 2f
+
+                    miniFullTargetCenterY =
+                        fullLocation[1] +
+                            cover.height / 2f
+
+                    miniFullTargetSize =
+                        cover.width
+
+                    /*
+                     * Put the hidden real artwork exactly
+                     * under the visible Expansion artwork.
+                     */
+                    miniExpansionCover?.let { expansionCover ->
+                        if (
+                            expansionCover.width > 0 &&
+                            expansionCover.height > 0
+                        ) {
+                            val expansionLocation =
+                                IntArray(2)
+
+                            expansionCover.getLocationOnScreen(
+                                expansionLocation
+                            )
+
+                            val expansionCenterX =
+                                expansionLocation[0] +
+                                    expansionCover.width / 2f
+
+                            val expansionCenterY =
+                                expansionLocation[1] +
+                                    expansionCover.height / 2f
+
+                            val fullCenterX =
+                                fullLocation[0] +
+                                    cover.width / 2f
+
+                            val fullCenterY =
+                                fullLocation[1] +
+                                    cover.height / 2f
+
+                            cover.translationX =
+                                expansionCenterX -
+                                    fullCenterX
+
+                            cover.translationY =
+                                expansionCenterY -
+                                    fullCenterY
+
+                            val handoffScale =
+                                (
+                                    expansionCover.width.toFloat() /
+                                        cover.width.toFloat()
+                                ).coerceIn(
+                                    0.05f,
+                                    1f
+                                )
+
+                            cover.scaleX =
+                                handoffScale
+
+                            cover.scaleY =
+                                handoffScale
+                        }
+                    }
+
+                    updateMiniFullTransition(
+                        miniFullTransitionProgress
+                    )
+                }
+            }
         }
+
+
 
         dialog.window?.let { window ->
 
