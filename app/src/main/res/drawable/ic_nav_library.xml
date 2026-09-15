@@ -4,52 +4,45 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
+    <!-- Spotify-style Your Library books -->
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="1.9"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M7,4 L7,16.5" />
+        android:pathData="M6,4.5 L6,19.5" />
 
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="1.9"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M17,3 L17,15.5" />
+        android:pathData="M10,3.5 L10,20.5" />
 
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="1.9"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M7,4 L17,3" />
+        android:pathData="M14.5,4 L19,5.5 L19,18.5 L14.5,20 Z" />
 
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="1.9"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M7,16.5 L17,15.5" />
+        android:pathData="M6,7 L10,6" />
 
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="1.9"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M7,16.5 A2.8,2.8 0,1 0,7,22 A2.8,2.8 0,1 0,7,16.5" />
-
-    <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M17,15.5 A2.8,2.8 0,1 0,17,21 A2.8,2.8 0,1 0,17,15.5" />
+        android:pathData="M6,12 L10,11" />
 
 </vector>

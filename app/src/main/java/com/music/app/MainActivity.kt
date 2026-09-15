@@ -1070,16 +1070,7 @@ class MainActivity : ComponentActivity() {
         )
 
         val headerAvatar = ImageView(this).apply {
-            setImageResource(
-                android.R.drawable.ic_menu_myplaces
-            )
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setPadding(
-                dp(9),
-                dp(9),
-                dp(9),
-                dp(9)
-            )
+            scaleType = ImageView.ScaleType.CENTER_CROP
             background = GradientDrawable().apply {
                 setColor(
                     Color.rgb(
@@ -1090,7 +1081,15 @@ class MainActivity : ComponentActivity() {
                 )
                 shape = GradientDrawable.OVAL
             }
+            clipToOutline = true
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                showSettings()
+            }
         }
+
+        updateAvatar(headerAvatar)
 
         header.addView(
             headerAvatar,
