@@ -1433,6 +1433,8 @@ class MainActivity : ComponentActivity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
+            background =
+                android.graphics.drawable.ColorDrawable(Color.WHITE)
         }
 
         content.addView(
@@ -1443,11 +1445,13 @@ class MainActivity : ComponentActivity() {
         // ---------- HEADER ----------
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+
             setPadding(
                 dp(18),
-                dp(14),
+                dp(30),
                 dp(18),
-                dp(8)
+                dp(14)
             )
         }
 
@@ -1464,7 +1468,7 @@ class MainActivity : ComponentActivity() {
             title,
             LinearLayout.LayoutParams(
                 -1,
-                dp(42)
+                dp(44)
             )
         )
 
@@ -1481,15 +1485,24 @@ class MainActivity : ComponentActivity() {
             isVerticalScrollBarEnabled = false
             clipToPadding = false
             overScrollMode = View.OVER_SCROLL_NEVER
+            setBackgroundColor(Color.WHITE)
+            setPadding(
+                0,
+                0,
+                0,
+                dp(8)
+            )
         }
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+
             setPadding(
                 dp(18),
-                dp(4),
+                dp(2),
                 dp(18),
-                dp(24)
+                dp(28)
             )
         }
 
@@ -1518,29 +1531,61 @@ class MainActivity : ComponentActivity() {
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
+
                 setPadding(
-                    dp(2),
-                    dp(8),
                     dp(4),
-                    dp(8)
+                    dp(7),
+                    dp(4),
+                    dp(7)
                 )
 
                 isClickable = true
                 isFocusable = true
 
-                background = GradientDrawable().apply {
-                    cornerRadius = dp(14).toFloat()
-                    setColor(Color.TRANSPARENT)
-                }
+                background =
+                    GradientDrawable().apply {
+                        cornerRadius =
+                            dp(16).toFloat()
+                        setColor(Color.WHITE)
+                    }
 
                 setOnClickListener {
-                    click()
+                    animate()
+                        .scaleX(0.985f)
+                        .scaleY(0.985f)
+                        .setDuration(70)
+                        .withEndAction {
+                            animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(100)
+                                .start()
+
+                            click()
+                        }
+                        .start()
                 }
+            }
+
+            // ---------- ICON ----------
+            val iconBox = FrameLayout(this).apply {
+                background =
+                    GradientDrawable().apply {
+                        cornerRadius =
+                            dp(14).toFloat()
+                        setColor(
+                            Color.rgb(
+                                245,
+                                245,
+                                247
+                            )
+                        )
+                    }
             }
 
             val iconView = text(
                 icon,
-                24f,
+                22f,
                 Color.rgb(25, 25, 25),
                 Typeface.NORMAL
             ).apply {
@@ -1548,19 +1593,29 @@ class MainActivity : ComponentActivity() {
                 includeFontPadding = false
             }
 
-            row.addView(
+            iconBox.addView(
                 iconView,
-                LinearLayout.LayoutParams(
-                    dp(42),
-                    dp(54)
+                FrameLayout.LayoutParams(
+                    -1,
+                    -1
                 )
             )
 
+            row.addView(
+                iconBox,
+                LinearLayout.LayoutParams(
+                    dp(48),
+                    dp(48)
+                )
+            )
+
+            // ---------- TEXT ----------
             val info = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER_VERTICAL
+
                 setPadding(
-                    dp(10),
+                    dp(12),
                     0,
                     dp(8),
                     0
@@ -1575,7 +1630,8 @@ class MainActivity : ComponentActivity() {
             ).apply {
                 includeFontPadding = false
                 maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
+                ellipsize =
+                    TextUtils.TruncateAt.END
             }
 
             val subtitleView = text(
@@ -1586,7 +1642,9 @@ class MainActivity : ComponentActivity() {
             ).apply {
                 includeFontPadding = false
                 maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
+                ellipsize =
+                    TextUtils.TruncateAt.END
+
                 setPadding(
                     0,
                     dp(3),
@@ -1620,6 +1678,7 @@ class MainActivity : ComponentActivity() {
                 )
             )
 
+            // ---------- CHEVRON ----------
             val arrow = text(
                 "›",
                 27f,
@@ -1645,30 +1704,31 @@ class MainActivity : ComponentActivity() {
             container.addView(
                 View(this).apply {
                     setBackgroundColor(
-                        Color.rgb(232, 232, 232)
+                        Color.rgb(
+                            238,
+                            238,
+                            240
+                        )
                     )
                 },
                 LinearLayout.LayoutParams(
                     -1,
                     dp(1)
                 ).apply {
-                    leftMargin = dp(54)
+                    leftMargin = dp(64)
                 }
             )
         }
 
         // ---------- SONGS ----------
-        val songsRow = libraryRow(
-            "♫",
-            "Songs",
-            "${songs.size} songs"
-        ) {
-
-            showLibrarySongs()
-        }
-
         container.addView(
-            songsRow,
+            libraryRow(
+                "♫",
+                "Songs",
+                "${songs.size} songs"
+            ) {
+                showLibrarySongs()
+            },
             LinearLayout.LayoutParams(
                 -1,
                 dp(70)
@@ -1697,7 +1757,7 @@ class MainActivity : ComponentActivity() {
         // ---------- FAVORITES ----------
         container.addView(
             libraryRow(
-                "♡",
+                "★",
                 "Favorites",
                 "Your favorite songs"
             ) {
@@ -1777,10 +1837,6 @@ class MainActivity : ComponentActivity() {
             )
         )
     }
-
-    // ============================================================
-    // LIBRARY - SONGS
-    // ============================================================
 
     private fun showLibrarySongs() {
 
