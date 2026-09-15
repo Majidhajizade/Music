@@ -150,61 +150,27 @@ class MainActivity : ComponentActivity() {
 
     private fun updateNavItem(
         item: LinearLayout,
-        active: Boolean
+        selected: Boolean
     ) {
 
-        val iconView =
-            item.getChildAt(0) as ImageView
+        val icon = item.getChildAt(0) as? ImageView
+        val label = item.getChildAt(1) as? TextView
 
-        val labelView =
-            item.getChildAt(1) as TextView
-
-        // Clean Spotify-style navigation:
-        // no active container/background.
-        item.background = null
-
-        if (active) {
-
-            iconView.setColorFilter(
-                Color.BLACK,
-                android.graphics.PorterDuff.Mode.SRC_IN
-            )
-
-            labelView.setTextColor(
+        icon?.setColorFilter(
+            if (selected) {
                 Color.BLACK
-            )
+            } else {
+                Color.rgb(145, 145, 145)
+            }
+        )
 
-            iconView.scaleX = 1.08f
-            iconView.scaleY = 1.08f
-
-            labelView.scaleX = 1.02f
-            labelView.scaleY = 1.02f
-
-        } else {
-
-            iconView.setColorFilter(
-                Color.rgb(
-                    125,
-                    125,
-                    125
-                ),
-                android.graphics.PorterDuff.Mode.SRC_IN
-            )
-
-            labelView.setTextColor(
-                Color.rgb(
-                    105,
-                    105,
-                    105
-                )
-            )
-
-            iconView.scaleX = 1f
-            iconView.scaleY = 1f
-
-            labelView.scaleX = 1f
-            labelView.scaleY = 1f
-        }
+        label?.setTextColor(
+            if (selected) {
+                Color.BLACK
+            } else {
+                Color.rgb(125, 125, 125)
+            }
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

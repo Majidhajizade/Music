@@ -19,9 +19,4 @@
         android:strokeLineCap="round"
         android:pathData="M15,15 L20,20" />
 
-    <!-- Small center detail -->
-    <path
-        android:fillColor="#000000"
-        android:pathData="M10.5,8.7 A1.8,1.8 0,1 0,10.5,12.3 A1.8,1.8 0,1 0,10.5,8.7" />
-
 </vector>
