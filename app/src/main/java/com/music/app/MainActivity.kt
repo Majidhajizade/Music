@@ -6857,10 +6857,8 @@ class MainActivity : ComponentActivity() {
                 dp(8),
                 dp(1)
             )
-
             setBackgroundColor(Color.TRANSPARENT)
-
-            elevation = dp(2).toFloat()
+            elevation = 0f
         }
 
         val items = listOf(
@@ -6874,6 +6872,7 @@ class MainActivity : ComponentActivity() {
             val navItemView = navItem(
                 item.first,
                 item.second,
+                index == activeNavIndex,
                 item.third
             )
 
@@ -6886,11 +6885,6 @@ class MainActivity : ComponentActivity() {
                     dp(56),
                     1f
                 )
-            )
-
-            updateNavItem(
-                navItemView,
-                index == activeNavIndex
             )
         }
 
@@ -6913,31 +6907,17 @@ class MainActivity : ComponentActivity() {
             isFocusable = true
             setBackgroundColor(Color.TRANSPARENT)
             setPadding(0, dp(5), 0, dp(4))
-
-            setOnClickListener {
-                icon.animate()
-                    .scaleX(0.86f)
-                    .scaleY(0.86f)
-                    .setDuration(75)
-                    .withEndAction {
-                        icon.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(120)
-                            .start()
-                    }
-                    .start()
-
-                action()
-            }
         }
 
         val icon = ImageView(this).apply {
             setImageResource(iconRes)
             scaleType = ImageView.ScaleType.CENTER_INSIDE
             setColorFilter(
-                if (selected) Color.BLACK
-                else Color.rgb(145, 145, 145)
+                if (selected) {
+                    Color.BLACK
+                } else {
+                    Color.rgb(145, 145, 145)
+                }
             )
         }
 
@@ -6954,8 +6934,11 @@ class MainActivity : ComponentActivity() {
             textSize = 11f
             gravity = Gravity.CENTER
             setTextColor(
-                if (selected) Color.BLACK
-                else Color.rgb(125, 125, 125)
+                if (selected) {
+                    Color.BLACK
+                } else {
+                    Color.rgb(125, 125, 125)
+                }
             )
             includeFontPadding = false
             setTypeface(Typeface.DEFAULT, Typeface.NORMAL)
@@ -6969,6 +6952,25 @@ class MainActivity : ComponentActivity() {
         labelParams.topMargin = dp(2)
 
         item.addView(label, labelParams)
+
+        item.setOnClickListener {
+
+            icon.animate()
+                .scaleX(0.86f)
+                .scaleY(0.86f)
+                .setDuration(75)
+                .withEndAction {
+
+                    icon.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(120)
+                        .start()
+                }
+                .start()
+
+            action()
+        }
 
         return item
     }
