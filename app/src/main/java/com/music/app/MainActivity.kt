@@ -5872,13 +5872,6 @@ class MainActivity : ComponentActivity() {
                         .contains(normalized)
                 }
 
-            addSearchSectionTitle(
-                if (matches.isEmpty())
-                    "No results"
-                else
-                    "${matches.size.coerceAtMost(50)} results"
-            )
-
             if (matches.isEmpty()) {
 
                 val empty =
