@@ -3886,6 +3886,54 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
+
+    private fun showMain() {
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+            setPadding(0, 0, 0, 18)
+        }
+
+        content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 18, 24, 12)
+            clipToPadding = false
+        }
+
+        root.addView(
+            content,
+            LinearLayout.LayoutParams(-1, 0, 1f)
+        )
+
+        // Mini player with breathing room
+        root.addView(
+            createMiniPlayer(),
+            LinearLayout.LayoutParams(-1, 86).apply {
+                leftMargin = 8
+                rightMargin = 8
+                topMargin = 4
+                bottomMargin = 8
+            }
+        )
+
+        // Floating liquid-glass navigation
+        root.addView(
+            createBottomNavigation(),
+            LinearLayout.LayoutParams(-1, 78).apply {
+                leftMargin = 12
+                rightMargin = 12
+                bottomMargin = 2
+            }
+        )
+
+        setContentView(root)
+
+        showHome()
+    }
+
     private fun savePlayerState() {
         try {
             val prefs = getSharedPreferences(
