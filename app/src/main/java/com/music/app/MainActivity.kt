@@ -158,37 +158,19 @@ class MainActivity : ComponentActivity() {
         val icon = item.getChildAt(0) as? ImageView
         val label = item.getChildAt(1) as? TextView
 
-        // Selected tab gets a deep-blue rounded capsule.
+        // Navigation has no selected background.
         item.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = dp(18).toFloat()
-            setColor(
-                if (selected) {
-                    Color.rgb(18, 54, 115)
-                } else {
-                    Color.TRANSPARENT
-                }
-            )
+            setColor(Color.TRANSPARENT)
         }
 
         if (icon != null) {
             icon.clearColorFilter()
-            icon.setColorFilter(
-                if (selected) {
-                    Color.WHITE
-                } else {
-                    Color.rgb(145, 145, 145)
-                }
-            )
+            icon.setColorFilter(Color.BLACK)
         }
 
-        label?.setTextColor(
-            if (selected) {
-                Color.WHITE
-            } else {
-                Color.rgb(125, 125, 125)
-            }
-        )
+        label?.setTextColor(Color.BLACK)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
