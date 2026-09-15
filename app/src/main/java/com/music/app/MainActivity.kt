@@ -4688,10 +4688,6 @@ class MainActivity : ComponentActivity() {
             elevation = dp(4).toFloat()
         }
 
-        searchShadow.addView(
-            LinearLayout.LayoutParams(dp(24), dp(24))
-        )
-
         val searchInput = EditText(this).apply {
             hint = "What do you want to listen to?"
             textSize = 15f
