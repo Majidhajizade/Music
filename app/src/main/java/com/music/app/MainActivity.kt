@@ -5228,7 +5228,7 @@ class MainActivity : ComponentActivity() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(7), dp(6), dp(8), dp(6))
+            setPadding(dp(14), dp(6), dp(8), dp(6))
 
             background =
                 android.graphics.drawable.GradientDrawable().apply {
@@ -5296,8 +5296,12 @@ class MainActivity : ComponentActivity() {
             Typeface.BOLD
         ).apply {
             maxLines = 1
-            ellipsize =
-                android.text.TextUtils.TruncateAt.END
+            singleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.MARQUEE
+            marqueeRepeatLimit = -1
+            isSelected = true
+            isFocusable = true
+            isFocusableInTouchMode = true
             includeFontPadding = false
         }
 
