@@ -4689,7 +4689,6 @@ class MainActivity : ComponentActivity() {
         }
 
         searchShadow.addView(
-            searchIcon,
             LinearLayout.LayoutParams(dp(24), dp(24))
         )
 
