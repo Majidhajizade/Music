@@ -6900,8 +6900,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun navItem(
-        label: String,
+        title: String,
         iconRes: Int,
+        selected: Boolean,
         action: () -> Unit
     ): LinearLayout {
 
@@ -6910,50 +6911,64 @@ class MainActivity : ComponentActivity() {
             gravity = Gravity.CENTER
             isClickable = true
             isFocusable = true
-
-            setPadding(
-                dp(2),
-                dp(1),
-                dp(2),
-                dp(1)
-            )
+            setBackgroundColor(Color.TRANSPARENT)
+            setPadding(0, dp(5), 0, dp(4))
 
             setOnClickListener {
+                icon.animate()
+                    .scaleX(0.86f)
+                    .scaleY(0.86f)
+                    .setDuration(75)
+                    .withEndAction {
+                        icon.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(120)
+                            .start()
+                    }
+                    .start()
+
                 action()
             }
         }
 
-        val iconView = ImageView(this).apply {
+        val icon = ImageView(this).apply {
             setImageResource(iconRes)
             scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setColorFilter(
+                if (selected) Color.BLACK
+                else Color.rgb(145, 145, 145)
+            )
         }
 
         item.addView(
-            iconView,
+            icon,
             LinearLayout.LayoutParams(
-                -1,
-                dp(28)
+                dp(25),
+                dp(25)
             )
         )
 
-        val labelView = TextView(this).apply {
-            text = label
+        val label = TextView(this).apply {
+            text = title
             textSize = 11f
             gravity = Gravity.CENTER
-            typeface = Typeface.create(
-                Typeface.DEFAULT,
-                Typeface.BOLD
+            setTextColor(
+                if (selected) Color.BLACK
+                else Color.rgb(125, 125, 125)
             )
             includeFontPadding = false
+            setTypeface(Typeface.DEFAULT, Typeface.NORMAL)
         }
 
-        item.addView(
-            labelView,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(18)
-            )
+        val labelParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            dp(18)
         )
+
+        labelParams.topMargin = dp(2)
+
+        item.addView(label, labelParams)
 
         return item
     }
