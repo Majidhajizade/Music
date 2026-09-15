@@ -5,7 +5,6 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <!-- Roof -->
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#000000"
@@ -14,7 +13,6 @@
         android:strokeLineJoin="round"
         android:pathData="M3.8,10.8 L12,4 L20.2,10.8" />
 
-    <!-- House body, NO bottom horizontal line -->
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#000000"
@@ -23,7 +21,6 @@
         android:strokeLineJoin="round"
         android:pathData="M5.5,9.5 L5.5,19 L18.5,19 L18.5,9.5" />
 
-    <!-- Door -->
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#000000"

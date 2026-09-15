@@ -156,15 +156,15 @@ class MainActivity : ComponentActivity() {
         val icon = item.getChildAt(0) as? ImageView
         val label = item.getChildAt(1) as? TextView
 
-        val iconColor =
-            if (selected) {
-                Color.BLACK
-            } else {
-                Color.rgb(145, 145, 145)
-            }
-
-        icon?.clearColorFilter()
-        icon?.setColorFilter(iconColor, android.graphics.PorterDuff.Mode.SRC_IN)
+        if (icon != null) {
+            icon.setColorFilter(
+                if (selected) {
+                    Color.BLACK
+                } else {
+                    Color.rgb(145, 145, 145)
+                }
+            )
+        }
 
         label?.setTextColor(
             if (selected) {
@@ -6907,12 +6907,10 @@ class MainActivity : ComponentActivity() {
 
         item.addView(label, labelParams)
 
-        // Set initial state
         updateNavItem(item, selected)
 
         item.setOnClickListener {
 
-            // Smooth press animation
             icon.animate()
                 .scaleX(0.84f)
                 .scaleY(0.84f)
@@ -6926,7 +6924,6 @@ class MainActivity : ComponentActivity() {
                 }
                 .start()
 
-            // Change selected tab
             action()
         }
 
