@@ -3865,6 +3865,24 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    private fun savePlayerState() {
+
+        val song = currentSong ?: return
+
+        val position =
+            try {
+                mediaPlayer?.currentPosition ?: 0
+            } catch (_: Exception) {
+                0
+            }
+
+        playerPrefs.edit()
+            .putLong("song_id", song.id)
+            .putInt("position", position)
+            .apply()
+    }
+
+
     private fun text(
         value: String,
         size: Float,
