@@ -1142,18 +1142,28 @@ class MainActivity : ComponentActivity() {
             setImageResource(
                 android.R.drawable.ic_menu_myplaces
             )
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            scaleType = ImageView.ScaleType.CENTER_CROP
             setPadding(
-                dp(10),
-                dp(10),
-                dp(10),
-                dp(10)
+                0,
+                0,
+                0,
+                0
             )
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.rgb(242, 242, 247))
             }
+
+            isClickable = true
+            isFocusable = true
+            elevation = dp(4).toFloat()
+
+            setOnClickListener {
+                showSettings()
+            }
         }
+
+        updateAvatar(headerAvatar)
 
         header.addView(
             headerAvatar,
@@ -3188,6 +3198,12 @@ class MainActivity : ComponentActivity() {
         addModernSettingsCard(
             page,
             listOf(
+                ModernSetting(
+                    "Set Profile",
+                    "Upload your profile photo"
+                ) {
+                    imagePicker.launch("image/*")
+                },
                 ModernSetting(
                     "Manage tabs",
                     "Home, Library, Settings"
