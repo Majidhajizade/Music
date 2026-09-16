@@ -10919,8 +10919,9 @@ class MainActivity : ComponentActivity() {
             ImageView(this).apply {
 
                 setImageResource(
-                    com.music.app.R.drawable.ic_music_next_full
+                    com.music.app.R.drawable.ic_music_backward_full
                 )
+                scaleX = -1f
 
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
