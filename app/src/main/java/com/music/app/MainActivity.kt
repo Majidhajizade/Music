@@ -222,6 +222,14 @@ class MainActivity : ComponentActivity() {
             if (uri != null) {
                 saveAvatar(uri)
                 updateAvatar()
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "Profile updated",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                showSettings()
             }
         }
 
@@ -1152,6 +1160,21 @@ class MainActivity : ComponentActivity() {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.rgb(242, 242, 247))
+            }
+
+            clipToOutline = true
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(
+                    view: View,
+                    outline: android.graphics.Outline
+                ) {
+                    outline.setOval(
+                        0,
+                        0,
+                        view.width,
+                        view.height
+                    )
+                }
             }
 
             isClickable = true
@@ -3000,6 +3023,187 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    private fun showEditInfo() {
+        content.removeAllViews()
+
+        window.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.rgb(246, 246, 246)
+            )
+        )
+
+        content.setBackgroundColor(
+            Color.rgb(246, 246, 246)
+        )
+
+        content.setPadding(
+            dp(20),
+            dp(24),
+            dp(20),
+            dp(28)
+        )
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.rgb(246, 246, 246))
+        }
+
+        val top = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val back = TextView(this).apply {
+            text = "‹"
+            textSize = 38f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            isClickable = true
+            isFocusable = true
+
+            setOnClickListener {
+                showSettings()
+            }
+        }
+
+        top.addView(
+            back,
+            LinearLayout.LayoutParams(
+                dp(56),
+                dp(56)
+            )
+        )
+
+        val title = TextView(this).apply {
+            text = "Edit Info"
+            textSize = 30f
+            setTextColor(Color.rgb(20, 20, 22))
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER_VERTICAL
+            includeFontPadding = false
+        }
+
+        top.addView(
+            title,
+            LinearLayout.LayoutParams(
+                0,
+                dp(56),
+                1f
+            )
+        )
+
+        root.addView(
+            top,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(56)
+            ).apply {
+                bottomMargin = dp(30)
+            }
+        )
+
+        val nameLabel = TextView(this).apply {
+            text = "Name"
+            textSize = 15f
+            setTextColor(Color.rgb(80, 80, 85))
+            typeface = Typeface.DEFAULT_BOLD
+            includeFontPadding = false
+        }
+
+        root.addView(
+            nameLabel,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(26)
+            ).apply {
+                bottomMargin = dp(8)
+            }
+        )
+
+        val nameInput = EditText(this).apply {
+            setText(getProfileName())
+            textSize = 18f
+            setTextColor(Color.BLACK)
+            setSingleLine(true)
+            setPadding(
+                dp(16),
+                0,
+                dp(16),
+                0
+            )
+
+            background = GradientDrawable().apply {
+                cornerRadius = dp(16).toFloat()
+                setColor(Color.WHITE)
+            }
+        }
+
+        root.addView(
+            nameInput,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(58)
+            ).apply {
+                bottomMargin = dp(22)
+            }
+        )
+
+        val save = TextView(this).apply {
+            text = "Save"
+            textSize = 17f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            isClickable = true
+            isFocusable = true
+
+            background = GradientDrawable().apply {
+                cornerRadius = dp(16).toFloat()
+                setColor(Color.BLACK)
+            }
+
+            setOnClickListener {
+                val name = nameInput.text.toString().trim()
+
+                if (name.isEmpty()) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Please enter your name",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
+                saveProfileName(name)
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "Profile updated",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                showSettings()
+            }
+        }
+
+        root.addView(
+            save,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(56)
+            )
+        )
+
+        content.addView(
+            root,
+            LinearLayout.LayoutParams(
+                -1,
+                -1
+            )
+        )
+    }
+
     private fun showSettings() {
 
         content.removeAllViews()
@@ -3083,6 +3287,157 @@ class MainActivity : ComponentActivity() {
             },
             LinearLayout.LayoutParams(-1, dp(46)).apply {
                 bottomMargin = dp(18)
+            }
+        )
+
+
+        // ---------- PROFILE ----------
+
+        val profileCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(
+                dp(16),
+                dp(22),
+                dp(16),
+                dp(22)
+            )
+
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(Color.WHITE)
+            }
+        }
+
+        val profileAvatar = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.rgb(242, 242, 247))
+            }
+
+            clipToOutline = true
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(
+                    view: View,
+                    outline: android.graphics.Outline
+                ) {
+                    outline.setOval(
+                        0,
+                        0,
+                        view.width,
+                        view.height
+                    )
+                }
+            }
+        }
+
+        updateAvatar(profileAvatar)
+
+        profileCard.addView(
+            profileAvatar,
+            LinearLayout.LayoutParams(
+                dp(122),
+                dp(122)
+            ).apply {
+                bottomMargin = dp(14)
+            }
+        )
+
+        val profileName = TextView(this).apply {
+            text = getProfileName()
+            textSize = 22f
+            setTextColor(Color.rgb(20, 20, 22))
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+        }
+
+        profileCard.addView(
+            profileName,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(32)
+            ).apply {
+                bottomMargin = dp(18)
+            }
+        )
+
+        val profileActions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
+        fun profileButton(
+            label: String,
+            action: () -> Unit
+        ): TextView {
+            return TextView(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(Color.BLACK)
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                isClickable = true
+                isFocusable = true
+
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(16).toFloat()
+                    setColor(Color.rgb(248, 248, 250))
+                }
+
+                setOnClickListener {
+                    action()
+                }
+            }
+        }
+
+        val setProfile = profileButton("Set Profile") {
+            imagePicker.launch("image/*")
+        }
+
+        val editInfo = profileButton("Edit Info") {
+            showEditInfo()
+        }
+
+        profileActions.addView(
+            setProfile,
+            LinearLayout.LayoutParams(
+                0,
+                dp(52),
+                1f
+            ).apply {
+                marginEnd = dp(6)
+            }
+        )
+
+        profileActions.addView(
+            editInfo,
+            LinearLayout.LayoutParams(
+                0,
+                dp(52),
+                1f
+            ).apply {
+                marginStart = dp(6)
+            }
+        )
+
+        profileCard.addView(
+            profileActions,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(52)
+            )
+        )
+
+        page.addView(
+            profileCard,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            ).apply {
+                bottomMargin = dp(24)
             }
         )
 
@@ -3198,12 +3553,6 @@ class MainActivity : ComponentActivity() {
         addModernSettingsCard(
             page,
             listOf(
-                ModernSetting(
-                    "Set Profile",
-                    "Upload your profile photo"
-                ) {
-                    imagePicker.launch("image/*")
-                },
                 ModernSetting(
                     "Manage tabs",
                     "Home, Library, Settings"
@@ -4406,7 +4755,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                 val activeRight =
-                    left +
+                    left
                         ((right - left) * fraction)
 
                 if (activeRight > left) {
@@ -4509,7 +4858,7 @@ class MainActivity : ComponentActivity() {
 
                         if (title == "Play speed") {
                             val speed =
-                                0.5f +
+                                0.5f
                                     (progress / 10f)
 
                             valueText.text =
@@ -6762,11 +7111,11 @@ class MainActivity : ComponentActivity() {
         miniCover.getLocationOnScreen(miniLocation)
 
         val miniCenterX =
-            miniLocation[0] +
+            miniLocation[0]
                 miniCover.width / 2f
 
         val miniCenterY =
-            miniLocation[1] +
+            miniLocation[1]
                 miniCover.height / 2f
 
         val targetReady =
@@ -6832,16 +7181,16 @@ class MainActivity : ComponentActivity() {
                 fallbackTargetSize
 
         val centerX =
-            miniCenterX +
+            miniCenterX
                 (targetCenterX - miniCenterX) * progress
 
         val centerY =
-            miniCenterY +
+            miniCenterY
                 (targetCenterY - miniCenterY) * progress
 
         val coverSize =
             (
-                dp(46) +
+                dp(46)
                     (targetSize - dp(46)) * progress
             )
                 .toInt()
@@ -6856,11 +7205,11 @@ class MainActivity : ComponentActivity() {
         card.getLocationOnScreen(cardLocation)
 
         val cardCenterX =
-            cardLocation[0] +
+            cardLocation[0]
                 card.width / 2f
 
         val cardCenterY =
-            cardLocation[1] +
+            cardLocation[1]
                 card.height / 2f
 
         cover.translationX =
@@ -8184,69 +8533,17 @@ class MainActivity : ComponentActivity() {
         return item
     }
 
-    private fun showProfileDialog() {
+    private fun getProfileName(): String {
+        return getSharedPreferences("profile", MODE_PRIVATE)
+            .getString("name", "Your Name")
+            ?: "Your Name"
+    }
 
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(35, 30, 35, 25)
-            setBackgroundColor(Color.TRANSPARENT)
-        }
-
-        val title = text(
-            "Profile",
-            24f,
-            Color.BLACK,
-            Typeface.BOLD
-        )
-
-        box.addView(title)
-
-        val profileAvatar = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            setBackgroundColor(Color.BLACK)
-        }
-
-        updateAvatar(profileAvatar)
-
-        box.addView(
-            profileAvatar,
-            LinearLayout.LayoutParams(110, 110).apply {
-                topMargin = 20
-                bottomMargin = 20
-            }
-        )
-
-        val change = Button(this).apply {
-            text = "Upload Photo"
-            setOnClickListener {
-                imagePicker.launch("image/*")
-            }
-        }
-
-        val remove = Button(this).apply {
-            text = "Remove Photo"
-            setOnClickListener {
-                deleteAvatar()
-                updateAvatar()
-            }
-        }
-
-        box.addView(change)
-        box.addView(remove)
-
-        val dialog = android.app.Dialog(
-            this,
-            android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen
-        )
-
-        dialog.setContentView(box)
-
-        dialog.window?.setBackgroundDrawableResource(
-            android.R.color.transparent
-        )
-
-        dialog.show()
+    private fun saveProfileName(name: String) {
+        getSharedPreferences("profile", MODE_PRIVATE)
+            .edit()
+            .putString("name", name.trim())
+            .apply()
     }
 
     private fun updateAvatar(target: ImageView? = null) {
@@ -8279,12 +8576,6 @@ class MainActivity : ComponentActivity() {
                     input.copyTo(output)
                 }
             }
-
-            Toast.makeText(
-                this,
-                "Profile photo updated",
-                Toast.LENGTH_SHORT
-            ).show()
 
         } catch (e: Exception) {
 
@@ -9228,11 +9519,11 @@ class MainActivity : ComponentActivity() {
                     )
 
                     fullPlayerCloseStartCenterX =
-                        coverLocation[0] +
+                        coverLocation[0]
                             cover.width / 2f
 
                     fullPlayerCloseStartCenterY =
-                        coverLocation[1] +
+                        coverLocation[1]
                             cover.height / 2f
 
                     true
@@ -9332,11 +9623,11 @@ class MainActivity : ComponentActivity() {
             dp(46).toFloat()
 
         val miniCenterX =
-            miniLocation[0] +
+            miniLocation[0]
                 miniSize / 2f
 
         val miniCenterY =
-            miniLocation[1] +
+            miniLocation[1]
                 miniSize / 2f
 
         val screenHeight =
@@ -9390,14 +9681,14 @@ class MainActivity : ComponentActivity() {
          * toward the Mini Player cover.
          */
         val centerX =
-            fullPlayerCloseStartCenterX +
+            fullPlayerCloseStartCenterX
                 (
                     miniCenterX -
                         fullPlayerCloseStartCenterX
                 ) * progress
 
         val centerY =
-            fullPlayerCloseStartCenterY +
+            fullPlayerCloseStartCenterY
                 (
                     miniCenterY -
                         fullPlayerCloseStartCenterY
@@ -9411,11 +9702,11 @@ class MainActivity : ComponentActivity() {
         )
 
         val containerCenterX =
-            containerLocation[0] +
+            containerLocation[0]
                 coverContainer.width / 2f
 
         val containerCenterY =
-            containerLocation[1] +
+            containerLocation[1]
                 coverContainer.height / 2f
 
         cover.translationX =
@@ -9437,7 +9728,7 @@ class MainActivity : ComponentActivity() {
                 fullWidth
 
         val scale =
-            fullPlayerCloseInitialScale +
+            fullPlayerCloseInitialScale
                 (
                     targetScale -
                         fullPlayerCloseInitialScale
@@ -9462,7 +9753,7 @@ class MainActivity : ComponentActivity() {
         )?.apply {
 
             translationY =
-                -dp(10).toFloat() +
+                -dp(10).toFloat()
                     dp(120).toFloat() *
                     controlProgress
 
@@ -9582,11 +9873,11 @@ class MainActivity : ComponentActivity() {
             dp(46).toFloat()
 
         val miniCenterX =
-            miniLocation[0] +
+            miniLocation[0]
                 miniSize / 2f
 
         val miniCenterY =
-            miniLocation[1] +
+            miniLocation[1]
                 miniSize / 2f
 
         val currentCoverLocation =
@@ -9597,11 +9888,11 @@ class MainActivity : ComponentActivity() {
         )
 
         val currentCenterX =
-            currentCoverLocation[0] +
+            currentCoverLocation[0]
                 cover.width / 2f
 
         val currentCenterY =
-            currentCoverLocation[1] +
+            currentCoverLocation[1]
                 cover.height / 2f
 
         val finalX =
@@ -11671,7 +11962,7 @@ class MainActivity : ComponentActivity() {
                                     )
 
                                 remaining.text =
-                                    "-" +
+                                    "-"
                                         formatTime(
                                             duration -
                                                 position
@@ -11913,11 +12204,11 @@ class MainActivity : ComponentActivity() {
                     )
 
                     miniFullTargetCenterX =
-                        fullLocation[0] +
+                        fullLocation[0]
                             cover.width / 2f
 
                     miniFullTargetCenterY =
-                        fullLocation[1] +
+                        fullLocation[1]
                             cover.height / 2f
 
                     miniFullTargetSize =
@@ -11940,19 +12231,19 @@ class MainActivity : ComponentActivity() {
                             )
 
                             val expansionCenterX =
-                                expansionLocation[0] +
+                                expansionLocation[0]
                                     expansionCover.width / 2f
 
                             val expansionCenterY =
-                                expansionLocation[1] +
+                                expansionLocation[1]
                                     expansionCover.height / 2f
 
                             val fullCenterX =
-                                fullLocation[0] +
+                                fullLocation[0]
                                     cover.width / 2f
 
                             val fullCenterY =
-                                fullLocation[1] +
+                                fullLocation[1]
                                     cover.height / 2f
 
                             cover.translationX =
