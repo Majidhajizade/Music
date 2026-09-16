@@ -1420,6 +1420,8 @@ class MainActivity : ComponentActivity() {
                     -2
                 ).apply {
                     topMargin = dp(2)
+                    marginStart = -dp(20)
+                    marginEnd = -dp(20)
                 }
             )
         }
@@ -1480,6 +1482,8 @@ class MainActivity : ComponentActivity() {
                     -2
                 ).apply {
                     topMargin = dp(2)
+                    marginStart = -dp(20)
+                    marginEnd = -dp(20)
                 }
             )
         }
