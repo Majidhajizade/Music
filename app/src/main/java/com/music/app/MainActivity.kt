@@ -1588,9 +1588,9 @@ class MainActivity : ComponentActivity() {
             setBackgroundColor(Color.WHITE)
 
             setPadding(
-                dp(18),
+                dp(8),
                 dp(2),
-                dp(18),
+                dp(12),
                 dp(28)
             )
         }
@@ -1622,10 +1622,10 @@ class MainActivity : ComponentActivity() {
                 gravity = Gravity.CENTER_VERTICAL
 
                 setPadding(
-                    dp(4),
-                    dp(7),
-                    dp(4),
-                    dp(7)
+                    0,
+                    dp(9),
+                    dp(2),
+                    dp(9)
                 )
 
                 isClickable = true
@@ -1674,7 +1674,7 @@ class MainActivity : ComponentActivity() {
 
             val iconView = text(
                 icon,
-                22f,
+                27f,
                 Color.rgb(25, 25, 25),
                 Typeface.NORMAL
             ).apply {
@@ -1693,8 +1693,8 @@ class MainActivity : ComponentActivity() {
             row.addView(
                 iconBox,
                 LinearLayout.LayoutParams(
-                    dp(48),
-                    dp(48)
+                    dp(58),
+                    dp(58)
                 )
             )
 
@@ -1704,16 +1704,16 @@ class MainActivity : ComponentActivity() {
                 gravity = Gravity.CENTER_VERTICAL
 
                 setPadding(
-                    dp(12),
+                    dp(10),
                     0,
-                    dp(8),
+                    dp(6),
                     0
                 )
             }
 
             val titleView = text(
                 titleText,
-                16f,
+                18f,
                 Color.rgb(20, 20, 20),
                 Typeface.BOLD
             ).apply {
@@ -1725,7 +1725,7 @@ class MainActivity : ComponentActivity() {
 
             val subtitleView = text(
                 subtitle,
-                12f,
+                13.5f,
                 Color.rgb(125, 125, 125),
                 Typeface.NORMAL
             ).apply {
@@ -1770,7 +1770,7 @@ class MainActivity : ComponentActivity() {
             // ---------- CHEVRON ----------
             val arrow = text(
                 "›",
-                27f,
+                31f,
                 Color.rgb(150, 150, 150),
                 Typeface.NORMAL
             ).apply {
@@ -1820,7 +1820,7 @@ class MainActivity : ComponentActivity() {
             },
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(78)
             )
         )
 
@@ -1837,7 +1837,7 @@ class MainActivity : ComponentActivity() {
             },
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(78)
             )
         )
 
@@ -1854,7 +1854,7 @@ class MainActivity : ComponentActivity() {
             },
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(78)
             )
         )
 
@@ -1871,7 +1871,7 @@ class MainActivity : ComponentActivity() {
             },
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(78)
             )
         )
 
@@ -1888,7 +1888,7 @@ class MainActivity : ComponentActivity() {
             },
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(78)
             )
         )
 
@@ -1905,7 +1905,7 @@ class MainActivity : ComponentActivity() {
             },
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(78)
             )
         )
 
@@ -1922,7 +1922,7 @@ class MainActivity : ComponentActivity() {
             },
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(78)
             )
         )
     }
@@ -8303,8 +8303,21 @@ class MainActivity : ComponentActivity() {
 
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(22, 12, 22, 12)
-            setBackgroundColor(Color.TRANSPARENT)
+
+            setPadding(
+                dp(10),
+                dp(10),
+                dp(10),
+                dp(10)
+            )
+
+            background =
+                GradientDrawable().apply {
+                    cornerRadius = dp(20).toFloat()
+                    setColor(Color.WHITE)
+                }
+
+            elevation = dp(18).toFloat()
         }
 
         val play = text(
@@ -8313,7 +8326,12 @@ class MainActivity : ComponentActivity() {
             Color.BLACK,
             Typeface.NORMAL
         ).apply {
-            setPadding(8, 16, 30, 16)
+            setPadding(
+                dp(12),
+                dp(16),
+                dp(28),
+                dp(16)
+            )
             setOnClickListener {
                 playSong(song)
                 popup.dismiss()
@@ -8330,7 +8348,12 @@ class MainActivity : ComponentActivity() {
             Color.BLACK,
             Typeface.NORMAL
         ).apply {
-            setPadding(8, 16, 30, 16)
+            setPadding(
+                dp(12),
+                dp(16),
+                dp(28),
+                dp(16)
+            )
             setOnClickListener {
                 val newState = !isFavorite(song)
 
@@ -8356,7 +8379,12 @@ class MainActivity : ComponentActivity() {
             Color.BLACK,
             Typeface.NORMAL
         ).apply {
-            setPadding(8, 16, 30, 16)
+            setPadding(
+                dp(12),
+                dp(16),
+                dp(28),
+                dp(16)
+            )
             setOnClickListener {
                 Toast.makeText(
                     this@MainActivity,
@@ -8372,12 +8400,46 @@ class MainActivity : ComponentActivity() {
         box.addView(info)
 
         popup.contentView = box
-        popup.width = 230
+        popup.width = dp(250)
         popup.height = -2
         popup.isFocusable = true
-        popup.elevation = 12f
+        popup.isOutsideTouchable = true
 
-        popup.showAsDropDown(anchor, -210, -160)
+        popup.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.TRANSPARENT
+            )
+        )
+
+        popup.elevation = dp(20).toFloat()
+
+        /*
+         * Open inward from the three-dot button:
+         * leftward and slightly upward.
+         */
+        popup.showAsDropDown(
+            anchor,
+            -dp(218),
+            -dp(170)
+        )
+
+        box.alpha = 0f
+        box.scaleX = 0.90f
+        box.scaleY = 0.90f
+        box.translationX = dp(10).toFloat()
+
+        box.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .translationX(0f)
+            .setDuration(190L)
+            .setInterpolator(
+                android.view.animation.DecelerateInterpolator(
+                    1.7f
+                )
+            )
+            .start()
     }
 
     private fun showLibrarySongPopup(
