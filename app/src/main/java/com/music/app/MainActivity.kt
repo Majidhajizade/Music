@@ -6706,9 +6706,11 @@ class MainActivity : ComponentActivity() {
         layout.addView(
             playButton,
             LinearLayout.LayoutParams(
-                dp(56),
-                dp(56)
-            )
+                dp(50),
+                dp(50)
+            ).apply {
+                rightMargin = dp(-2)
+            }
         )
 
         // ---------- PLAY NEXT ----------
@@ -6738,9 +6740,11 @@ class MainActivity : ComponentActivity() {
         layout.addView(
             miniPlayNext,
             LinearLayout.LayoutParams(
-                dp(56),
-                dp(56)
-            )
+                dp(50),
+                dp(50)
+            ).apply {
+                leftMargin = dp(-2)
+            }
         )
 
         // ---------- OPEN NOW PLAYING ----------
