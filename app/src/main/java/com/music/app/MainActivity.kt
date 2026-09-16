@@ -10718,7 +10718,7 @@ class MainActivity : ComponentActivity() {
             ImageView(this).apply {
 
                 setImageResource(
-                    com.music.app.R.drawable.ic_music_backward
+                    com.music.app.R.drawable.ic_music_backward_full
                 )
 
                 scaleType =
@@ -10778,7 +10778,7 @@ class MainActivity : ComponentActivity() {
                     if (mediaPlayer?.isPlaying == true)
                         com.music.app.R.drawable.ic_player_pause
                     else
-                        com.music.app.R.drawable.ic_music_play
+                        com.music.app.R.drawable.ic_music_play_full
                 )
 
                 scaleType =
@@ -10919,7 +10919,7 @@ class MainActivity : ComponentActivity() {
             ImageView(this).apply {
 
                 setImageResource(
-                    com.music.app.R.drawable.ic_music_next
+                    com.music.app.R.drawable.ic_music_next_full
                 )
 
                 scaleType =
@@ -13070,6 +13070,7 @@ class MainActivity : ComponentActivity() {
                 textSize = 16f
                 setTextColor(Color.BLACK)
                 includeFontPadding = false
+                translationY = dp(2).toFloat()
             }
 
             row.addView(
