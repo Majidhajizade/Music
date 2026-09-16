@@ -229,7 +229,6 @@ class MainActivity : ComponentActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
 
-                showSettings()
             }
         }
 
