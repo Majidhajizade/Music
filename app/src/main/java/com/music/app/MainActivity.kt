@@ -9298,6 +9298,16 @@ class MainActivity : ComponentActivity() {
             Color.rgb(205, 205, 210)
         )
 
+        val fallbackArtwork =
+            android.graphics.BitmapFactory.decodeResource(
+                resources,
+                R.drawable.icon
+            )
+
+        if (getAlbumArt(song) == null && fallbackArtwork != null) {
+            currentColors = extractColors(fallbackArtwork)
+        }
+
         fun applyBackground(colors: IntArray) {
 
             val drawable =
