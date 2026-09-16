@@ -1245,12 +1245,17 @@ class MainActivity : ComponentActivity() {
                 )
             )
 
+            val suggestionPool =
+                songs.filterNot {
+                    isSuggestLess(it)
+                }
+
             val madeForYou =
-                songs
+                suggestionPool
                     .drop(10)
                     .take(10)
                     .ifEmpty {
-                        songs.take(10)
+                        suggestionPool.take(10)
                     }
 
             val madeScroll =
@@ -1263,6 +1268,12 @@ class MainActivity : ComponentActivity() {
             val madeRow =
                 LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
+                    setPadding(
+                        dp(20),
+                        0,
+                        dp(20),
+                        0
+                    )
                 }
 
             madeForYou.forEach { song ->
@@ -1450,6 +1461,12 @@ class MainActivity : ComponentActivity() {
             val recentRow =
                 LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
+                    setPadding(
+                        dp(20),
+                        0,
+                        dp(20),
+                        0
+                    )
                 }
 
             recent.take(10).forEach { song ->
@@ -2328,6 +2345,11 @@ class MainActivity : ComponentActivity() {
 
                     setOnClickListener {
                         playSong(song)
+                    }
+
+                    setOnLongClickListener {
+                        showSongActionSheet(song)
+                        true
                     }
                 }
 
@@ -8707,6 +8729,44 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val share = text(
+            "Share",
+            16f,
+            Color.BLACK,
+            Typeface.NORMAL
+        ).apply {
+            setPadding(
+                dp(12),
+                dp(16),
+                dp(28),
+                dp(16)
+            )
+
+            setOnClickListener {
+                shareSong(song)
+                popup.dismiss()
+            }
+        }
+
+        val select = text(
+            "Select",
+            16f,
+            Color.BLACK,
+            Typeface.NORMAL
+        ).apply {
+            setPadding(
+                dp(12),
+                dp(16),
+                dp(28),
+                dp(16)
+            )
+
+            setOnClickListener {
+                selectLibrarySong(song)
+                popup.dismiss()
+            }
+        }
+
         val info = text(
             "Song Info",
             16f,
@@ -8731,6 +8791,8 @@ class MainActivity : ComponentActivity() {
 
         box.addView(play)
         box.addView(favorite)
+        box.addView(share)
+        box.addView(select)
         box.addView(info)
 
         popup.contentView = box
@@ -11357,23 +11419,12 @@ class MainActivity : ComponentActivity() {
 
             addPopupItem("Share") {
 
-                val share =
-                    android.content.Intent(
-                        android.content.Intent.ACTION_SEND
-                    ).apply {
-                        type = "text/plain"
-                        putExtra(
-                            android.content.Intent.EXTRA_TEXT,
-                            "${song.title} — ${song.artist}"
-                        )
-                    }
+                shareSong(song)
+            }
 
-                startActivity(
-                    android.content.Intent.createChooser(
-                        share,
-                        "Share"
-                    )
-                )
+            addPopupItem("Select") {
+
+                selectLibrarySong(song)
             }
 
             addPopupItem("View Credits") {
@@ -11392,14 +11443,31 @@ class MainActivity : ComponentActivity() {
 
             addPopupItem("Favorite") {
 
+                val nowFavorite =
+                    !isFavorite(song)
+
+                setFavorite(
+                    song,
+                    nowFavorite
+                )
+
                 android.widget.Toast.makeText(
                     this,
-                    "Added to Favorites",
+                    if (nowFavorite) {
+                        "Added to Favorites"
+                    } else {
+                        "Removed from Favorites"
+                    },
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
             }
 
             addPopupItem("Suggest Less") {
+
+                setSuggestLess(
+                    song,
+                    true
+                )
 
                 android.widget.Toast.makeText(
                     this,
@@ -12446,6 +12514,683 @@ class MainActivity : ComponentActivity() {
         libraryPrefs.edit()
             .putInt(key, current + 1)
             .apply()
+    }
+
+    // ============================================================
+    // Song actions
+    // ============================================================
+
+    private fun shareSong(song: Song) {
+
+        val share =
+            android.content.Intent(
+                android.content.Intent.ACTION_SEND
+            ).apply {
+                type = "text/plain"
+                putExtra(
+                    android.content.Intent.EXTRA_TEXT,
+                    "${song.title} — ${song.artist}"
+                )
+            }
+
+        startActivity(
+            android.content.Intent.createChooser(
+                share,
+                "Share"
+            )
+        )
+    }
+
+    private fun setSuggestLess(
+        song: Song,
+        enabled: Boolean
+    ) {
+
+        val ids =
+            libraryPrefs.getStringSet(
+                "suggest_less_ids",
+                emptySet()
+            )
+                ?.toMutableSet()
+                ?: mutableSetOf()
+
+        if (enabled) {
+            ids.add(song.id.toString())
+        } else {
+            ids.remove(song.id.toString())
+        }
+
+        libraryPrefs.edit()
+            .putStringSet(
+                "suggest_less_ids",
+                ids
+            )
+            .apply()
+    }
+
+    private fun isSuggestLess(
+        song: Song
+    ): Boolean {
+
+        return libraryPrefs
+            .getStringSet(
+                "suggest_less_ids",
+                emptySet()
+            )
+            ?.contains(song.id.toString())
+            ?: false
+    }
+
+    private fun selectLibrarySong(
+        song: Song
+    ) {
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Select")
+            .setMessage(
+                "${song.title}\n${song.artist}"
+            )
+            .setPositiveButton(
+                "Selected",
+                null
+            )
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .show()
+    }
+
+    private fun playSongNext(
+        song: Song
+    ) {
+
+        val controller =
+            mediaPlayer
+
+        if (controller == null) {
+
+            connectToPlaybackService()
+
+            Toast.makeText(
+                this,
+                "Playback is still connecting",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        if (
+            isDuplicateSongsBlocked() &&
+            playbackQueue.any {
+                it.id == song.id
+            }
+        ) {
+
+            Toast.makeText(
+                this,
+                "Song is already in the queue",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        if (playbackQueue.isEmpty()) {
+
+            playSong(song)
+
+            return
+        }
+
+        val insertIndex =
+            (playbackIndex + 1)
+                .coerceIn(
+                    0,
+                    playbackQueue.size
+                )
+
+        playbackQueue.add(
+            insertIndex,
+            song
+        )
+
+        try {
+
+            controller.addMediaItem(
+                insertIndex,
+                mediaItemForSong(song)
+            )
+
+            Toast.makeText(
+                this,
+                "Added to Play Next",
+                Toast.LENGTH_SHORT
+            ).show()
+
+        } catch (_: Exception) {
+
+            playbackQueue.removeAt(
+                insertIndex
+            )
+
+            Toast.makeText(
+                this,
+                "Couldn't add to Play Next",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun showSongActionSheet(
+        song: Song
+    ) {
+
+        val overlay =
+            FrameLayout(this).apply {
+
+                setBackgroundColor(
+                    Color.argb(
+                        90,
+                        0,
+                        0,
+                        0
+                    )
+                )
+
+                isClickable = true
+                isFocusable = true
+            }
+
+        val panel =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                setBackgroundColor(
+                    Color.WHITE
+                )
+
+                elevation =
+                    dp(18).toFloat()
+
+                setPadding(
+                    dp(18),
+                    dp(18),
+                    dp(18),
+                    dp(26)
+                )
+
+                clipToPadding = false
+            }
+
+        val sheetHeight =
+            dp(430)
+
+        val panelParams =
+            FrameLayout.LayoutParams(
+                -1,
+                sheetHeight,
+                Gravity.BOTTOM
+            )
+
+        val header =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+
+                gravity =
+                    Gravity.CENTER_VERTICAL
+            }
+
+        val coverHolder =
+            FrameLayout(this).apply {
+
+                background =
+                    GradientDrawable().apply {
+                        shape =
+                            GradientDrawable.RECTANGLE
+
+                        cornerRadius =
+                            dp(14).toFloat()
+
+                        setColor(
+                            Color.rgb(
+                                235,
+                                235,
+                                235
+                            )
+                        )
+                    }
+
+                clipToOutline = true
+
+                outlineProvider =
+                    object :
+                        android.view.ViewOutlineProvider() {
+
+                        override fun getOutline(
+                            view: View,
+                            outline: android.graphics.Outline
+                        ) {
+                            outline.setRoundRect(
+                                0,
+                                0,
+                                view.width,
+                                view.height,
+                                dp(14).toFloat()
+                            )
+                        }
+                    }
+            }
+
+        val cover =
+            createRealSongCover(
+                song,
+                112
+            )
+
+        coverHolder.addView(
+            cover,
+            FrameLayout.LayoutParams(
+                dp(112),
+                dp(112)
+            )
+        )
+
+        val playOverlay =
+            TextView(this).apply {
+
+                text = "▶"
+                textSize = 20f
+                gravity = Gravity.CENTER
+                setTextColor(Color.BLACK)
+
+                background =
+                    GradientDrawable().apply {
+                        shape =
+                            GradientDrawable.OVAL
+
+                        setColor(
+                            Color.argb(
+                                190,
+                                255,
+                                255,
+                                255
+                            )
+                        )
+                    }
+
+                setOnClickListener {
+                    playSong(song)
+                }
+            }
+
+        coverHolder.addView(
+            playOverlay,
+            FrameLayout.LayoutParams(
+                dp(48),
+                dp(48),
+                Gravity.CENTER
+            )
+        )
+
+        header.addView(
+            coverHolder,
+            LinearLayout.LayoutParams(
+                dp(112),
+                dp(112)
+            )
+        )
+
+        val info =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                gravity =
+                    Gravity.CENTER_VERTICAL
+
+                setPadding(
+                    dp(16),
+                    0,
+                    0,
+                    0
+                )
+            }
+
+        val title =
+            TextView(this).apply {
+
+                text = song.title
+                textSize = 18f
+                setTextColor(Color.BLACK)
+
+                typeface =
+                    Typeface.create(
+                        Typeface.DEFAULT,
+                        Typeface.BOLD
+                    )
+
+                maxLines = 2
+
+                ellipsize =
+                    android.text.TextUtils.TruncateAt.END
+
+                includeFontPadding = false
+            }
+
+        val artist =
+            TextView(this).apply {
+
+                text = song.artist
+                textSize = 14f
+
+                setTextColor(
+                    Color.rgb(
+                        105,
+                        105,
+                        105
+                    )
+                )
+
+                maxLines = 1
+
+                ellipsize =
+                    android.text.TextUtils.TruncateAt.END
+
+                includeFontPadding = false
+
+                setPadding(
+                    0,
+                    dp(8),
+                    0,
+                    0
+                )
+            }
+
+        info.addView(
+            title,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        info.addView(
+            artist,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        header.addView(
+            info,
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        panel.addView(
+            header,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(112)
+            )
+        )
+
+        panel.addView(
+            View(this).apply {
+                setBackgroundColor(Color.BLACK)
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(1)
+            ).apply {
+                topMargin = dp(18)
+                bottomMargin = dp(8)
+            }
+        )
+
+        fun addAction(
+            iconRes: Int?,
+            fallbackIcon: String,
+            textValue: String,
+            action: () -> Unit
+        ) {
+
+            val row =
+                LinearLayout(this).apply {
+
+                    orientation =
+                        LinearLayout.HORIZONTAL
+
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+
+                    isClickable = true
+                    isFocusable = true
+
+                    setPadding(
+                        dp(4),
+                        0,
+                        dp(4),
+                        0
+                    )
+
+                    setOnClickListener {
+                        action()
+                    }
+                }
+
+            val iconView =
+                ImageView(this).apply {
+
+                    if (iconRes != null) {
+                        setImageResource(iconRes)
+                    }
+
+                    scaleType =
+                        ImageView.ScaleType.CENTER
+
+                    contentDescription =
+                        fallbackIcon
+                }
+
+            val label =
+                TextView(this).apply {
+
+                    text = textValue
+                    textSize = 16f
+                    setTextColor(Color.BLACK)
+                    includeFontPadding = false
+                }
+
+            row.addView(
+                iconView,
+                LinearLayout.LayoutParams(
+                    dp(34),
+                    dp(54)
+                )
+            )
+
+            row.addView(
+                label,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(54),
+                    1f
+                ).apply {
+                    marginStart = dp(10)
+                }
+            )
+
+            panel.addView(
+                row,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(54)
+                )
+            )
+        }
+
+        addAction(
+            null,
+            "Play",
+            "Play Next"
+        ) {
+            playSongNext(song)
+        }
+
+        addAction(
+            null,
+            "Share",
+            "Share Song"
+        ) {
+            shareSong(song)
+        }
+
+        addAction(
+            R.drawable.ic_music_favorite,
+            "Favorite",
+            if (isFavorite(song)) {
+                "Remove from Favorites"
+            } else {
+                "Favorite"
+            }
+        ) {
+
+            val nowFavorite =
+                !isFavorite(song)
+
+            setFavorite(
+                song,
+                nowFavorite
+            )
+
+            Toast.makeText(
+                this,
+                if (nowFavorite) {
+                    "Added to Favorites"
+                } else {
+                    "Removed from Favorites"
+                },
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        addAction(
+            R.drawable.ic_music_suggest_less,
+            "Suggest Less",
+            "Suggest Less"
+        ) {
+
+            setSuggestLess(
+                song,
+                true
+            )
+
+            Toast.makeText(
+                this,
+                "We'll suggest less like this",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        overlay.addView(
+            panel,
+            panelParams
+        )
+
+        val root =
+            window.decorView
+                .findViewById<ViewGroup>(
+                    android.R.id.content
+                )
+
+        root.addView(
+            overlay,
+            FrameLayout.LayoutParams(
+                -1,
+                -1
+            )
+        )
+
+        panel.translationY =
+            sheetHeight.toFloat()
+
+        panel.animate()
+            .translationY(0f)
+            .setDuration(260)
+            .setInterpolator(
+                android.view.animation.DecelerateInterpolator()
+            )
+            .start()
+
+        overlay.setOnClickListener {
+            closeSongActionSheet(
+                overlay,
+                panel
+            )
+        }
+
+        panel.setOnClickListener {
+            // Consume touches inside the sheet.
+        }
+
+        overlay.setOnKeyListener {
+            _,
+            keyCode,
+            event ->
+
+            if (
+                keyCode ==
+                android.view.KeyEvent.KEYCODE_BACK &&
+                event.action ==
+                android.view.KeyEvent.ACTION_UP
+            ) {
+
+                closeSongActionSheet(
+                    overlay,
+                    panel
+                )
+
+                true
+
+            } else {
+                false
+            }
+        }
+
+        overlay.isFocusableInTouchMode = true
+        overlay.requestFocus()
+    }
+
+    private fun closeSongActionSheet(
+        overlay: View,
+        panel: View
+    ) {
+
+        panel.animate()
+            .translationY(
+                panel.height.toFloat()
+            )
+            .setDuration(220)
+            .setInterpolator(
+                android.view.animation.AccelerateInterpolator()
+            )
+            .withEndAction {
+
+                (overlay.parent as? ViewGroup)
+                    ?.removeView(overlay)
+            }
+            .start()
     }
 
     private fun playSong(
