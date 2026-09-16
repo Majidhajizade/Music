@@ -10,6 +10,15 @@ import android.media.MediaMetadataRetriever
 
 import android.Manifest
 import android.content.ContentUris
+import com.google.common.util.concurrent.ListenableFuture
+import androidx.media3.session.SessionToken
+import androidx.media3.session.MediaController
+import androidx.media3.common.Player
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MediaItem
+import java.io.ByteArrayOutputStream
+import android.graphics.Bitmap
+import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
@@ -38,8 +47,91 @@ data class Song(
 class MainActivity : ComponentActivity() {
 
     private val songs = mutableListOf<Song>()
-    private var mediaPlayer: android.media.MediaPlayer? = null
+    private var mediaPlayer: MediaController? = null
     private var currentSong: Song? = null
+
+    /*
+     * Background playback controller.
+     *
+     * The actual player lives inside MusicPlaybackService.
+     * MainActivity only controls it through MediaController.
+     */
+    private var mediaControllerFuture:
+        ListenableFuture<MediaController>? = null
+
+    private var restoredPosition = 0
+
+    private val mediaControllerListener =
+        object : Player.Listener {
+
+            override fun onMediaItemTransition(
+                mediaItem: MediaItem?,
+                reason: Int
+            ) {
+                val id =
+                    mediaItem?.mediaId
+                        ?.toLongOrNull()
+                        ?: return
+
+                val song =
+                    songs.firstOrNull {
+                        it.id == id
+                    }
+                        ?: querySongById(id)
+                        ?: return
+
+                currentSong = song
+
+                playbackIndex =
+                    playbackQueue.indexOfFirst {
+                        it.id == song.id
+                    }
+
+                showMiniPlayer()
+
+                getAlbumArt(song)?.let {
+                    miniCover.setImageBitmap(it)
+                } ?: run {
+                    miniCover.setImageResource(
+                        R.drawable.icon
+                    )
+                }
+
+                miniTitle.text = song.title
+                miniArtist.text = song.artist
+
+                if (
+                    ::playButton.isInitialized
+                ) {
+                    playButton.text =
+                        if (mediaPlayer?.isPlaying == true) {
+                            "Ⅱ"
+                        } else {
+                            "▶"
+                        }
+                }
+
+                savePlayerState()
+            }
+
+            override fun onIsPlayingChanged(
+                isPlaying: Boolean
+            ) {
+                if (
+                    ::playButton.isInitialized
+                ) {
+                    playButton.text =
+                        if (isPlaying) {
+                            "Ⅱ"
+                        } else {
+                            "▶"
+                        }
+                }
+
+                savePlayerState()
+            }
+        }
+
 
     private var playbackQueue = mutableListOf<Song>()
     private var playbackIndex = -1
@@ -7544,6 +7636,250 @@ class MainActivity : ComponentActivity() {
         return songs[target]
     }
 
+
+    private fun connectToPlaybackService() {
+
+        if (mediaController != null) {
+            return
+        }
+
+        if (mediaControllerFuture != null) {
+            return
+        }
+
+        val sessionToken =
+            SessionToken(
+                this,
+                ComponentName(
+                    this,
+                    MusicPlaybackService::class.java
+                )
+            )
+
+        val future =
+            MediaController.Builder(
+                this,
+                sessionToken
+            ).buildAsync()
+
+        mediaControllerFuture = future
+
+        future.addListener(
+            {
+                try {
+
+                    val controller =
+                        future.get()
+
+                    mediaPlayer = controller
+
+                    controller.addListener(
+                        mediaControllerListener
+                    )
+
+                    /*
+                     * The Activity can now restore the visible
+                     * song state without starting playback.
+                     */
+                    restorePlayerState()
+
+                    updatePlaybackUiFromController()
+
+                } catch (_: Exception) {
+                    mediaPlayer = null
+                }
+            },
+            ContextCompat.getMainExecutor(this)
+        )
+    }
+
+    private fun updatePlaybackUiFromController() {
+
+        val controller =
+            mediaPlayer
+                ?: return
+
+        val item =
+            controller.currentMediaItem
+                ?: return
+
+        val id =
+            item.mediaId.toLongOrNull()
+                ?: return
+
+        val song =
+            songs.firstOrNull {
+                it.id == id
+            }
+                ?: querySongById(id)
+                ?: return
+
+        currentSong = song
+
+        showMiniPlayer()
+
+        getAlbumArt(song)?.let {
+            miniCover.setImageBitmap(it)
+        } ?: run {
+            miniCover.setImageResource(
+                R.drawable.icon
+            )
+        }
+
+        miniTitle.text = song.title
+        miniArtist.text = song.artist
+
+        if (
+            ::playButton.isInitialized
+        ) {
+            playButton.text =
+                if (controller.isPlaying) {
+                    "Ⅱ"
+                } else {
+                    "▶"
+                }
+        }
+    }
+
+    private fun querySongById(
+        id: Long
+    ): Song? {
+
+        val projection =
+            arrayOf(
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST
+            )
+
+        return try {
+
+            contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                "${MediaStore.Audio.Media._ID} = ?",
+                arrayOf(id.toString()),
+                null
+            )?.use { cursor ->
+
+                if (!cursor.moveToFirst()) {
+                    return@use null
+                }
+
+                Song(
+                    cursor.getLong(
+                        cursor.getColumnIndexOrThrow(
+                            MediaStore.Audio.Media._ID
+                        )
+                    ),
+                    cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                            MediaStore.Audio.Media.TITLE
+                        )
+                    ) ?: "Unknown",
+                    cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                            MediaStore.Audio.Media.ARTIST
+                        )
+                    ) ?: "Unknown Artist"
+                )
+            }
+
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun artworkBytes(
+        song: Song
+    ): ByteArray? {
+
+        val bitmap =
+            getAlbumArt(song)
+                ?: return null
+
+        return try {
+
+            val maxSide = 512
+
+            val scale =
+                minOf(
+                    1f,
+                    maxSide.toFloat() /
+                        maxOf(
+                            bitmap.width,
+                            bitmap.height
+                        ).toFloat()
+                )
+
+            val outputBitmap =
+                if (scale < 1f) {
+                    Bitmap.createScaledBitmap(
+                        bitmap,
+                        (bitmap.width * scale)
+                            .roundToInt()
+                            .coerceAtLeast(1),
+                        (bitmap.height * scale)
+                            .roundToInt()
+                            .coerceAtLeast(1),
+                        true
+                    )
+                } else {
+                    bitmap
+                }
+
+            ByteArrayOutputStream().use { stream ->
+
+                outputBitmap.compress(
+                    Bitmap.CompressFormat.JPEG,
+                    85,
+                    stream
+                )
+
+                if (outputBitmap !== bitmap) {
+                    outputBitmap.recycle()
+                }
+
+                stream.toByteArray()
+            }
+
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun mediaItemForSong(
+        song: Song
+    ): MediaItem {
+
+        val uri =
+            ContentUris.withAppendedId(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                song.id
+            )
+
+        val metadataBuilder =
+            MediaMetadata.Builder()
+                .setTitle(song.title)
+                .setArtist(song.artist)
+                .setAlbumTitle(song.album)
+
+        artworkBytes(song)?.let {
+            metadataBuilder.setArtworkData(
+                it,
+                MediaMetadata.PICTURE_TYPE_FRONT_COVER
+            )
+        }
+
+        return MediaItem.Builder()
+            .setMediaId(song.id.toString())
+            .setUri(uri)
+            .setMediaMetadata(
+                metadataBuilder.build()
+            )
+            .build()
+    }
+
     private fun savePlayerState() {
 
         val song = currentSong ?: return
@@ -7563,61 +7899,123 @@ class MainActivity : ComponentActivity() {
 
     private fun restorePlayerState() {
 
+        val controller =
+            mediaPlayer
+
+        if (controller == null) {
+            return
+        }
+
+        val controllerItem =
+            controller.currentMediaItem
+
+        if (controllerItem != null) {
+
+            val id =
+                controllerItem.mediaId
+                    .toLongOrNull()
+
+            if (id != null) {
+
+                val song =
+                    songs.firstOrNull {
+                        it.id == id
+                    }
+                        ?: querySongById(id)
+
+                if (song != null) {
+
+                    currentSong = song
+
+                    if (
+                        playbackQueue.none {
+                            it.id == song.id
+                        }
+                    ) {
+                        playbackQueue =
+                            mutableListOf(song)
+
+                        playbackIndex = 0
+                    } else {
+                        playbackIndex =
+                            playbackQueue.indexOfFirst {
+                                it.id == song.id
+                            }
+                    }
+
+                    showMiniPlayer()
+
+                    getAlbumArt(song)?.let {
+                        miniCover.setImageBitmap(it)
+                    } ?: run {
+                        miniCover.setImageResource(
+                            R.drawable.icon
+                        )
+                    }
+
+                    miniTitle.text = song.title
+                    miniArtist.text = song.artist
+
+                    if (
+                        ::playButton.isInitialized
+                    ) {
+                        playButton.text =
+                            if (controller.isPlaying) {
+                                "Ⅱ"
+                            } else {
+                                "▶"
+                            }
+                    }
+
+                    return
+                }
+            }
+        }
+
         val songId =
-            playerPrefs.getLong("song_id", -1L)
+            playerPrefs.getLong(
+                "song_id",
+                -1L
+            )
 
         if (songId <= 0L) {
             return
         }
 
-        val savedPosition =
-            playerPrefs.getInt("position", 0)
+        restoredPosition =
+            playerPrefs.getInt(
+                "position",
+                0
+            )
 
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST
-        )
+        val song =
+            querySongById(songId)
+                ?: return
 
-        try {
+        currentSong = song
 
-            contentResolver.query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                "${MediaStore.Audio.Media._ID} = ?",
-                arrayOf(songId.toString()),
-                null
-            )?.use { cursor ->
+        playbackQueue =
+            mutableListOf(song)
 
-                if (cursor.moveToFirst()) {
+        playbackIndex = 0
 
-                    val song =
-                        Song(
-                            cursor.getLong(
-                                cursor.getColumnIndexOrThrow(
-                                    MediaStore.Audio.Media._ID
-                                )
-                            ),
-                            cursor.getString(
-                                cursor.getColumnIndexOrThrow(
-                                    MediaStore.Audio.Media.TITLE
-                                )
-                            ) ?: "Unknown",
-                            cursor.getString(
-                                cursor.getColumnIndexOrThrow(
-                                    MediaStore.Audio.Media.ARTIST
-                                )
-                            ) ?: "Unknown Artist"
-                        )
+        showMiniPlayer()
 
-                    playSong(
-                        song,
-                        startPosition = savedPosition
-                    )
-                }
-            }
+        getAlbumArt(song)?.let {
+            miniCover.setImageBitmap(it)
+        } ?: run {
+            miniCover.setImageResource(
+                R.drawable.icon
+            )
+        }
 
-        } catch (_: Exception) {
+        miniTitle.text = song.title
+        miniArtist.text = song.artist
+
+        if (
+            ::playButton.isInitialized
+        ) {
+            playButton.text = "▶"
         }
     }
 
@@ -8855,6 +9253,35 @@ class MainActivity : ComponentActivity() {
             rootTranslationY
 
         /*
+         * As the Full Player is pulled down, expose rounded
+         * top corners progressively.
+         *
+         * At rest the player is full-screen.
+         * During the gesture it becomes a rounded panel.
+         */
+        root.outlineProvider =
+            object : android.view.ViewOutlineProvider() {
+                override fun getOutline(
+                    view: View,
+                    outline: android.graphics.Outline
+                ) {
+                    val radius =
+                        dp(28).toFloat() * progress
+
+                    outline.setRoundRect(
+                        0,
+                        0,
+                        view.width,
+                        view.height,
+                        radius
+                    )
+                }
+            }
+
+        root.clipToOutline = true
+        root.invalidateOutline()
+
+        /*
          * Artwork follows a direct screen-space path
          * toward the Mini Player cover.
          */
@@ -8963,6 +9390,24 @@ class MainActivity : ComponentActivity() {
             root.findViewWithTag<View>(
                 "full_player_controls"
             )
+
+        root.outlineProvider =
+            object : android.view.ViewOutlineProvider() {
+                override fun getOutline(
+                    view: View,
+                    outline: android.graphics.Outline
+                ) {
+                    outline.setRect(
+                        0,
+                        0,
+                        view.width,
+                        view.height
+                    )
+                }
+            }
+
+        root.clipToOutline = false
+        root.invalidateOutline()
 
         root.animate()
             .translationY(0f)
@@ -9126,6 +9571,24 @@ class MainActivity : ComponentActivity() {
                 root.translationY = 0f
                 root.alpha = 1f
 
+                root.outlineProvider =
+                    object : android.view.ViewOutlineProvider() {
+                        override fun getOutline(
+                            view: View,
+                            outline: android.graphics.Outline
+                        ) {
+                            outline.setRect(
+                                0,
+                                0,
+                                view.width,
+                                view.height
+                            )
+                        }
+                    }
+
+                root.clipToOutline = false
+                root.invalidateOutline()
+
                 root.findViewWithTag<View>(
                     "full_player_controls"
                 )?.apply {
@@ -9189,6 +9652,31 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(8), dp(20), dp(20))
             clipToPadding = false
+
+            /*
+             * The Full Player is translated downward during
+             * the interactive close gesture. Enable outline
+             * clipping so the top corners are actually visible.
+             */
+            clipToOutline = true
+
+            outlineProvider =
+                object : android.view.ViewOutlineProvider() {
+                    override fun getOutline(
+                        view: View,
+                        outline: android.graphics.Outline
+                    ) {
+                        val radius = dp(28).toFloat()
+
+                        outline.setRoundRect(
+                            0,
+                            0,
+                            view.width,
+                            view.height,
+                            radius
+                        )
+                    }
+                }
         }
 
         // ---------- DYNAMIC BACKGROUND ----------
@@ -11388,6 +11876,16 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    /*
+                     * The real Full Player cover is now measurable.
+                     * Re-apply the current transition immediately so
+                     * the expansion artwork and the real artwork share
+                     * exactly the same center/size.
+                     */
+                    updateMiniExpansionCard(
+                        miniFullTransitionProgress
+                    )
+
                     updateMiniFullTransition(
                         miniFullTransitionProgress
                     )
@@ -11539,8 +12037,13 @@ class MainActivity : ComponentActivity() {
         miniTextDirection: Int = 1
     ) {
 
-        mediaPlayer?.release()
-        mediaPlayer = null
+        val controller =
+            mediaPlayer
+
+        if (controller == null) {
+            connectToPlaybackService()
+            return
+        }
 
         currentSong = song
 
@@ -11548,94 +12051,84 @@ class MainActivity : ComponentActivity() {
 
         if (
             playbackQueue.isEmpty() ||
-            playbackQueue.none { it.id == song.id }
+            playbackQueue.none {
+                it.id == song.id
+            }
         ) {
-            playbackQueue = mutableListOf(song)
+            playbackQueue =
+                mutableListOf(song)
+
             playbackIndex = 0
         } else {
             playbackIndex =
                 playbackQueue.indexOfFirst {
                     it.id == song.id
                 }
+
+            if (playbackIndex < 0) {
+                playbackQueue.add(song)
+                playbackIndex =
+                    playbackQueue.lastIndex
+            }
         }
 
-        val uri =
-            ContentUris.withAppendedId(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                song.id
+        val mediaItems =
+            playbackQueue.map {
+                mediaItemForSong(it)
+            }
+
+        val effectivePosition =
+            if (
+                startPosition <= 0 &&
+                restoredPosition > 0 &&
+                currentSong?.id == song.id
+            ) {
+                restoredPosition
+            } else {
+                startPosition
+            }
+
+        restoredPosition = 0
+
+        try {
+
+            controller.setMediaItems(
+                mediaItems,
+                playbackIndex,
+                effectivePosition.toLong()
+                    .coerceAtLeast(0L)
             )
 
-        mediaPlayer =
-            android.media.MediaPlayer().apply {
+            controller.prepare()
+            controller.play()
 
-                setDataSource(
-                    this@MainActivity,
-                    uri
-                )
-
-                prepare()
-
-                applyPlaybackSpeed()
-
-                if (startPosition > 0) {
-                    try {
-                        seekTo(
-                            startPosition.coerceIn(
-                                0,
-                                duration.coerceAtLeast(0)
-                            )
-                        )
-                    } catch (_: Exception) {
-                    }
-                }
-
-                start()
-
-                incrementPlayCount(song)
-
-                setOnCompletionListener {
-
-                    savePlayerState()
-
-                    val nextIndex =
-                        playbackIndex + 1
-
-                    if (
-                        nextIndex >= 0 &&
-                        nextIndex < playbackQueue.size
-                    ) {
-
-                        playbackIndex = nextIndex
-
-                        playSong(
-                            playbackQueue[playbackIndex]
-                        )
-
-                    } else {
-
-                        playbackQueue.clear()
-                        playbackIndex = -1
-
-                        playButton.text = "▶"
-
-                        savePlayerState()
-                    }
-                }
-            }
+        } catch (_: Exception) {
+            return
+        }
 
         if (smoothMiniChange) {
-            animateMiniSongTextChange(song, miniTextDirection)
+
+            animateMiniSongTextChange(
+                song,
+                miniTextDirection
+            )
 
             getAlbumArt(song)?.let {
                 miniCover.setImageBitmap(it)
             } ?: run {
-                miniCover.setImageResource(R.drawable.icon)
+                miniCover.setImageResource(
+                    R.drawable.icon
+                )
             }
+
         } else {
+
             getAlbumArt(song)?.let {
                 miniCover.setImageBitmap(it)
             } ?: run {
-                miniCover.setImageResource(R.drawable.icon)
+                miniCover.setImageResource(
+                    R.drawable.icon
+                )
             }
 
             miniTitle.text = song.title
@@ -11648,6 +12141,13 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    override fun onStart() {
+
+        super.onStart()
+
+        connectToPlaybackService()
+    }
+
     override fun onPause() {
 
         savePlayerState()
@@ -11658,6 +12158,27 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
 
         savePlayerState()
+
+        mediaController?.let {
+            try {
+                it.removeListener(
+                    mediaControllerListener
+                )
+                it.release()
+            } catch (_: Exception) {
+            }
+        }
+
+        mediaPlayer = null
+
+        mediaControllerFuture?.let {
+            try {
+                MediaController.releaseFuture(it)
+            } catch (_: Exception) {
+            }
+        }
+
+        mediaControllerFuture = null
 
         super.onStop()
     }
@@ -11670,9 +12191,11 @@ class MainActivity : ComponentActivity() {
             playerSaveRunnable
         )
 
-        mediaPlayer?.release()
-        mediaPlayer = null
-
+        /*
+         * IMPORTANT:
+         * The actual player belongs to MusicPlaybackService.
+         * Destroying the Activity must never release playback.
+         */
         super.onDestroy()
     }
 
