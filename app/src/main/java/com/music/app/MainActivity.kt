@@ -977,29 +977,29 @@ class MainActivity : ComponentActivity() {
     private fun showHome() {
 
         setActiveNavigation(0)
-
         content.removeAllViews()
 
         val scroll = android.widget.ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
             setBackgroundColor(Color.WHITE)
+            overScrollMode = View.OVER_SCROLL_NEVER
         }
 
         val page = LinearLayout(this).apply {
-            setBackgroundColor(Color.WHITE)
             orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
             setPadding(
-                dp(18),
-                dp(32),
-                dp(18),
-                dp(28)
+                dp(20),
+                dp(28),
+                dp(20),
+                dp(32)
             )
             clipToPadding = false
         }
 
         // -------------------------------------------------
-        // Header
+        // Apple Music style header
         // -------------------------------------------------
 
         val header = LinearLayout(this).apply {
@@ -1014,7 +1014,7 @@ class MainActivity : ComponentActivity() {
 
         val greeting = TextView(this).apply {
             text = "Good evening"
-            textSize = 27f
+            textSize = 28f
             setTextColor(Color.BLACK)
             typeface = Typeface.create(
                 Typeface.DEFAULT,
@@ -1025,14 +1025,8 @@ class MainActivity : ComponentActivity() {
 
         val subtitle = TextView(this).apply {
             text = "Your music, your mood"
-            textSize = 13f
-            setTextColor(
-                Color.rgb(
-                    105,
-                    105,
-                    105
-                )
-            )
+            textSize = 14f
+            setTextColor(Color.rgb(110, 110, 110))
             includeFontPadding = false
             setPadding(
                 0,
@@ -1042,8 +1036,21 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        greetingBox.addView(greeting)
-        greetingBox.addView(subtitle)
+        greetingBox.addView(
+            greeting,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        greetingBox.addView(
+            subtitle,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
 
         header.addView(
             greetingBox,
@@ -1060,28 +1067,22 @@ class MainActivity : ComponentActivity() {
             )
             scaleType = ImageView.ScaleType.CENTER_INSIDE
             setPadding(
-                dp(9),
-                dp(9),
-                dp(9),
-                dp(9)
+                dp(10),
+                dp(10),
+                dp(10),
+                dp(10)
             )
             background = GradientDrawable().apply {
-                setColor(
-                    Color.rgb(
-                        238,
-                        238,
-                        238
-                    )
-                )
                 shape = GradientDrawable.OVAL
+                setColor(Color.rgb(242, 242, 247))
             }
         }
 
         header.addView(
             headerAvatar,
             LinearLayout.LayoutParams(
-                dp(44),
-                dp(44)
+                dp(42),
+                dp(42)
             )
         )
 
@@ -1094,11 +1095,10 @@ class MainActivity : ComponentActivity() {
         )
 
         // -------------------------------------------------
-        // Recently played
+        // Recently Played
         // -------------------------------------------------
 
-        val recent =
-            getRecentlyPlayedSongs()
+        val recent = getRecentlyPlayedSongs()
 
         if (recent.isNotEmpty()) {
 
@@ -1110,33 +1110,32 @@ class MainActivity : ComponentActivity() {
             val recentScroll =
                 HorizontalScrollView(this).apply {
                     isHorizontalScrollBarEnabled = false
+                    overScrollMode = View.OVER_SCROLL_NEVER
                     clipToPadding = false
                 }
 
             val recentRow =
                 LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.HORIZONTAL
+                    orientation = LinearLayout.HORIZONTAL
                 }
 
             recent.take(10).forEach { song ->
 
-                val card =
-                    createRealSongCard(
-                        song,
-                        widthDp = 148,
-                        imageDp = 148
-                    ) {
-                        playSong(song)
-                    }
+                val card = createRealSongCard(
+                    song,
+                    widthDp = 156,
+                    imageDp = 156
+                ) {
+                    playSong(song)
+                }
 
                 recentRow.addView(
                     card,
                     LinearLayout.LayoutParams(
-                        dp(148),
+                        dp(156),
                         -2
                     ).apply {
-                        rightMargin = dp(12)
+                        rightMargin = dp(14)
                     }
                 )
             }
@@ -1148,12 +1147,14 @@ class MainActivity : ComponentActivity() {
                 LinearLayout.LayoutParams(
                     -1,
                     -2
-                )
+                ).apply {
+                    topMargin = dp(2)
+                }
             )
         }
 
         // -------------------------------------------------
-        // Made for you
+        // Made For You
         // -------------------------------------------------
 
         if (songs.isNotEmpty()) {
@@ -1174,33 +1175,32 @@ class MainActivity : ComponentActivity() {
             val madeScroll =
                 HorizontalScrollView(this).apply {
                     isHorizontalScrollBarEnabled = false
+                    overScrollMode = View.OVER_SCROLL_NEVER
                     clipToPadding = false
                 }
 
             val madeRow =
                 LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.HORIZONTAL
+                    orientation = LinearLayout.HORIZONTAL
                 }
 
             madeForYou.forEach { song ->
 
-                val card =
-                    createRealSongCard(
-                        song,
-                        widthDp = 148,
-                        imageDp = 148
-                    ) {
-                        playSong(song)
-                    }
+                val card = createRealSongCard(
+                    song,
+                    widthDp = 156,
+                    imageDp = 156
+                ) {
+                    playSong(song)
+                }
 
                 madeRow.addView(
                     card,
                     LinearLayout.LayoutParams(
-                        dp(148),
+                        dp(156),
                         -2
                     ).apply {
-                        rightMargin = dp(12)
+                        rightMargin = dp(14)
                     }
                 )
             }
@@ -1212,12 +1212,14 @@ class MainActivity : ComponentActivity() {
                 LinearLayout.LayoutParams(
                     -1,
                     -2
-                )
+                ).apply {
+                    topMargin = dp(2)
+                }
             )
         }
 
         // -------------------------------------------------
-        // Your music
+        // Your Music
         // -------------------------------------------------
 
         if (songs.isNotEmpty()) {
@@ -1229,16 +1231,13 @@ class MainActivity : ComponentActivity() {
 
             val musicContainer =
                 LinearLayout(this).apply {
-                    orientation =
-                        LinearLayout.VERTICAL
+                    orientation = LinearLayout.VERTICAL
                 }
 
             songs.take(12).forEach { song ->
 
                 musicContainer.addView(
-                    createRealSongRow(
-                        song
-                    ) {
+                    createRealSongRow(song) {
                         playSong(song)
                     },
                     LinearLayout.LayoutParams(
@@ -1253,50 +1252,50 @@ class MainActivity : ComponentActivity() {
                 LinearLayout.LayoutParams(
                     -1,
                     -2
-                )
+                ).apply {
+                    topMargin = dp(1)
+                }
             )
         }
+
+        // -------------------------------------------------
+        // Empty state
+        // -------------------------------------------------
 
         if (songs.isEmpty()) {
 
             val empty = LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
+                orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
                 setPadding(
                     dp(24),
-                    dp(80),
+                    dp(90),
                     dp(24),
-                    dp(80)
+                    dp(90)
                 )
             }
 
             val emptyTitle = TextView(this).apply {
                 text = "No music yet"
-                textSize = 21f
+                textSize = 22f
                 gravity = Gravity.CENTER
                 setTextColor(Color.BLACK)
                 typeface = Typeface.create(
                     Typeface.DEFAULT,
                     Typeface.BOLD
                 )
+                includeFontPadding = false
             }
 
             val emptyText = TextView(this).apply {
-                text =
-                    "Add music to your device to see it here."
+                text = "Add music to your device to see it here."
                 textSize = 14f
                 gravity = Gravity.CENTER
-                setTextColor(
-                    Color.rgb(
-                        110,
-                        110,
-                        110
-                    )
-                )
+                setTextColor(Color.rgb(110, 110, 110))
+                includeFontPadding = false
                 setPadding(
                     0,
-                    dp(8),
+                    dp(9),
                     0,
                     0
                 )
