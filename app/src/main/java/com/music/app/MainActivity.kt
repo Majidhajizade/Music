@@ -1029,6 +1029,14 @@ class MainActivity : ComponentActivity() {
         }
 
 
+        greetingBox.addView(
+            greeting,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
         header.addView(
             greetingBox,
             LinearLayout.LayoutParams(
@@ -1070,65 +1078,6 @@ class MainActivity : ComponentActivity() {
                 -2
             )
         )
-
-        // -------------------------------------------------
-        // Recently Played
-        // -------------------------------------------------
-
-        val recent = getRecentlyPlayedSongs()
-
-        if (recent.isNotEmpty()) {
-
-            addRealSectionTitle(
-                page,
-                "Recently played"
-            )
-
-            val recentScroll =
-                HorizontalScrollView(this).apply {
-                    isHorizontalScrollBarEnabled = false
-                    overScrollMode = View.OVER_SCROLL_NEVER
-                    clipToPadding = false
-                }
-
-            val recentRow =
-                LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                }
-
-            recent.take(10).forEach { song ->
-
-                val card = createRealSongCard(
-                    song,
-                    widthDp = 156,
-                    imageDp = 156
-                ) {
-                    playSong(song)
-                }
-
-                recentRow.addView(
-                    card,
-                    LinearLayout.LayoutParams(
-                        dp(156),
-                        -2
-                    ).apply {
-                        rightMargin = dp(14)
-                    }
-                )
-            }
-
-            recentScroll.addView(recentRow)
-
-            page.addView(
-                recentScroll,
-                LinearLayout.LayoutParams(
-                    -1,
-                    -2
-                ).apply {
-                    topMargin = dp(2)
-                }
-            )
-        }
 
         // -------------------------------------------------
         // Made For You
@@ -1190,7 +1139,12 @@ class MainActivity : ComponentActivity() {
 
                     background = GradientDrawable().apply {
                         setColor(Color.rgb(235, 235, 235))
-                        cornerRadius = dp(20).toFloat()
+                        cornerRadii = floatArrayOf(
+                            0f, 0f,
+                            0f, 0f,
+                            dp(20).toFloat(), dp(20).toFloat(),
+                            dp(20).toFloat(), dp(20).toFloat()
+                        )
                     }
 
                     clipChildren = true
@@ -1207,20 +1161,30 @@ class MainActivity : ComponentActivity() {
 
                     background = GradientDrawable().apply {
                         setColor(Color.rgb(235, 235, 235))
-                        cornerRadius = dp(20).toFloat()
+                        cornerRadii = floatArrayOf(
+                            0f, 0f,
+                            0f, 0f,
+                            dp(20).toFloat(), dp(20).toFloat(),
+                            dp(20).toFloat(), dp(20).toFloat()
+                        )
                     }
                 }
 
                 val cover = createRealSongCover(
                     song,
-                    312
+                    330
                 ).apply {
                     scaleType = ImageView.ScaleType.CENTER_CROP
                     clipToOutline = true
 
                     background = GradientDrawable().apply {
                         setColor(Color.rgb(235, 235, 235))
-                        cornerRadius = dp(20).toFloat()
+                        cornerRadii = floatArrayOf(
+                            0f, 0f,
+                            0f, 0f,
+                            dp(20).toFloat(), dp(20).toFloat(),
+                            dp(20).toFloat(), dp(20).toFloat()
+                        )
                     }
                 }
 
@@ -1305,16 +1269,16 @@ class MainActivity : ComponentActivity() {
                 card.addView(
                     coverFrame,
                     LinearLayout.LayoutParams(
-                        dp(312),
-                        dp(312)
+                        dp(230),
+                        dp(330)
                     )
                 )
 
                 madeRow.addView(
                     card,
                     LinearLayout.LayoutParams(
-                        dp(312),
-                        dp(312)
+                        dp(230),
+                        dp(330)
                     ).apply {
                         rightMargin = dp(14)
                     }
@@ -1334,45 +1298,66 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+
         // -------------------------------------------------
-        // Your Music
+        // Recently Played
         // -------------------------------------------------
 
-        if (songs.isNotEmpty()) {
+        val recent = getRecentlyPlayedSongs()
+
+        if (recent.isNotEmpty()) {
 
             addRealSectionTitle(
                 page,
-                "Your music"
+                "Recently played"
             )
 
-            val musicContainer =
-                LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
+            val recentScroll =
+                HorizontalScrollView(this).apply {
+                    isHorizontalScrollBarEnabled = false
+                    overScrollMode = View.OVER_SCROLL_NEVER
+                    clipToPadding = false
                 }
 
-            songs.take(12).forEach { song ->
+            val recentRow =
+                LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                }
 
-                musicContainer.addView(
-                    createRealSongRow(song) {
-                        playSong(song)
-                    },
+            recent.take(10).forEach { song ->
+
+                val card = createRealSongCard(
+                    song,
+                    widthDp = 156,
+                    imageDp = 156
+                ) {
+                    playSong(song)
+                }
+
+                recentRow.addView(
+                    card,
                     LinearLayout.LayoutParams(
-                        -1,
+                        dp(156),
                         -2
-                    )
+                    ).apply {
+                        rightMargin = dp(14)
+                    }
                 )
             }
 
+            recentScroll.addView(recentRow)
+
             page.addView(
-                musicContainer,
+                recentScroll,
                 LinearLayout.LayoutParams(
                     -1,
                     -2
                 ).apply {
-                    topMargin = dp(1)
+                    topMargin = dp(2)
                 }
             )
         }
+
 
         // -------------------------------------------------
         // Empty state
@@ -7719,11 +7704,13 @@ class MainActivity : ComponentActivity() {
             scaleType = ImageView.ScaleType.CENTER_INSIDE
         }
 
+        val iconSize = if (title == "Home") dp(22) else dp(25)
+
         item.addView(
             icon,
             LinearLayout.LayoutParams(
-                dp(25),
-                dp(25)
+                iconSize,
+                iconSize
             )
         )
 
