@@ -1083,6 +1083,12 @@ class MainActivity : ComponentActivity() {
         setActiveNavigation(0)
         content.removeAllViews()
 
+        window.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.WHITE
+            )
+        )
+
         val scroll = android.widget.ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
@@ -1549,6 +1555,12 @@ class MainActivity : ComponentActivity() {
             resources.displayMetrics.density * 0.10f).toInt()
 
         content.removeAllViews()
+
+        window.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.WHITE
+            )
+        )
 
         // ---------- LIBRARY ROOT ----------
         val root = LinearLayout(this).apply {
