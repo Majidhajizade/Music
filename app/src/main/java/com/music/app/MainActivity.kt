@@ -12959,63 +12959,44 @@ class MainActivity : ComponentActivity() {
         )
 
         fun addAction(
-            iconRes: Int?,
+            iconRes: Int,
             fallbackIcon: String,
             textValue: String,
             action: () -> Unit
         ) {
-
-            val row =
-                LinearLayout(this).apply {
-
-                    orientation =
-                        LinearLayout.HORIZONTAL
-
-                    gravity =
-                        Gravity.CENTER_VERTICAL
-
-                    isClickable = true
-                    isFocusable = true
-
-                    setPadding(
-                        dp(4),
-                        0,
-                        dp(4),
-                        0
-                    )
-
-                    setOnClickListener {
-                        action()
-                    }
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setPadding(
+                    dp(20),
+                    0,
+                    dp(20),
+                    0
+                )
+                setOnClickListener {
+                    action()
                 }
+            }
 
-            val iconView =
-                ImageView(this).apply {
+            val iconView = ImageView(this).apply {
+                setImageResource(iconRes)
+                scaleType = ImageView.ScaleType.CENTER
+                contentDescription = fallbackIcon
+            }
 
-                    if (iconRes != null) {
-                        setImageResource(iconRes)
-                    }
-
-                    scaleType =
-                        ImageView.ScaleType.CENTER
-
-                    contentDescription =
-                        fallbackIcon
-                }
-
-            val label =
-                TextView(this).apply {
-
-                    text = textValue
-                    textSize = 16f
-                    setTextColor(Color.BLACK)
-                    includeFontPadding = false
-                }
+            val label = TextView(this).apply {
+                text = textValue
+                textSize = 16f
+                setTextColor(Color.BLACK)
+                includeFontPadding = false
+            }
 
             row.addView(
                 iconView,
                 LinearLayout.LayoutParams(
-                    dp(34),
+                    dp(24),
                     dp(54)
                 )
             )
@@ -13027,7 +13008,7 @@ class MainActivity : ComponentActivity() {
                     dp(54),
                     1f
                 ).apply {
-                    marginStart = dp(10)
+                    marginStart = dp(16)
                 }
             )
 
@@ -13041,7 +13022,7 @@ class MainActivity : ComponentActivity() {
         }
 
         addAction(
-            null,
+            android.R.drawable.ic_media_play,
             "Play",
             "Play Next"
         ) {
@@ -13049,7 +13030,7 @@ class MainActivity : ComponentActivity() {
         }
 
         addAction(
-            null,
+            android.R.drawable.ic_menu_share,
             "Share",
             "Share Song"
         ) {
@@ -13127,9 +13108,14 @@ class MainActivity : ComponentActivity() {
 
         panel.animate()
             .translationY(0f)
-            .setDuration(260)
+            .setDuration(360L)
             .setInterpolator(
-                android.view.animation.DecelerateInterpolator()
+                android.view.animation.PathInterpolator(
+                    0.22f,
+                    1f,
+                    0.36f,
+                    1f
+                )
             )
             .start()
 
