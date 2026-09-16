@@ -1944,7 +1944,7 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(
                 dp(18),
-                dp(12),
+                dp(34),
                 dp(18),
                 dp(10)
             )
@@ -1963,6 +1963,9 @@ class MainActivity : ComponentActivity() {
         ).apply {
             gravity = Gravity.CENTER
             includeFontPadding = false
+            isClickable = true
+            isFocusable = true
+            elevation = dp(6).toFloat()
             setOnClickListener {
                 showLibrary()
             }
@@ -1971,8 +1974,8 @@ class MainActivity : ComponentActivity() {
         top.addView(
             back,
             LinearLayout.LayoutParams(
-                dp(42),
-                dp(48)
+                dp(56),
+                dp(56)
             )
         )
 
@@ -1989,7 +1992,7 @@ class MainActivity : ComponentActivity() {
             title,
             LinearLayout.LayoutParams(
                 0,
-                dp(48),
+                dp(56),
                 1f
             )
         )
@@ -1998,7 +2001,7 @@ class MainActivity : ComponentActivity() {
             top,
             LinearLayout.LayoutParams(
                 -1,
-                dp(48)
+                dp(56)
             )
         )
 
@@ -2514,7 +2517,7 @@ class MainActivity : ComponentActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(
                 dp(16),
-                dp(12),
+                dp(34),
                 dp(16),
                 dp(10)
             )
@@ -2528,6 +2531,7 @@ class MainActivity : ComponentActivity() {
             includeFontPadding = false
             isClickable = true
             isFocusable = true
+            elevation = dp(6).toFloat()
 
             setOnClickListener {
                 showLibrary()
@@ -2537,8 +2541,8 @@ class MainActivity : ComponentActivity() {
         header.addView(
             back,
             LinearLayout.LayoutParams(
-                dp(42),
-                dp(42)
+                dp(56),
+                dp(56)
             )
         )
 
