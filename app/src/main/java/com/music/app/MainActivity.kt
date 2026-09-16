@@ -1018,7 +1018,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val greeting = TextView(this).apply {
-            text = "Good evening"
+            text = "Home"
             textSize = 28f
             setTextColor(Color.BLACK)
             typeface = Typeface.create(
@@ -1028,34 +1028,6 @@ class MainActivity : ComponentActivity() {
             includeFontPadding = false
         }
 
-        val subtitle = TextView(this).apply {
-            text = "Your music, your mood"
-            textSize = 14f
-            setTextColor(Color.rgb(110, 110, 110))
-            includeFontPadding = false
-            setPadding(
-                0,
-                dp(5),
-                0,
-                0
-            )
-        }
-
-        greetingBox.addView(
-            greeting,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
-        greetingBox.addView(
-            subtitle,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
 
         header.addView(
             greetingBox,
@@ -1164,9 +1136,29 @@ class MainActivity : ComponentActivity() {
 
         if (songs.isNotEmpty()) {
 
-            addRealSectionTitle(
-                page,
-                "Made for you"
+            val topPicksTitle = TextView(this).apply {
+                text = "Top Picks for You"
+                textSize = 22f
+                setTextColor(Color.BLACK)
+                typeface = Typeface.create(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+                )
+                includeFontPadding = false
+                setPadding(
+                    0,
+                    dp(24),
+                    0,
+                    dp(14)
+                )
+            }
+
+            page.addView(
+                topPicksTitle,
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
             )
 
             val madeForYou =
@@ -1191,19 +1183,138 @@ class MainActivity : ComponentActivity() {
 
             madeForYou.forEach { song ->
 
-                val card = createRealSongCard(
-                    song,
-                    widthDp = 156,
-                    imageDp = 156
-                ) {
-                    playSong(song)
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    isClickable = true
+                    isFocusable = true
+
+                    background = GradientDrawable().apply {
+                        setColor(Color.rgb(235, 235, 235))
+                        cornerRadius = dp(20).toFloat()
+                    }
+
+                    clipChildren = true
+                    clipToPadding = true
+
+                    setOnClickListener {
+                        playSong(song)
+                    }
                 }
+
+                val coverFrame = FrameLayout(this).apply {
+                    clipChildren = true
+                    clipToPadding = true
+
+                    background = GradientDrawable().apply {
+                        setColor(Color.rgb(235, 235, 235))
+                        cornerRadius = dp(20).toFloat()
+                    }
+                }
+
+                val cover = createRealSongCover(
+                    song,
+                    312
+                ).apply {
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    clipToOutline = true
+
+                    background = GradientDrawable().apply {
+                        setColor(Color.rgb(235, 235, 235))
+                        cornerRadius = dp(20).toFloat()
+                    }
+                }
+
+                coverFrame.addView(
+                    cover,
+                    FrameLayout.LayoutParams(
+                        -1,
+                        -1
+                    )
+                )
+
+                val shade = View(this).apply {
+                    background =
+                        android.graphics.drawable.GradientDrawable(
+                            android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                            intArrayOf(
+                                Color.TRANSPARENT,
+                                Color.argb(185, 0, 0, 0)
+                            )
+                        )
+                }
+
+                coverFrame.addView(
+                    shade,
+                    FrameLayout.LayoutParams(
+                        -1,
+                        -1
+                    )
+                )
+
+                val title = TextView(this).apply {
+                    text = song.title
+                    textSize = 20f
+                    setTextColor(Color.WHITE)
+                    typeface = Typeface.create(
+                        Typeface.DEFAULT,
+                        Typeface.BOLD
+                    )
+                    includeFontPadding = false
+                    maxLines = 2
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                }
+
+                val artist = TextView(this).apply {
+                    text = song.artist
+                    textSize = 14f
+                    setTextColor(Color.WHITE)
+                    includeFontPadding = false
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    setPadding(
+                        0,
+                        dp(5),
+                        0,
+                        0
+                    )
+                }
+
+                val textBox = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.BOTTOM
+                    setPadding(
+                        dp(18),
+                        dp(18),
+                        dp(18),
+                        dp(18)
+                    )
+                }
+
+                textBox.addView(title)
+                textBox.addView(artist)
+
+                coverFrame.addView(
+                    textBox,
+                    FrameLayout.LayoutParams(
+                        -1,
+                        -1,
+                        Gravity.BOTTOM
+                    )
+                )
+
+                card.addView(
+                    coverFrame,
+                    LinearLayout.LayoutParams(
+                        dp(312),
+                        dp(312)
+                    )
+                )
 
                 madeRow.addView(
                     card,
                     LinearLayout.LayoutParams(
-                        dp(156),
-                        -2
+                        dp(312),
+                        dp(312)
                     ).apply {
                         rightMargin = dp(14)
                     }
