@@ -1128,6 +1128,7 @@ class MainActivity : ComponentActivity() {
             val madeRow =
                 LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
+                    translationX = -dp(8).toFloat()
                 }
 
             madeForYou.forEach { song ->
@@ -1180,8 +1181,8 @@ class MainActivity : ComponentActivity() {
                     background = GradientDrawable().apply {
                         setColor(Color.rgb(235, 235, 235))
                         cornerRadii = floatArrayOf(
-                            0f, 0f,
-                            0f, 0f,
+                            dp(20).toFloat(), dp(20).toFloat(),
+                            dp(20).toFloat(), dp(20).toFloat(),
                             dp(20).toFloat(), dp(20).toFloat(),
                             dp(20).toFloat(), dp(20).toFloat()
                         )
@@ -1322,6 +1323,7 @@ class MainActivity : ComponentActivity() {
             val recentRow =
                 LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
+                    translationX = -dp(8).toFloat()
                 }
 
             recent.take(10).forEach { song ->
