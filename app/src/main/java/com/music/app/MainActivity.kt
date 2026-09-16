@@ -1082,6 +1082,11 @@ class MainActivity : ComponentActivity() {
         setActiveNavigation(0)
         content.removeAllViews()
 
+        // Home owns its own canvas. Keep the shared content host
+        // transparent so it cannot add an extra white layer.
+        content.setPadding(0, 0, 0, 0)
+        content.setBackgroundColor(Color.TRANSPARENT)
+
         window.setBackgroundDrawable(
             android.graphics.drawable.ColorDrawable(
                 Color.WHITE
@@ -3218,6 +3223,15 @@ class MainActivity : ComponentActivity() {
     private fun showSettings() {
 
         content.removeAllViews()
+
+        // Reset the Activity Window background so the gray
+        // Edit Info background does not leak into the rest
+        // of the app.
+        window.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.WHITE
+            )
+        )
 
         // Settings uses the same edge-to-edge window layout as Full Player.
         // The background extends behind the status bar and camera cutout,
