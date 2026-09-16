@@ -4220,11 +4220,7 @@ class MainActivity : ComponentActivity() {
             mediaPlayer?.let {
                 try {
                     val params =
-                        it.playbackParams
-
-                    params.speed = speed
-
-                    it.playbackParams = params
+                    it.setPlaybackSpeed(speed)
                 } catch (_: Exception) {
                 }
             }
@@ -6264,7 +6260,7 @@ class MainActivity : ComponentActivity() {
                             it.pause()
                             playButton.text = "▶"
                         } else {
-                            it.start()
+                            it.play()
                             playButton.text = "Ⅱ"
                         }
                     } catch (_: Exception) {
@@ -7893,7 +7889,7 @@ class MainActivity : ComponentActivity() {
 
         playerPrefs.edit()
             .putLong("song_id", song.id)
-            .putInt("position", position)
+            .putLong("position", position)
             .apply()
     }
 
@@ -10078,7 +10074,7 @@ class MainActivity : ComponentActivity() {
                                             progress.toLong()
                                         ) / 1000L
 
-                                    it.seekTo(position.toInt())
+                                    it.seekTo(position)
                                 } catch (_: Exception) {
                                 }
                             }
@@ -10339,7 +10335,7 @@ class MainActivity : ComponentActivity() {
 
                             } else {
 
-                                it.start()
+                                it.play()
 
                                 cover.animate()
                                     .scaleX(coverPlayingScale)
@@ -11516,7 +11512,7 @@ class MainActivity : ComponentActivity() {
                 android.os.Looper.getMainLooper()
             )
 
-        fun formatTime(ms: Int): String {
+        fun formatTime(ms: Long): String {
 
             val totalSeconds =
                 (ms / 1000)
@@ -12159,7 +12155,7 @@ class MainActivity : ComponentActivity() {
 
         savePlayerState()
 
-        mediaController?.let {
+        mediaPlayer?.let {
             try {
                 it.removeListener(
                     mediaControllerListener
