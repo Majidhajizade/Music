@@ -59,7 +59,7 @@ class MainActivity : ComponentActivity() {
     private var mediaControllerFuture:
         ListenableFuture<MediaController>? = null
 
-    private var restoredPosition = 0
+    private var restoredPosition = 0L
 
     private val mediaControllerListener =
         object : Player.Listener {
@@ -7897,11 +7897,13 @@ class MainActivity : ComponentActivity() {
 
         val controller =
             mediaPlayer
+                ?: return
 
-        if (controller == null) {
-            return
-        }
-
+        /*
+         * First restore from the Media3 controller.
+         * This covers the case where the playback service
+         * is still alive after the Activity was closed.
+         */
         val controllerItem =
             controller.currentMediaItem
 
@@ -7968,6 +7970,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        /*
+         * The playback service no longer has a MediaItem.
+         * Restore the last song and position saved by the Activity,
+         * but do NOT start playback automatically.
+         */
         val songId =
             playerPrefs.getLong(
                 "song_id",
@@ -7978,14 +7985,17 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        restoredPosition =
-            playerPrefs.getInt(
+        val position =
+            playerPrefs.getLong(
                 "position",
-                0
+                0L
             )
 
         val song =
-            querySongById(songId)
+            songs.firstOrNull {
+                it.id == songId
+            }
+                ?: querySongById(songId)
                 ?: return
 
         currentSong = song
@@ -7994,6 +8004,9 @@ class MainActivity : ComponentActivity() {
             mutableListOf(song)
 
         playbackIndex = 0
+
+        restoredPosition =
+            position.coerceAtLeast(0L)
 
         showMiniPlayer()
 
@@ -8007,6 +8020,19 @@ class MainActivity : ComponentActivity() {
 
         miniTitle.text = song.title
         miniArtist.text = song.artist
+
+        /*
+         * Put the restored song into Media3 so that pressing
+         * Play later continues from the saved position.
+         */
+        try {
+            controller.setMediaItem(
+                mediaItemForSong(song),
+                position.coerceAtLeast(0L)
+            )
+            controller.prepare()
+        } catch (_: Exception) {
+        }
 
         if (
             ::playButton.isInitialized
@@ -12028,7 +12054,7 @@ class MainActivity : ComponentActivity() {
 
     private fun playSong(
         song: Song,
-        startPosition: Int = 0,
+        startPosition: Long = 0L,
         smoothMiniChange: Boolean = false,
         miniTextDirection: Int = 1
     ) {
@@ -12091,8 +12117,7 @@ class MainActivity : ComponentActivity() {
             controller.setMediaItems(
                 mediaItems,
                 playbackIndex,
-                effectivePosition.toLong()
-                    .coerceAtLeast(0L)
+                effectivePosition.coerceAtLeast(0L)
             )
 
             controller.prepare()
