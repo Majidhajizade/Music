@@ -1128,7 +1128,6 @@ class MainActivity : ComponentActivity() {
             val madeRow =
                 LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
-                    translationX = -dp(8).toFloat()
                 }
 
             madeForYou.forEach { song ->
@@ -1138,16 +1137,7 @@ class MainActivity : ComponentActivity() {
                     isClickable = true
                     isFocusable = true
 
-                    background = GradientDrawable().apply {
-                        setColor(Color.rgb(235, 235, 235))
-                        cornerRadii = floatArrayOf(
-                            0f, 0f,
-                            0f, 0f,
-                            dp(20).toFloat(), dp(20).toFloat(),
-                            dp(20).toFloat(), dp(20).toFloat()
-                        )
-                    }
-
+                    background = null
                     clipChildren = true
                     clipToPadding = true
 
@@ -1159,16 +1149,24 @@ class MainActivity : ComponentActivity() {
                 val coverFrame = FrameLayout(this).apply {
                     clipChildren = true
                     clipToPadding = true
+                    background = null
 
-                    background = GradientDrawable().apply {
-                        setColor(Color.rgb(235, 235, 235))
-                        cornerRadii = floatArrayOf(
-                            0f, 0f,
-                            0f, 0f,
-                            dp(20).toFloat(), dp(20).toFloat(),
-                            dp(20).toFloat(), dp(20).toFloat()
-                        )
+                    outlineProvider = object : android.view.ViewOutlineProvider() {
+                        override fun getOutline(
+                            view: View,
+                            outline: android.graphics.Outline
+                        ) {
+                            outline.setRoundRect(
+                                0,
+                                0,
+                                view.width,
+                                view.height,
+                                dp(20).toFloat()
+                            )
+                        }
                     }
+
+                    clipToOutline = true
                 }
 
                 val cover = createRealSongCover(
@@ -1178,15 +1176,7 @@ class MainActivity : ComponentActivity() {
                     scaleType = ImageView.ScaleType.CENTER_CROP
                     clipToOutline = true
 
-                    background = GradientDrawable().apply {
-                        setColor(Color.rgb(235, 235, 235))
-                        cornerRadii = floatArrayOf(
-                            dp(20).toFloat(), dp(20).toFloat(),
-                            dp(20).toFloat(), dp(20).toFloat(),
-                            dp(20).toFloat(), dp(20).toFloat(),
-                            dp(20).toFloat(), dp(20).toFloat()
-                        )
-                    }
+                    background = null
                 }
 
                 coverFrame.addView(
@@ -1323,7 +1313,6 @@ class MainActivity : ComponentActivity() {
             val recentRow =
                 LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
-                    translationX = -dp(8).toFloat()
                 }
 
             recent.take(10).forEach { song ->
@@ -5123,12 +5112,8 @@ class MainActivity : ComponentActivity() {
             isClickable = true
             isFocusable = true
 
-            background = GradientDrawable().apply {
-                setColor(Color.WHITE)
-                cornerRadius = dp(16).toFloat()
-            }
-
-            elevation = dp(2).toFloat()
+            background = null
+            elevation = 0f
 
             if (onClick != null) {
                 setOnClickListener {
@@ -5144,17 +5129,24 @@ class MainActivity : ComponentActivity() {
         val coverFrame = FrameLayout(this).apply {
             clipChildren = true
             clipToPadding = true
+            background = null
 
-            background = GradientDrawable().apply {
-                setColor(
-                    Color.rgb(
-                        235,
-                        235,
-                        235
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(
+                    view: View,
+                    outline: android.graphics.Outline
+                ) {
+                    outline.setRoundRect(
+                        0,
+                        0,
+                        view.width,
+                        view.height,
+                        dp(16).toFloat()
                     )
-                )
-                cornerRadius = dp(16).toFloat()
+                }
             }
+
+            clipToOutline = true
         }
 
         val cover = createRealSongCover(
@@ -5165,18 +5157,7 @@ class MainActivity : ComponentActivity() {
                 ImageView.ScaleType.CENTER_CROP
             clipToOutline = true
 
-            background =
-                GradientDrawable().apply {
-                    setColor(
-                        Color.rgb(
-                            235,
-                            235,
-                            235
-                        )
-                    )
-                    cornerRadius =
-                        dp(16).toFloat()
-                }
+            background = null
         }
 
         coverFrame.addView(
