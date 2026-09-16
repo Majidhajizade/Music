@@ -991,7 +991,7 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(
                 dp(18),
-                dp(10),
+                dp(32),
                 dp(18),
                 dp(28)
             )
