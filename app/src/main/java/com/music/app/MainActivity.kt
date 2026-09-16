@@ -103,12 +103,12 @@ class MainActivity : ComponentActivity() {
                 if (
                     ::playButton.isInitialized
                 ) {
-                    playButton.text =
-                        if (mediaPlayer?.isPlaying == true) {
-                            "Ⅱ"
-                        } else {
-                            "▶"
-                        }
+                    playButton.setImageResource(
+                        if (mediaPlayer?.isPlaying == true)
+                            com.music.app.R.drawable.ic_player_pause
+                        else
+                            com.music.app.R.drawable.ic_music_play
+                    )
                 }
 
                 savePlayerState()
@@ -120,12 +120,12 @@ class MainActivity : ComponentActivity() {
                 if (
                     ::playButton.isInitialized
                 ) {
-                    playButton.text =
-                        if (isPlaying) {
-                            "Ⅱ"
-                        } else {
-                            "▶"
-                        }
+                    playButton.setImageResource(
+                        if (isPlaying)
+                            com.music.app.R.drawable.ic_player_pause
+                        else
+                            com.music.app.R.drawable.ic_music_play
+                    )
                 }
 
                 savePlayerState()
@@ -193,7 +193,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var miniTitle: TextView
     private lateinit var miniArtist: TextView
-    private lateinit var playButton: TextView
+    private lateinit var playButton: ImageView
 
     private var onboardingVisible = false
 
@@ -6658,23 +6658,44 @@ class MainActivity : ComponentActivity() {
         )
 
         // ---------- PLAY / PAUSE ----------
-        playButton = TextView(this).apply {
-            text = "▶"
-            textSize = 21f
-            setTextColor(Color.BLACK)
-            gravity = Gravity.CENTER
-            includeFontPadding = false
+        playButton = ImageView(this).apply {
+            setImageResource(
+                if (mediaPlayer?.isPlaying == true)
+                    com.music.app.R.drawable.ic_player_pause
+                else
+                    com.music.app.R.drawable.ic_music_play
+            )
+
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            setColorFilter(
+                android.graphics.PorterDuffColorFilter(
+                    Color.BLACK,
+                    android.graphics.PorterDuff.Mode.SRC_IN
+                )
+            )
             background = null
+            contentDescription =
+                if (mediaPlayer?.isPlaying == true)
+                    "Pause"
+                else
+                    "Play"
 
             setOnClickListener {
                 mediaPlayer?.let {
                     try {
                         if (it.isPlaying) {
                             it.pause()
-                            playButton.text = "▶"
+                            setImageResource(
+                                com.music.app.R.drawable.ic_music_play
+                            )
+                            contentDescription = "Play"
                         } else {
                             it.play()
-                            playButton.text = "Ⅱ"
+                            setImageResource(
+                                com.music.app.R.drawable.ic_player_pause
+                            )
+                            contentDescription = "Pause"
                         }
                     } catch (_: Exception) {
                     }
@@ -6684,6 +6705,38 @@ class MainActivity : ComponentActivity() {
 
         layout.addView(
             playButton,
+            LinearLayout.LayoutParams(
+                dp(48),
+                dp(48)
+            )
+        )
+
+        // ---------- PLAY NEXT ----------
+        val miniPlayNext = ImageView(this).apply {
+            setImageResource(
+                com.music.app.R.drawable.ic_music_next
+            )
+
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            setColorFilter(
+                android.graphics.PorterDuffColorFilter(
+                    Color.BLACK,
+                    android.graphics.PorterDuff.Mode.SRC_IN
+                )
+            )
+            background = null
+            contentDescription = "Play Next"
+
+            setOnClickListener {
+                currentSong?.let { song ->
+                    playSongNext(song)
+                }
+            }
+        }
+
+        layout.addView(
+            miniPlayNext,
             LinearLayout.LayoutParams(
                 dp(48),
                 dp(48)
@@ -8142,12 +8195,12 @@ class MainActivity : ComponentActivity() {
         if (
             ::playButton.isInitialized
         ) {
-            playButton.text =
-                if (controller.isPlaying) {
-                    "Ⅱ"
-                } else {
-                    "▶"
-                }
+            playButton.setImageResource(
+                if (controller.isPlaying)
+                    com.music.app.R.drawable.ic_player_pause
+                else
+                    com.music.app.R.drawable.ic_music_play
+            )
         }
     }
 
@@ -8371,12 +8424,12 @@ class MainActivity : ComponentActivity() {
                     if (
                         ::playButton.isInitialized
                     ) {
-                        playButton.text =
-                            if (controller.isPlaying) {
-                                "Ⅱ"
-                            } else {
-                                "▶"
-                            }
+                        playButton.setImageResource(
+                            if (controller.isPlaying)
+                                com.music.app.R.drawable.ic_player_pause
+                            else
+                                com.music.app.R.drawable.ic_music_play
+                        )
                     }
 
                     return
@@ -8451,7 +8504,9 @@ class MainActivity : ComponentActivity() {
         if (
             ::playButton.isInitialized
         ) {
-            playButton.text = "▶"
+            playButton.setImageResource(
+                com.music.app.R.drawable.ic_music_play
+            )
         }
     }
 
@@ -10659,7 +10714,7 @@ class MainActivity : ComponentActivity() {
             ImageView(this).apply {
 
                 setImageResource(
-                    com.music.app.R.drawable.ic_player_next
+                    com.music.app.R.drawable.ic_music_backward
                 )
 
                 scaleType =
@@ -10712,7 +10767,7 @@ class MainActivity : ComponentActivity() {
                     if (mediaPlayer?.isPlaying == true)
                         com.music.app.R.drawable.ic_player_pause
                     else
-                        com.music.app.R.drawable.ic_player_play
+                        com.music.app.R.drawable.ic_music_play
                 )
 
                 scaleType =
@@ -10810,12 +10865,14 @@ class MainActivity : ComponentActivity() {
                                     .start()
 
                                 setImageResource(
-                                    com.music.app.R.drawable.ic_player_play
+                                    com.music.app.R.drawable.ic_music_play
                                 )
 
                                 contentDescription = "Play"
 
-                                playButton.text = "▶"
+                                playButton.setImageResource(
+                                    com.music.app.R.drawable.ic_music_play
+                                )
 
                             } else {
 
@@ -10836,7 +10893,9 @@ class MainActivity : ComponentActivity() {
 
                                 contentDescription = "Pause"
 
-                                playButton.text = "▮▮"
+                                playButton.setImageResource(
+                                    com.music.app.R.drawable.ic_player_pause
+                                )
                             }
 
                         } catch (_: Exception) {
@@ -10849,7 +10908,7 @@ class MainActivity : ComponentActivity() {
             ImageView(this).apply {
 
                 setImageResource(
-                    com.music.app.R.drawable.ic_player_previous
+                    com.music.app.R.drawable.ic_music_next
                 )
 
                 scaleType =
@@ -12065,16 +12124,17 @@ class MainActivity : ComponentActivity() {
                                     )
                                         com.music.app.R.drawable.ic_player_pause
                                     else
-                                        com.music.app.R.drawable.ic_player_play
+                                        com.music.app.R.drawable.ic_music_play
                                 )
 
-                                playButton.text =
+                                playButton.setImageResource(
                                     if (
                                         player.isPlaying
                                     )
-                                        "Ⅱ"
+                                        com.music.app.R.drawable.ic_player_pause
                                     else
-                                        "▶"
+                                        com.music.app.R.drawable.ic_music_play
+                                )
                             }
 
                         } catch (_: Exception) {
@@ -12983,6 +13043,7 @@ class MainActivity : ComponentActivity() {
             val iconView = ImageView(this).apply {
                 setImageResource(iconRes)
                 scaleType = ImageView.ScaleType.CENTER
+                translationY = -dp(2).toFloat()
                 contentDescription = fallbackIcon
             }
 
@@ -13283,7 +13344,9 @@ class MainActivity : ComponentActivity() {
             miniArtist.text = song.artist
         }
 
-        playButton.text = "Ⅱ"
+        playButton.setImageResource(
+            com.music.app.R.drawable.ic_player_pause
+        )
 
         savePlayerState()
     }
