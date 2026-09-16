@@ -2223,6 +2223,8 @@ class MainActivity : ComponentActivity() {
 
                     getAlbumArt(song)?.let {
                         setImageBitmap(it)
+                    } ?: run {
+                        setImageResource(R.drawable.icon)
                     }
                 }
 
@@ -2644,6 +2646,8 @@ class MainActivity : ComponentActivity() {
 
                 getAlbumArt(song)?.let {
                     cover.setImageBitmap(it)
+                } ?: run {
+                    cover.setImageResource(R.drawable.icon)
                 }
 
                 row.addView(
@@ -5396,6 +5400,8 @@ class MainActivity : ComponentActivity() {
 
         getAlbumArt(song)?.let {
             cover.setImageBitmap(it)
+        } ?: run {
+            cover.setImageResource(R.drawable.icon)
         }
 
         row.addView(
@@ -5682,7 +5688,11 @@ class MainActivity : ComponentActivity() {
 
                 if (bitmap != null) {
                     image.setImageBitmap(bitmap)
+                } else {
+                    image.setImageResource(R.drawable.icon)
                 }
+            } else {
+                image.setImageResource(R.drawable.icon)
             }
 
             return image
@@ -6506,7 +6516,7 @@ class MainActivity : ComponentActivity() {
             getAlbumArt(song)?.let {
                 setImageBitmap(it)
             } ?: run {
-                setImageResource(R.drawable.ic_music)
+                setImageResource(R.drawable.icon)
             }
 
             alpha = 1f
@@ -8542,7 +8552,7 @@ class MainActivity : ComponentActivity() {
                 getAlbumArt(song)?.let {
                     cover.setImageBitmap(it)
                 } ?: run {
-                    cover.setImageResource(R.drawable.ic_music)
+                    cover.setImageResource(R.drawable.icon)
                 }
 
                 cover.animate()
@@ -9361,6 +9371,8 @@ class MainActivity : ComponentActivity() {
 
             getAlbumArt(song)?.let {
                 setImageBitmap(it)
+            } ?: run {
+                setImageResource(R.drawable.icon)
             }
         }
 
@@ -10284,6 +10296,8 @@ class MainActivity : ComponentActivity() {
 
         getAlbumArt(song)?.let {
             queueCover.setImageBitmap(it)
+        } ?: run {
+            queueCover.setImageResource(R.drawable.icon)
         }
 
         val queueSongTitle =
@@ -10897,6 +10911,8 @@ class MainActivity : ComponentActivity() {
 
             getAlbumArt(queueSong)?.let {
                 cover.setImageBitmap(it)
+            } ?: run {
+                cover.setImageResource(R.drawable.icon)
             }
 
             val name =
@@ -11603,13 +11619,13 @@ class MainActivity : ComponentActivity() {
             getAlbumArt(song)?.let {
                 miniCover.setImageBitmap(it)
             } ?: run {
-                miniCover.setImageResource(0)
+                miniCover.setImageResource(R.drawable.icon)
             }
         } else {
             getAlbumArt(song)?.let {
                 miniCover.setImageBitmap(it)
             } ?: run {
-                miniCover.setImageResource(0)
+                miniCover.setImageResource(R.drawable.icon)
             }
 
             miniTitle.text = song.title
