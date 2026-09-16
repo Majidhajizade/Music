@@ -4219,7 +4219,6 @@ class MainActivity : ComponentActivity() {
 
             mediaPlayer?.let {
                 try {
-                    val params =
                     it.setPlaybackSpeed(speed)
                 } catch (_: Exception) {
                 }
@@ -7635,7 +7634,7 @@ class MainActivity : ComponentActivity() {
 
     private fun connectToPlaybackService() {
 
-        if (mediaController != null) {
+        if (mediaPlayer != null) {
             return
         }
 
@@ -7668,6 +7667,7 @@ class MainActivity : ComponentActivity() {
                         future.get()
 
                     mediaPlayer = controller
+                    mediaControllerFuture = null
 
                     controller.addListener(
                         mediaControllerListener
@@ -12160,21 +12160,10 @@ class MainActivity : ComponentActivity() {
                 it.removeListener(
                     mediaControllerListener
                 )
-                it.release()
             } catch (_: Exception) {
             }
         }
 
-        mediaPlayer = null
-
-        mediaControllerFuture?.let {
-            try {
-                MediaController.releaseFuture(it)
-            } catch (_: Exception) {
-            }
-        }
-
-        mediaControllerFuture = null
 
         super.onStop()
     }
