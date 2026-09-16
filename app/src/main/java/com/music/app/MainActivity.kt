@@ -987,6 +987,7 @@ class MainActivity : ComponentActivity() {
             isFillViewport = true
             clipToPadding = false
             setBackgroundColor(Color.WHITE)
+            setPadding(0, topSpaceDp, 0, 0)
             overScrollMode = View.OVER_SCROLL_NEVER
         }
 
@@ -994,7 +995,7 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
             setPadding(
-                topSpaceDp,
+                dp(20),
                 dp(28),
                 dp(20),
                 dp(32)
@@ -1339,6 +1340,7 @@ class MainActivity : ComponentActivity() {
 
         // ---------- LIBRARY ROOT ----------
         val root = LinearLayout(this).apply {
+            setPadding(0, topSpaceDp, 0, 0)
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
             background =
@@ -1356,7 +1358,7 @@ class MainActivity : ComponentActivity() {
             setBackgroundColor(Color.WHITE)
 
             setPadding(
-                topSpaceDp,
+                dp(18),
                 dp(30),
                 dp(18),
                 dp(14)
