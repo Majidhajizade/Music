@@ -5083,12 +5083,9 @@ class MainActivity : ComponentActivity() {
             if (art != null) {
                 setImageBitmap(art)
             } else {
-                setImageResource(android.R.drawable.ic_media_play)
-                setColorFilter(Color.DKGRAY)
-                background = GradientDrawable().apply {
-                    setColor(Color.rgb(235, 235, 235))
-                    cornerRadius = dp(10).toFloat()
-                }
+                setImageResource(R.drawable.icon)
+                clearColorFilter()
+                background = null
             }
         }
     }
