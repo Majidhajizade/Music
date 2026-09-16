@@ -7190,7 +7190,7 @@ class MainActivity : ComponentActivity() {
 
         val coverSize =
             (
-                dp(46)
+                dp(46) +
                     (targetSize - dp(46)) * progress
             )
                 .toInt()
@@ -7205,11 +7205,11 @@ class MainActivity : ComponentActivity() {
         card.getLocationOnScreen(cardLocation)
 
         val cardCenterX =
-            cardLocation[0]
+            cardLocation[0].toFloat() +
                 card.width / 2f
 
         val cardCenterY =
-            cardLocation[1]
+            cardLocation[1].toFloat() +
                 card.height / 2f
 
         cover.translationX =
@@ -9519,11 +9519,11 @@ class MainActivity : ComponentActivity() {
                     )
 
                     fullPlayerCloseStartCenterX =
-                        coverLocation[0]
+                        coverLocation[0].toFloat() +
                             cover.width / 2f
 
                     fullPlayerCloseStartCenterY =
-                        coverLocation[1]
+                        coverLocation[1].toFloat() +
                             cover.height / 2f
 
                     true
@@ -9921,8 +9921,8 @@ class MainActivity : ComponentActivity() {
         }
 
         cover.animate()
-            .translationXBy(finalX)
-            .translationYBy(finalY)
+            .translationXBy(finalX.toFloat())
+            .translationYBy(finalY.toFloat())
             .scaleX(
                 miniSize /
                     fullWidth
@@ -12204,11 +12204,11 @@ class MainActivity : ComponentActivity() {
                     )
 
                     miniFullTargetCenterX =
-                        fullLocation[0]
+                        fullLocation[0].toFloat() +
                             cover.width / 2f
 
                     miniFullTargetCenterY =
-                        fullLocation[1]
+                        fullLocation[1].toFloat() +
                             cover.height / 2f
 
                     miniFullTargetSize =
@@ -12231,19 +12231,19 @@ class MainActivity : ComponentActivity() {
                             )
 
                             val expansionCenterX =
-                                expansionLocation[0]
+                                expansionLocation[0].toFloat() +
                                     expansionCover.width / 2f
 
                             val expansionCenterY =
-                                expansionLocation[1]
+                                expansionLocation[1].toFloat() +
                                     expansionCover.height / 2f
 
                             val fullCenterX =
-                                fullLocation[0]
+                                fullLocation[0].toFloat() +
                                     cover.width / 2f
 
                             val fullCenterY =
-                                fullLocation[1]
+                                fullLocation[1].toFloat() +
                                     cover.height / 2f
 
                             cover.translationX =
