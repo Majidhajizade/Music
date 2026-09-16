@@ -976,6 +976,10 @@ class MainActivity : ComponentActivity() {
 
     private fun showHome() {
 
+        // Keep the first ~10% of the screen as top breathing room.
+        val topSpaceDp = (resources.displayMetrics.heightPixels /
+            resources.displayMetrics.density * 0.10f).toInt()
+
         setActiveNavigation(0)
         content.removeAllViews()
 
@@ -990,7 +994,7 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
             setPadding(
-                dp(20),
+                topSpaceDp,
                 dp(28),
                 dp(20),
                 dp(32)
@@ -1327,6 +1331,10 @@ class MainActivity : ComponentActivity() {
 
     private fun showLibrary() {
 
+        // Keep the first ~10% of the screen as top breathing room.
+        val topSpaceDp = (resources.displayMetrics.heightPixels /
+            resources.displayMetrics.density * 0.10f).toInt()
+
         content.removeAllViews()
 
         // ---------- LIBRARY ROOT ----------
@@ -1348,7 +1356,7 @@ class MainActivity : ComponentActivity() {
             setBackgroundColor(Color.WHITE)
 
             setPadding(
-                dp(18),
+                topSpaceDp,
                 dp(30),
                 dp(18),
                 dp(14)
@@ -5428,12 +5436,17 @@ class MainActivity : ComponentActivity() {
 
     private fun showSearch() {
 
+        // Keep the first ~10% of the screen as top breathing room.
+        val topSpaceDp = (resources.displayMetrics.heightPixels /
+            resources.displayMetrics.density * 0.10f).toInt()
+
         content.removeAllViews()
 
         val scroll = android.widget.ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
             setBackgroundColor(Color.WHITE)
+            setPadding(0, topSpaceDp, 0, 0)
             overScrollMode = View.OVER_SCROLL_NEVER
         }
 
