@@ -6667,7 +6667,7 @@ class MainActivity : ComponentActivity() {
             )
 
             scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setPadding(dp(10), dp(10), dp(10), dp(10))
+            setPadding(dp(4), dp(4), dp(4), dp(4))
             setColorFilter(
                 android.graphics.PorterDuffColorFilter(
                     Color.BLACK,
@@ -6706,8 +6706,8 @@ class MainActivity : ComponentActivity() {
         layout.addView(
             playButton,
             LinearLayout.LayoutParams(
-                dp(48),
-                dp(48)
+                dp(56),
+                dp(56)
             )
         )
 
@@ -6718,7 +6718,7 @@ class MainActivity : ComponentActivity() {
             )
 
             scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setPadding(dp(10), dp(10), dp(10), dp(10))
+            setPadding(dp(4), dp(4), dp(4), dp(4))
             setColorFilter(
                 android.graphics.PorterDuffColorFilter(
                     Color.BLACK,
@@ -6738,8 +6738,8 @@ class MainActivity : ComponentActivity() {
         layout.addView(
             miniPlayNext,
             LinearLayout.LayoutParams(
-                dp(48),
-                dp(48)
+                dp(56),
+                dp(56)
             )
         )
 
@@ -10726,10 +10726,17 @@ class MainActivity : ComponentActivity() {
                     "Previous"
 
                 setPadding(
-                    0,
-                    0,
-                    0,
-                    0
+                    dp(4),
+                    dp(4),
+                    dp(4),
+                    dp(4)
+                )
+
+                setColorFilter(
+                    android.graphics.PorterDuffColorFilter(
+                        Color.WHITE,
+                        android.graphics.PorterDuff.Mode.SRC_IN
+                    )
                 )
 
                 setOnClickListener {
@@ -10782,10 +10789,10 @@ class MainActivity : ComponentActivity() {
                         "Play"
 
                 setPadding(
-                    dp(12),
-                    dp(12),
-                    dp(12),
-                    dp(12)
+                    dp(4),
+                    dp(4),
+                    dp(4),
+                    dp(4)
                 )
 
                 setColorFilter(
@@ -10920,10 +10927,17 @@ class MainActivity : ComponentActivity() {
                     "Next"
 
                 setPadding(
-                    0,
-                    0,
-                    0,
-                    0
+                    dp(4),
+                    dp(4),
+                    dp(4),
+                    dp(4)
+                )
+
+                setColorFilter(
+                    android.graphics.PorterDuffColorFilter(
+                        Color.WHITE,
+                        android.graphics.PorterDuff.Mode.SRC_IN
+                    )
                 )
 
                 setOnClickListener {
@@ -10960,36 +10974,36 @@ class MainActivity : ComponentActivity() {
         controls.addView(
             previous,
             LinearLayout.LayoutParams(
-                dp(62),
-                dp(62)
+                dp(70),
+                dp(70)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(8)
-                marginEnd = dp(6)
+                marginStart = dp(6)
+                marginEnd = dp(5)
             }
         )
 
         controls.addView(
             play,
             LinearLayout.LayoutParams(
-                dp(62),
-                dp(62)
+                dp(78),
+                dp(78)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(6)
-                marginEnd = dp(6)
+                marginStart = dp(5)
+                marginEnd = dp(5)
             }
         )
 
         controls.addView(
             next,
             LinearLayout.LayoutParams(
-                dp(62),
-                dp(62)
+                dp(70),
+                dp(70)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(6)
-                marginEnd = dp(8)
+                marginStart = dp(5)
+                marginEnd = dp(6)
             }
         )
 
@@ -10999,7 +11013,7 @@ class MainActivity : ComponentActivity() {
             controls,
             LinearLayout.LayoutParams(
                 -1,
-                dp(72)
+                dp(84)
             ).apply {
                 topMargin = 0
             }
