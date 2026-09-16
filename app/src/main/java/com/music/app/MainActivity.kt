@@ -13022,7 +13022,7 @@ class MainActivity : ComponentActivity() {
         }
 
         addAction(
-            android.R.drawable.ic_media_play,
+            R.drawable.ic_music_next,
             "Play",
             "Play Next"
         ) {
@@ -13030,7 +13030,7 @@ class MainActivity : ComponentActivity() {
         }
 
         addAction(
-            android.R.drawable.ic_menu_share,
+            R.drawable.ic_music_share,
             "Share",
             "Share Song"
         ) {
@@ -13038,7 +13038,7 @@ class MainActivity : ComponentActivity() {
         }
 
         addAction(
-            R.drawable.ic_music_favorite,
+            R.drawable.ic_music_favourite,
             "Favorite",
             if (isFavorite(song)) {
                 "Remove from Favorites"
@@ -13067,7 +13067,7 @@ class MainActivity : ComponentActivity() {
         }
 
         addAction(
-            R.drawable.ic_music_suggest_less,
+            R.drawable.ic_music_dislike,
             "Suggest Less",
             "Suggest Less"
         ) {
