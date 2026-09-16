@@ -12178,17 +12178,50 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
 
+        /*
+         * Save the exact visible playback position before
+         * disconnecting the Activity from Media3.
+         */
         savePlayerState()
 
-        mediaPlayer?.let {
+        /*
+         * The MediaController belongs to the Activity.
+         * Releasing it here disconnects the Activity from
+         * MusicPlaybackService without releasing the actual
+         * ExoPlayer owned by the service.
+         */
+        mediaPlayer?.let { controller ->
+
             try {
-                it.removeListener(
+                controller.removeListener(
                     mediaControllerListener
+                )
+            } catch (_: Exception) {
+            }
+
+            try {
+                controller.release()
+            } catch (_: Exception) {
+            }
+        }
+
+        mediaPlayer = null
+
+        /*
+         * If the controller connection has not completed yet,
+         * cancel its pending future as well.
+         */
+        mediaControllerFuture?.let { future ->
+
+            try {
+                MediaController.releaseFuture(
+                    future
                 )
             } catch (_: Exception) {
             }
         }
 
+        mediaControllerFuture = null
 
         super.onStop()
     }
