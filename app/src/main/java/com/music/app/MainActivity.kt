@@ -3211,12 +3211,6 @@ class MainActivity : ComponentActivity() {
         // Settings uses the same edge-to-edge window layout as Full Player.
         // The background extends behind the status bar and camera cutout,
         // while system icons (clock, signal, Wi-Fi, battery) remain visible.
-        window.setBackgroundDrawable(
-            android.graphics.drawable.ColorDrawable(
-                Color.rgb(246, 246, 246)
-            )
-        )
-
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
 
