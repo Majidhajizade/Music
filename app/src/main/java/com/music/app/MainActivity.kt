@@ -8926,7 +8926,6 @@ class MainActivity : ComponentActivity() {
         }
 
         fun addPopupItem(
-            icon: String = "",
             title: String,
             action: () -> Unit
         ) {
