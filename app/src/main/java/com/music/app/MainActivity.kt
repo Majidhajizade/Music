@@ -10592,13 +10592,14 @@ class MainActivity : ComponentActivity() {
         bottomPanel.clipChildren = false
         bottomPanel.clipToPadding = false
 
-        bottomPanel.addView(
+        root.addView(
             info,
             LinearLayout.LayoutParams(
                 -1,
                 dp(55)
             ).apply {
-                topMargin = -dp(15)
+                topMargin = 0
+                bottomMargin = 0
             }
         )
 
