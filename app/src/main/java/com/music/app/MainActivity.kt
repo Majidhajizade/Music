@@ -10511,8 +10511,65 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        info.addView(
+        val titleRow =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+        val favorite =
+            ImageView(this).apply {
+                setImageResource(
+                    R.drawable.ic_music_favourite_outline
+                )
+                scaleType =
+                    ImageView.ScaleType.CENTER_INSIDE
+
+                isClickable = true
+                isFocusable = true
+
+                setOnClickListener {
+                    val nowFavorite =
+                        !isFavorite(song)
+
+                    setFavorite(
+                        song,
+                        nowFavorite
+                    )
+
+                    Toast.makeText(
+                        this@MainActivity,
+                        if (nowFavorite) {
+                            "Added to Favorites"
+                        } else {
+                            "Removed from Favorites"
+                        },
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+
+        titleRow.addView(
             title,
+            LinearLayout.LayoutParams(
+                0,
+                dp(28),
+                1f
+            )
+        )
+
+        titleRow.addView(
+            favorite,
+            LinearLayout.LayoutParams(
+                dp(24),
+                dp(24)
+            ).apply {
+                marginStart = dp(8)
+            }
+        )
+
+        info.addView(
+            titleRow,
             LinearLayout.LayoutParams(
                 -1,
                 dp(28)
@@ -10527,7 +10584,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        info.translationY = 0f
+        info.translationY = -dp(15).toFloat()
 
         bottomPanel.addView(
             info,
@@ -10638,7 +10695,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        seekBar.translationY = -dp(6).toFloat()
+        seekBar.translationY = -dp(16).toFloat()
 
         bottomPanel.addView(
             seekBar,
@@ -11016,7 +11073,7 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = -dp(10).toFloat()
+        controls.translationY = -dp(20).toFloat()
 
         bottomPanel.addView(
             controls,
@@ -11241,7 +11298,7 @@ class MainActivity : ComponentActivity() {
                 // Restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
-                controls.translationY = -dp(14).toFloat()
+                controls.translationY = -dp(20).toFloat()
 
                 queuePanel.visibility = View.VISIBLE
                 queuePanel.alpha = 0f
@@ -11298,7 +11355,7 @@ class MainActivity : ComponentActivity() {
                 // Always restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
-                controls.translationY = -dp(14).toFloat()
+                controls.translationY = -dp(20).toFloat()
             }
         }
 
