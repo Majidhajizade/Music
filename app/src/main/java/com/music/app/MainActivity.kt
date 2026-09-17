@@ -8970,8 +8970,8 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_UP,
                         android.view.MotionEvent.ACTION_CANCEL -> {
                             view.animate()
-                                .scaleX(2f)
-                                .scaleY(2f)
+                                .scaleX(1f)
+                                .scaleY(1f)
                                 .setDuration(120)
                                 .start()
                         }
@@ -10466,6 +10466,7 @@ class MainActivity : ComponentActivity() {
         val bottomPanel =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
+                elevation = dp(12).toFloat()
             }
 
         // ---------- SONG INFO ----------
@@ -10584,7 +10585,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        info.translationY = -dp(15).toFloat()
+        info.translationY = 0f
 
         bottomPanel.addView(
             info,
@@ -10695,7 +10696,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        seekBar.translationY = -dp(16).toFloat()
+        seekBar.translationY = -dp(6).toFloat()
 
         bottomPanel.addView(
             seekBar,
@@ -10842,8 +10843,8 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                scaleX = 2f
-                scaleY = 2f
+                scaleX = 1f
+                scaleY = 1f
 
                 background = null
 
@@ -10875,8 +10876,8 @@ class MainActivity : ComponentActivity() {
 
                         android.view.MotionEvent.ACTION_DOWN -> {
                             view.animate()
-                                .scaleX(2.08f)
-                                .scaleY(2.08f)
+                                .scaleX(1.08f)
+                                .scaleY(1.08f)
                                 .setDuration(120)
                                 .start()
 
@@ -10898,8 +10899,8 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_CANCEL -> {
 
                             view.animate()
-                                .scaleX(2f)
-                                .scaleY(2f)
+                                .scaleX(1f)
+                                .scaleY(1f)
                                 .setDuration(220)
                                 .start()
 
@@ -11073,7 +11074,7 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = -dp(20).toFloat()
+        controls.translationY = -dp(10).toFloat()
 
         bottomPanel.addView(
             controls,
@@ -11298,7 +11299,7 @@ class MainActivity : ComponentActivity() {
                 // Restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
-                controls.translationY = -dp(20).toFloat()
+                controls.translationY = -dp(10).toFloat()
 
                 queuePanel.visibility = View.VISIBLE
                 queuePanel.alpha = 0f
@@ -11355,7 +11356,7 @@ class MainActivity : ComponentActivity() {
                 // Always restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
-                controls.translationY = -dp(20).toFloat()
+                controls.translationY = -dp(10).toFloat()
             }
         }
 
