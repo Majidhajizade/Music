@@ -11291,8 +11291,7 @@ class MainActivity : ComponentActivity() {
                 android.app.AlertDialog.Builder(this)
                     .setTitle("View Credits")
                     .setMessage(
-                        "${song.title}
-${song.artist}"
+                        "${song.title}\n${song.artist}"
                     )
                     .setPositiveButton(
                         "OK",
@@ -11654,8 +11653,7 @@ ${song.artist}"
                         (playbackIndex + 1)
                             .coerceAtLeast(0)
                     )
-                    .joinToString("
-") {
+                    .joinToString("\n") {
                         it.title
                     }
 
@@ -12450,8 +12448,7 @@ ${song.artist}"
         android.app.AlertDialog.Builder(this)
             .setTitle("Select")
             .setMessage(
-                "${song.title}
-${song.artist}"
+                "${song.title}\n${song.artist}"
             )
             .setPositiveButton(
                 "Selected",
