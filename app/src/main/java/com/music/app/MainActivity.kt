@@ -6687,7 +6687,7 @@ class MainActivity : ComponentActivity() {
                         if (it.isPlaying) {
                             it.pause()
                             setImageResource(
-                                com.music.app.R.drawable.ic_music_play
+                                com.music.app.R.drawable.ic_music_play_full
                             )
                             contentDescription = "Play"
                         } else {
@@ -10609,8 +10609,8 @@ class MainActivity : ComponentActivity() {
             max = 1000
             progress = 0
 
-            minHeight = dp(5)
-            minimumHeight = dp(5)
+            minHeight = dp(10)
+            minimumHeight = dp(10)
 
             setPadding(
                 0,
@@ -10849,8 +10849,8 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                scaleX = 1f
-                scaleY = 1f
+                scaleX = if (mediaPlayer?.isPlaying == true) 1f else 2f
+                scaleY = if (mediaPlayer?.isPlaying == true) 1f else 2f
 
                 background = null
 
@@ -10881,9 +10881,12 @@ class MainActivity : ComponentActivity() {
                     when (event.action) {
 
                         android.view.MotionEvent.ACTION_DOWN -> {
+                            val touchScale =
+                                if (mediaPlayer?.isPlaying == true) 1.08f else 2.16f
+
                             view.animate()
-                                .scaleX(1.08f)
-                                .scaleY(1.08f)
+                                .scaleX(touchScale)
+                                .scaleY(touchScale)
                                 .setDuration(120)
                                 .start()
 
@@ -10904,9 +10907,12 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_UP,
                         android.view.MotionEvent.ACTION_CANCEL -> {
 
+                            val baseScale =
+                                if (mediaPlayer?.isPlaying == true) 1f else 2f
+
                             view.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
+                                .scaleX(baseScale)
+                                .scaleY(baseScale)
                                 .setDuration(220)
                                 .start()
 
@@ -10944,10 +10950,13 @@ class MainActivity : ComponentActivity() {
                                     .start()
 
                                 setImageResource(
-                                    com.music.app.R.drawable.ic_music_play
+                                    com.music.app.R.drawable.ic_music_play_full
                                 )
 
                                 contentDescription = "Play"
+                                scaleX = 2f
+                                scaleY = 2f
+
 
                                 playButton.setImageResource(
                                     com.music.app.R.drawable.ic_music_play
@@ -10971,6 +10980,9 @@ class MainActivity : ComponentActivity() {
                                 )
 
                                 contentDescription = "Pause"
+                                scaleX = 1f
+                                scaleY = 1f
+
 
                                 playButton.setImageResource(
                                     com.music.app.R.drawable.ic_player_pause
