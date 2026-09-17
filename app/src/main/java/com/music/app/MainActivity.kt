@@ -8925,7 +8925,7 @@ class MainActivity : ComponentActivity() {
             elevation = dp(18).toFloat()
         }
 
-        fun popupItem(
+        fun addPopupItem(
             icon: String,
             title: String,
             action: () -> Unit
