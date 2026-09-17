@@ -8970,8 +8970,8 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_UP,
                         android.view.MotionEvent.ACTION_CANCEL -> {
                             view.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
+                                .scaleX(2f)
+                                .scaleY(2f)
                                 .setDuration(120)
                                 .start()
                         }
@@ -10818,8 +10818,8 @@ class MainActivity : ComponentActivity() {
 
                         android.view.MotionEvent.ACTION_DOWN -> {
                             view.animate()
-                                .scaleX(1.08f)
-                                .scaleY(1.08f)
+                                .scaleX(2.08f)
+                                .scaleY(2.08f)
                                 .setDuration(120)
                                 .start()
 
@@ -10841,8 +10841,8 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_CANCEL -> {
 
                             view.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
+                                .scaleX(2f)
+                                .scaleY(2f)
                                 .setDuration(220)
                                 .start()
 
@@ -11109,46 +11109,11 @@ class MainActivity : ComponentActivity() {
                     alpha = 0.95f
                 }
 
-            val text =
-                TextView(this).apply {
-
-                    this.text = label
-
-                    setTextColor(
-                        Color.WHITE
-                    )
-
-                    textSize = 11f
-
-                    setTypeface(
-                        null,
-                        Typeface.BOLD
-                    )
-
-                    gravity =
-                        Gravity.CENTER
-
-                    setPadding(
-                        dp(5),
-                        0,
-                        0,
-                        0
-                    )
-                }
-
             box.addView(
                 image,
                 LinearLayout.LayoutParams(
-                    dp(20),
-                    dp(20)
-                )
-            )
-
-            box.addView(
-                text,
-                LinearLayout.LayoutParams(
-                    -2,
-                    -1
+                    dp(24),
+                    dp(24)
                 )
             )
 
@@ -11197,8 +11162,8 @@ class MainActivity : ComponentActivity() {
                 dp(44),
                 1f
             ).apply {
-                marginStart = dp(4)
-                marginEnd = dp(4)
+                marginStart = dp(10)
+                marginEnd = dp(10)
             }
         )
 
@@ -11209,8 +11174,8 @@ class MainActivity : ComponentActivity() {
                 dp(44),
                 1f
             ).apply {
-                marginStart = dp(4)
-                marginEnd = dp(4)
+                marginStart = dp(10)
+                marginEnd = dp(10)
             }
         )
 
@@ -11221,8 +11186,8 @@ class MainActivity : ComponentActivity() {
                 dp(44),
                 1f
             ).apply {
-                marginStart = dp(4)
-                marginEnd = dp(4)
+                marginStart = dp(10)
+                marginEnd = dp(10)
             }
         )
 
@@ -11646,8 +11611,8 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_UP,
                         android.view.MotionEvent.ACTION_CANCEL -> {
                             view.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
+                                .scaleX(2f)
+                                .scaleY(2f)
                                 .setDuration(110L)
                                 .start()
                         }
@@ -11753,8 +11718,8 @@ class MainActivity : ComponentActivity() {
                             .ACTION_CANCEL -> {
 
                             view.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
+                                .scaleX(2f)
+                                .scaleY(2f)
                                 .setDuration(110L)
                                 .start()
                         }
@@ -12135,7 +12100,7 @@ class MainActivity : ComponentActivity() {
                                     )
 
                                 remaining.text =
-                                    "-"
+                                    "-" +
                                         formatTime(
                                             duration -
                                                 position
