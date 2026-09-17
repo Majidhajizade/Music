@@ -11050,20 +11050,20 @@ class MainActivity : ComponentActivity() {
                 dp(70)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(6)
-                marginEnd = dp(5)
+                marginStart = dp(2)
+                marginEnd = dp(2)
             }
         )
 
         controls.addView(
             play,
             LinearLayout.LayoutParams(
-                dp(156),
-                dp(156)
+                dp(78),
+                dp(78)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(5)
-                marginEnd = dp(5)
+                marginStart = dp(1)
+                marginEnd = dp(1)
             }
         )
 
@@ -11074,8 +11074,8 @@ class MainActivity : ComponentActivity() {
                 dp(70)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(5)
-                marginEnd = dp(6)
+                marginStart = dp(2)
+                marginEnd = dp(2)
             }
         )
 
