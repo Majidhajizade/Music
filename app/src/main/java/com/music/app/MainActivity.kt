@@ -10598,7 +10598,7 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(55)
             ).apply {
-                topMargin = 0
+                topMargin = -dp(2)
                 bottomMargin = 0
             }
         )
