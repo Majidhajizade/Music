@@ -10585,7 +10585,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        info.translationY = 0f
+        info.translationY = -dp(15).toFloat()
 
         bottomPanel.addView(
             info,
@@ -10696,7 +10696,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        seekBar.translationY = -dp(6).toFloat()
+        seekBar.translationY = -dp(16).toFloat()
 
         bottomPanel.addView(
             seekBar,
@@ -10843,8 +10843,10 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                scaleX = 1f
-                scaleY = 1f
+                scaleX =
+                    if (mediaPlayer?.isPlaying == true) 1f else 1.6f
+                scaleY =
+                    if (mediaPlayer?.isPlaying == true) 1f else 1.6f
 
                 background = null
 
@@ -10899,8 +10901,12 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_CANCEL -> {
 
                             view.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
+                                .scaleX(
+                                    if (mediaPlayer?.isPlaying == true) 1f else 1.6f
+                                )
+                                .scaleY(
+                                    if (mediaPlayer?.isPlaying == true) 1f else 1.6f
+                                )
                                 .setDuration(220)
                                 .start()
 
@@ -11074,7 +11080,7 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = -dp(10).toFloat()
+        controls.translationY = -dp(20).toFloat()
 
         bottomPanel.addView(
             controls,
@@ -11299,7 +11305,7 @@ class MainActivity : ComponentActivity() {
                 // Restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
-                controls.translationY = -dp(10).toFloat()
+                controls.translationY = -dp(20).toFloat()
 
                 queuePanel.visibility = View.VISIBLE
                 queuePanel.alpha = 0f
@@ -11356,7 +11362,7 @@ class MainActivity : ComponentActivity() {
                 // Always restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
-                controls.translationY = -dp(10).toFloat()
+                controls.translationY = -dp(20).toFloat()
             }
         }
 
