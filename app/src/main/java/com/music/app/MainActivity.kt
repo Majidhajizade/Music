@@ -10585,6 +10585,13 @@ class MainActivity : ComponentActivity() {
             )
         )
 
+        info.elevation = dp(40).toFloat()
+        info.clipChildren = false
+        info.clipToPadding = false
+
+        bottomPanel.clipChildren = false
+        bottomPanel.clipToPadding = false
+
         bottomPanel.addView(
             info,
             LinearLayout.LayoutParams(
@@ -11051,8 +11058,8 @@ class MainActivity : ComponentActivity() {
         controls.addView(
             play,
             LinearLayout.LayoutParams(
-                dp(78),
-                dp(78)
+                dp(156),
+                dp(156)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
                 marginStart = dp(5)
