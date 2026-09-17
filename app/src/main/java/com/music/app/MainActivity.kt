@@ -8960,12 +8960,6 @@ class MainActivity : ComponentActivity() {
                     when (event.action) {
 
                         android.view.MotionEvent.ACTION_DOWN -> {
-                            view.animate()
-                                .scaleX(1.5f)
-                                .scaleY(1.5f)
-                                .setDuration(120)
-                                .start()
-
                             view.background =
                                 GradientDrawable().apply {
                                     shape = GradientDrawable.OVAL
@@ -8982,242 +8976,13 @@ class MainActivity : ComponentActivity() {
 
                         android.view.MotionEvent.ACTION_UP,
                         android.view.MotionEvent.ACTION_CANCEL -> {
-
-                            view.animate()
-                                .scaleX(1.5f)
-                                .scaleY(1.5f)
-                                .setDuration(220)
-                                .start()
-
-                            view.animate()
-                                .alpha(0.92f)
-                                .setDuration(80)
-                                .withEndAction {
-                                    view.background = null
-                                    view.alpha = 1f
-                                }
-                                .start()
+                            view.background = null
+                            view.alpha = 1f
                         }
                     }
 
                     false
                 }
-            }
-
-            val iconView = TextView(this).apply {
-                text = icon
-                textSize = 20f
-                gravity = Gravity.CENTER
-                setTextColor(Color.BLACK)
-                includeFontPadding = false
-            }
-
-            item.addView(
-                iconView,
-                LinearLayout.LayoutParams(
-                    dp(34),
-                    dp(44)
-                )
-            )
-
-            item.addView(
-                TextView(this).apply {
-                    text = title
-                    textSize = 15f
-                    setTextColor(Color.rgb(25, 25, 25))
-                    gravity = Gravity.CENTER_VERTICAL
-                    includeFontPadding = false
-                },
-                LinearLayout.LayoutParams(
-                    0,
-                    dp(44),
-                    1f
-                )
-            )
-
-            box.addView(
-                item,
-                LinearLayout.LayoutParams(
-                    dp(240),
-                    dp(44)
-                )
-            )
-        }
-
-        popupItem(
-            "▶",
-            "Play"
-        ) {
-            playSong(song)
-        }
-
-        popupItem(
-            "♧",
-            "Add to Queue"
-        ) {
-            playbackQueue.add(song)
-
-            if (playbackQueue.size == 1) {
-                playbackIndex = 0
-            }
-
-            Toast.makeText(
-                this,
-                "Added to queue",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-        popupItem(
-            if (isFavorite(song)) "♥" else "♡",
-            if (isFavorite(song))
-                "Remove from Favorites"
-            else
-                "Add to Favorites"
-        ) {
-            val newState = !isFavorite(song)
-
-            setFavorite(
-                song,
-                newState
-            )
-
-            Toast.makeText(
-                this,
-                if (newState)
-                    "Added to Favorites"
-                else
-                    "Removed from Favorites",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-        popupItem(
-            "＋",
-            "Add to Playlist"
-        ) {
-            showCreatePlaylistDialog()
-        }
-
-        popupItem(
-            "ⓘ",
-            "Song Info"
-        ) {
-            showSongPopup(
-                anchor,
-                song
-            )
-        }
-
-        popup.contentView = box
-        popup.width = dp(254)
-        popup.height = -2
-        popup.isFocusable = true
-        popup.isOutsideTouchable = true
-        popup.setBackgroundDrawable(
-            android.graphics.drawable.ColorDrawable(
-                Color.TRANSPARENT
-            )
-        )
-        popup.elevation = dp(18).toFloat()
-
-        val location = IntArray(2)
-        anchor.getLocationOnScreen(location)
-
-        val anchorY = location[1]
-        val anchorHeight = anchor.height
-
-        val screenHeight =
-            resources.displayMetrics.heightPixels
-
-        val anchorCenter =
-            anchorY + (anchorHeight / 2)
-
-        val popupHeightEstimate =
-            dp(7 + (44 * 5) + 7)
-
-        val belowHalf =
-            anchorCenter < screenHeight / 2
-
-        popup.showAsDropDown(
-            anchor,
-            -dp(205),
-            if (belowHalf) {
-                -dp(2)
-            } else {
-                -(anchorHeight + popupHeightEstimate)
-            }
-        )
-
-        val content = popup.contentView
-
-        content.alpha = 0f
-        content.scaleX = 0.94f
-        content.scaleY = 0.94f
-        content.translationY =
-            if (belowHalf) dp(-8).toFloat()
-            else dp(8).toFloat()
-
-        content.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .translationY(0f)
-            .setDuration(190)
-            .setInterpolator(
-                android.view.animation.DecelerateInterpolator(1.7f)
-            )
-            .start()
-    }
-
-    private fun showSongPopup(
-        anchor: View,
-        song: Song
-    ) {
-        val box =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                setPadding(
-                    dp(6),
-                    dp(6),
-                    dp(6),
-                    dp(6)
-                )
-
-                background =
-                    android.graphics.drawable.GradientDrawable().apply {
-                        cornerRadius =
-                            dp(16).toFloat()
-                        setColor(Color.WHITE)
-                    }
-
-                elevation = dp(18).toFloat()
-            }
-
-        fun addPopupItem(
-            title: String,
-            action: () -> Unit
-        ) {
-            val item =
-                TextView(this).apply {
-                    text = title
-                    textSize = 15f
-                    setTextColor(
-                        Color.rgb(
-                            25,
-                            25,
-                            27
-                        )
-                    )
-                    gravity =
-                        Gravity.CENTER_VERTICAL
-                    setPadding(
-                        dp(14),
-                        0,
-                        dp(14),
-                        0
-                    )
 
                     setOnClickListener {
                         action()
@@ -10899,54 +10664,11 @@ class MainActivity : ComponentActivity() {
 
                 elevation = 0f
 
-                setOnTouchListener { view, event ->
-
-                    when (event.action) {
-
-                        android.view.MotionEvent.ACTION_DOWN -> {
-                            view.animate()
-                                .scaleX(1.5f)
-                                .scaleY(1.5f)
-                                .setDuration(120)
-                                .start()
-
-                            view.background =
-                                GradientDrawable().apply {
-                                    shape = GradientDrawable.OVAL
-                                    setColor(
-                                        Color.argb(
-                                            77,
-                                            255,
-                                            255,
-                                            255
-                                        )
-                                    )
-                                }
-                        }
-
-                        android.view.MotionEvent.ACTION_UP,
-                        android.view.MotionEvent.ACTION_CANCEL -> {
-
-                            view.animate()
-                                .scaleX(1.5f)
-                                .scaleY(1.5f)
-                                .setDuration(220)
-                                .start()
-
-
-                            view.animate()
-                                .alpha(0.92f)
-                                .setDuration(80)
-                                .withEndAction {
-                                    view.background = null
-                                    view.alpha = 1f
-                                }
-                                .start()
-                        }
-                    }
+                setOnTouchListener { _, _ ->
 
                     false
                 }
+
 
                 setOnClickListener {
 
@@ -11569,7 +11291,8 @@ class MainActivity : ComponentActivity() {
                 android.app.AlertDialog.Builder(this)
                     .setTitle("View Credits")
                     .setMessage(
-                        "${song.title}\n${song.artist}"
+                        "${song.title}
+${song.artist}"
                     )
                     .setPositiveButton(
                         "OK",
@@ -11931,7 +11654,8 @@ class MainActivity : ComponentActivity() {
                         (playbackIndex + 1)
                             .coerceAtLeast(0)
                     )
-                    .joinToString("\n") {
+                    .joinToString("
+") {
                         it.title
                     }
 
@@ -12726,7 +12450,8 @@ class MainActivity : ComponentActivity() {
         android.app.AlertDialog.Builder(this)
             .setTitle("Select")
             .setMessage(
-                "${song.title}\n${song.artist}"
+                "${song.title}
+${song.artist}"
             )
             .setPositiveButton(
                 "Selected",
