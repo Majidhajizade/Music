@@ -6709,7 +6709,7 @@ class MainActivity : ComponentActivity() {
                 dp(50),
                 dp(50)
             ).apply {
-                rightMargin = dp(-2)
+                rightMargin = dp(-8)
             }
         )
 
@@ -6744,7 +6744,7 @@ class MainActivity : ComponentActivity() {
                 dp(50),
                 dp(50)
             ).apply {
-                leftMargin = dp(-2)
+                leftMargin = dp(-8)
             }
         )
 
@@ -10784,6 +10784,9 @@ class MainActivity : ComponentActivity() {
 
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
+
+                scaleX = 2f
+                scaleY = 2f
 
                 background = null
 
