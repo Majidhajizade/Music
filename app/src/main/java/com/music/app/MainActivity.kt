@@ -10585,14 +10585,14 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        info.translationY = -dp(15).toFloat()
-
         bottomPanel.addView(
             info,
             LinearLayout.LayoutParams(
                 -1,
                 dp(55)
-            )
+            ).apply {
+                topMargin = -dp(15)
+            }
         )
 
         // ---------- SEEK BAR ----------
@@ -10696,15 +10696,13 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        seekBar.translationY = -dp(16).toFloat()
-
         bottomPanel.addView(
             seekBar,
             LinearLayout.LayoutParams(
                 -1,
                 dp(10)
             ).apply {
-                topMargin = dp(1)
+                topMargin = -dp(9)
             }
         )
 
@@ -10843,10 +10841,8 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                scaleX =
-                    if (mediaPlayer?.isPlaying == true) 1f else 1.6f
-                scaleY =
-                    if (mediaPlayer?.isPlaying == true) 1f else 1.6f
+                scaleX = 1f
+                scaleY = 1f
 
                 background = null
 
@@ -10901,12 +10897,8 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_CANCEL -> {
 
                             view.animate()
-                                .scaleX(
-                                    if (mediaPlayer?.isPlaying == true) 1f else 1.6f
-                                )
-                                .scaleY(
-                                    if (mediaPlayer?.isPlaying == true) 1f else 1.6f
-                                )
+                                .scaleX(1f)
+                                .scaleY(1f)
                                 .setDuration(220)
                                 .start()
 
@@ -11080,15 +11072,13 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = -dp(20).toFloat()
-
         bottomPanel.addView(
             controls,
             LinearLayout.LayoutParams(
                 -1,
                 dp(84)
             ).apply {
-                topMargin = 0
+                topMargin = -dp(10)
             }
         )
 
@@ -11305,7 +11295,6 @@ class MainActivity : ComponentActivity() {
                 // Restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
-                controls.translationY = -dp(20).toFloat()
 
                 queuePanel.visibility = View.VISIBLE
                 queuePanel.alpha = 0f
@@ -11362,7 +11351,6 @@ class MainActivity : ComponentActivity() {
                 // Always restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
-                controls.translationY = -dp(20).toFloat()
             }
         }
 
