@@ -6716,8 +6716,9 @@ class MainActivity : ComponentActivity() {
         // ---------- PLAY NEXT ----------
         val miniPlayNext = ImageView(this).apply {
             setImageResource(
-                com.music.app.R.drawable.ic_music_next
+                com.music.app.R.drawable.ic_music_backward
             )
+            scaleX = -1f
 
             scaleType = ImageView.ScaleType.CENTER_INSIDE
             setPadding(dp(4), dp(4), dp(4), dp(4))
@@ -13041,6 +13042,7 @@ class MainActivity : ComponentActivity() {
             iconRes: Int,
             fallbackIcon: String,
             textValue: String,
+            mirrorIcon: Boolean = false,
             action: () -> Unit
         ) {
             val row = LinearLayout(this).apply {
@@ -13062,6 +13064,7 @@ class MainActivity : ComponentActivity() {
             val iconView = ImageView(this).apply {
                 setImageResource(iconRes)
                 scaleType = ImageView.ScaleType.CENTER
+                scaleX = if (mirrorIcon) -1f else 1f
                 translationY = -dp(2).toFloat()
                 contentDescription = fallbackIcon
             }
@@ -13103,9 +13106,10 @@ class MainActivity : ComponentActivity() {
         }
 
         addAction(
-            R.drawable.ic_music_next,
+            R.drawable.ic_music_backward,
             "Play",
-            "Play Next"
+            "Play Next",
+            true
         ) {
             playSongNext(song)
         }
