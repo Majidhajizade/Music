@@ -8961,18 +8961,41 @@ class MainActivity : ComponentActivity() {
 
                         android.view.MotionEvent.ACTION_DOWN -> {
                             view.animate()
-                                .scaleX(0.97f)
-                                .scaleY(0.97f)
-                                .setDuration(90)
+                                .scaleX(1.5f)
+                                .scaleY(1.5f)
+                                .setDuration(120)
                                 .start()
+
+                            view.background =
+                                GradientDrawable().apply {
+                                    shape = GradientDrawable.OVAL
+                                    setColor(
+                                        Color.argb(
+                                            77,
+                                            255,
+                                            255,
+                                            255
+                                        )
+                                    )
+                                }
                         }
 
                         android.view.MotionEvent.ACTION_UP,
                         android.view.MotionEvent.ACTION_CANCEL -> {
+
                             view.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
-                                .setDuration(120)
+                                .scaleX(1.5f)
+                                .scaleY(1.5f)
+                                .setDuration(220)
+                                .start()
+
+                            view.animate()
+                                .alpha(0.92f)
+                                .setDuration(80)
+                                .withEndAction {
+                                    view.background = null
+                                    view.alpha = 1f
+                                }
                                 .start()
                         }
                     }
@@ -10849,8 +10872,8 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                scaleX = if (mediaPlayer?.isPlaying == true) 1f else 2f
-                scaleY = if (mediaPlayer?.isPlaying == true) 1f else 2f
+                scaleX = 1.5f
+                scaleY = 1.5f
 
                 background = null
 
@@ -10881,12 +10904,9 @@ class MainActivity : ComponentActivity() {
                     when (event.action) {
 
                         android.view.MotionEvent.ACTION_DOWN -> {
-                            val touchScale =
-                                if (mediaPlayer?.isPlaying == true) 1.08f else 2.16f
-
                             view.animate()
-                                .scaleX(touchScale)
-                                .scaleY(touchScale)
+                                .scaleX(1.5f)
+                                .scaleY(1.5f)
                                 .setDuration(120)
                                 .start()
 
@@ -10907,14 +10927,12 @@ class MainActivity : ComponentActivity() {
                         android.view.MotionEvent.ACTION_UP,
                         android.view.MotionEvent.ACTION_CANCEL -> {
 
-                            val baseScale =
-                                if (mediaPlayer?.isPlaying == true) 1f else 2f
-
                             view.animate()
-                                .scaleX(baseScale)
-                                .scaleY(baseScale)
+                                .scaleX(1.5f)
+                                .scaleY(1.5f)
                                 .setDuration(220)
                                 .start()
+
 
                             view.animate()
                                 .alpha(0.92f)
@@ -10954,8 +10972,8 @@ class MainActivity : ComponentActivity() {
                                 )
 
                                 contentDescription = "Play"
-                                scaleX = 2f
-                                scaleY = 2f
+                                scaleX = 1.5f
+                                scaleY = 1.5f
 
 
                                 playButton.setImageResource(
@@ -10980,8 +10998,8 @@ class MainActivity : ComponentActivity() {
                                 )
 
                                 contentDescription = "Pause"
-                                scaleX = 1f
-                                scaleY = 1f
+                                scaleX = 1.5f
+                                scaleY = 1.5f
 
 
                                 playButton.setImageResource(
