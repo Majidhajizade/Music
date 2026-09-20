@@ -138,6 +138,9 @@ class MainActivity : ComponentActivity() {
     private val selectedLibrarySongs =
         mutableSetOf<Long>()
 
+    private val librarySelectionRows =
+        mutableMapOf<Long, LinearLayout>()
+
     private var librarySelectionMode = false
 
     private var playbackIndex = -1
