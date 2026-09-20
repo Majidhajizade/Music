@@ -35,6 +35,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 data class Song(
     val id: Long,
@@ -45,6 +47,9 @@ data class Song(
 )
 
 class MainActivity : ComponentActivity() {
+
+    private val backgroundExecutor: ExecutorService =
+        Executors.newSingleThreadExecutor()
 
     private val songs = mutableListOf<Song>()
     private var mediaPlayer: MediaController? = null
@@ -891,53 +896,86 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun loadMusic() {
-        songs.clear()
 
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.ALBUM,
-            MediaStore.Audio.Media.DATE_ADDED
-        )
+        backgroundExecutor.execute {
 
-        contentResolver.query(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            projection,
-            "${MediaStore.Audio.Media.IS_MUSIC} != 0",
-            null,
-            "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
-        )?.use { cursor ->
+            val loadedSongs =
+                mutableListOf<Song>()
 
-            val idColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            val projection = arrayOf(
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.DATE_ADDED
+            )
 
-            val titleColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+            contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                "${MediaStore.Audio.Media.IS_MUSIC} != 0",
+                null,
+                "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
+            )?.use { cursor ->
 
-            val artistColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-
-            val albumColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-
-            val dateAddedColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
-
-            while (cursor.moveToNext()) {
-                songs.add(
-                    Song(
-                        id = cursor.getLong(idColumn),
-                        title = cursor.getString(titleColumn) ?: "Unknown",
-                        artist = cursor.getString(artistColumn) ?: "Unknown Artist",
-                        album = cursor.getString(albumColumn) ?: "Unknown Album",
-                        dateAdded = cursor.getLong(dateAddedColumn)
+                val idColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media._ID
                     )
-                )
+
+                val titleColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media.TITLE
+                    )
+
+                val artistColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media.ARTIST
+                    )
+
+                val albumColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media.ALBUM
+                    )
+
+                val dateAddedColumn =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Media.DATE_ADDED
+                    )
+
+                while (cursor.moveToNext()) {
+
+                    loadedSongs.add(
+                        Song(
+                            id = cursor.getLong(idColumn),
+                            title =
+                                cursor.getString(titleColumn)
+                                    ?: "Unknown",
+                            artist =
+                                cursor.getString(artistColumn)
+                                    ?: "Unknown Artist",
+                            album =
+                                cursor.getString(albumColumn)
+                                    ?: "Unknown Album",
+                            dateAdded =
+                                cursor.getLong(dateAddedColumn)
+                        )
+                    )
+                }
+            }
+
+            runOnUiThread {
+
+                if (isFinishing || isDestroyed) {
+                    return@runOnUiThread
+                }
+
+                songs.clear()
+                songs.addAll(loadedSongs)
+
+                showMain()
             }
         }
-
-        showMain()
     }
 
     private fun dp(value: Int): Int =
@@ -1032,36 +1070,100 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val albumArtCache =
+        object : android.util.LruCache<Long, android.graphics.Bitmap>(
+            (
+                Runtime.getRuntime().maxMemory() / 1024L / 8L
+            ).toInt().coerceAtMost(16 * 1024)
+        ) {
+            override fun sizeOf(
+                key: Long,
+                value: android.graphics.Bitmap
+            ): Int {
+                return value.byteCount / 1024
+            }
+        }
+
+    private val albumArtMissCache =
+        mutableSetOf<Long>()
+
+    private val albumColorCache =
+        object : android.util.LruCache<Long, IntArray>(256) {
+        }
+
     private fun getAlbumArt(song: Song): android.graphics.Bitmap? {
 
+        albumArtCache.get(song.id)?.let {
+            return it
+        }
+
+        if (albumArtMissCache.contains(song.id)) {
+            return null
+        }
+
         return try {
-            val uri = ContentUris.withAppendedId(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                song.id
-            )
 
-            val retriever = MediaMetadataRetriever()
-
-            retriever.setDataSource(
-                this,
-                uri
-            )
-
-            val data = retriever.embeddedPicture
-
-            retriever.release()
-
-            if (data != null) {
-                android.graphics.BitmapFactory.decodeByteArray(
-                    data,
-                    0,
-                    data.size
+            val uri =
+                ContentUris.withAppendedId(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    song.id
                 )
-            } else {
-                null
+
+            val retriever =
+                MediaMetadataRetriever()
+
+            try {
+
+                retriever.setDataSource(
+                    this,
+                    uri
+                )
+
+                val data =
+                    retriever.embeddedPicture
+
+                if (data != null) {
+
+                    val bitmap =
+                        android.graphics.BitmapFactory
+                            .decodeByteArray(
+                                data,
+                                0,
+                                data.size
+                            )
+
+                    if (bitmap != null) {
+                        albumArtCache.put(
+                            song.id,
+                            bitmap
+                        )
+                    } else {
+                        albumArtMissCache.add(
+                            song.id
+                        )
+                    }
+
+                    bitmap
+
+                } else {
+
+                    albumArtMissCache.add(
+                        song.id
+                    )
+
+                    null
+                }
+
+            } finally {
+                retriever.release()
             }
 
         } catch (e: Exception) {
+
+            albumArtMissCache.add(
+                song.id
+            )
+
             null
         }
     }
@@ -2692,6 +2794,58 @@ class MainActivity : ComponentActivity() {
         super.onBackPressed()
     }
 
+    private fun updateLibrarySelectionRow(songId: Long) {
+
+        val row =
+            librarySelectionRows[songId]
+                ?: return
+
+        val selected =
+            selectedLibrarySongs.contains(songId)
+
+        val selectionCircle =
+            row.findViewWithTag<TextView>(
+                "library_selection_circle"
+            )
+                ?: return
+
+        selectionCircle.text =
+            if (selected) "✓" else ""
+
+        selectionCircle.background =
+            GradientDrawable().apply {
+
+                shape =
+                    GradientDrawable.OVAL
+
+                if (selected) {
+
+                    setColor(
+                        Color.rgb(
+                            25,
+                            25,
+                            25
+                        )
+                    )
+
+                } else {
+
+                    setColor(
+                        Color.TRANSPARENT
+                    )
+
+                    setStroke(
+                        dp(2),
+                        Color.rgb(
+                            145,
+                            145,
+                            145
+                        )
+                    )
+                }
+            }
+    }
+
     private fun showLibrarySongs() {
 
 
@@ -3009,6 +3163,7 @@ class MainActivity : ComponentActivity() {
         fun renderSongs(query: String = "") {
 
             list.removeAllViews()
+            librarySelectionRows.clear()
 
             val q = query.trim()
 
@@ -3048,19 +3203,22 @@ class MainActivity : ComponentActivity() {
 
                     setOnClickListener {
                         if (librarySelectionMode) {
+
                             if (selectedLibrarySongs.contains(song.id)) {
                                 selectedLibrarySongs.remove(song.id)
                             } else {
                                 selectedLibrarySongs.add(song.id)
                             }
 
+                            if (selectedLibrarySongs.isEmpty()) {
+                                librarySelectionMode = false
+                                updateLibrarySelectionMiniPlayer()
+                                renderSongs(query)
+                            } else {
+                                updateLibrarySelectionMiniPlayer()
+                                updateLibrarySelectionRow(song.id)
+                            }
 
-                        if (selectedLibrarySongs.isEmpty()) {
-                            librarySelectionMode = false
-                        }
-
-                        updateLibrarySelectionMiniPlayer()
-                            renderSongs(query)
                         } else {
                             playSong(song)
                         }
@@ -3070,16 +3228,24 @@ class MainActivity : ComponentActivity() {
                         if (!librarySelectionMode) {
                             librarySelectionMode = true
                             selectedLibrarySongs.clear()
+                            selectedLibrarySongs.add(song.id)
+
+                            updateLibrarySelectionMiniPlayer()
+                            renderSongs(query)
+                        } else {
+                            selectedLibrarySongs.add(song.id)
+
+                            updateLibrarySelectionMiniPlayer()
+                            updateLibrarySelectionRow(song.id)
                         }
 
-                        selectedLibrarySongs.add(song.id)
-                        updateLibrarySelectionMiniPlayer()
-                        renderSongs(query)
                         true
                     }
                 }
 
                 val selectionCircle = TextView(this).apply {
+                    tag = "library_selection_circle"
+
                     gravity = Gravity.CENTER
                     includeFontPadding = false
                     textSize = 13f
@@ -3125,13 +3291,14 @@ class MainActivity : ComponentActivity() {
                             selectedLibrarySongs.add(song.id)
                         }
 
-
-                    if (selectedLibrarySongs.isEmpty()) {
-                        librarySelectionMode = false
-                    }
-
-                    updateLibrarySelectionMiniPlayer()
-                        renderSongs(query)
+                        if (selectedLibrarySongs.isEmpty()) {
+                            librarySelectionMode = false
+                            updateLibrarySelectionMiniPlayer()
+                            renderSongs(query)
+                        } else {
+                            updateLibrarySelectionMiniPlayer()
+                            updateLibrarySelectionRow(song.id)
+                        }
                     }
                 }
 
@@ -3301,6 +3468,8 @@ class MainActivity : ComponentActivity() {
                         dp(68)
                     )
                 )
+
+                librarySelectionRows[song.id] = row
 
                 list.addView(
                     View(this).apply {
@@ -10117,6 +10286,9 @@ class MainActivity : ComponentActivity() {
         // COVER
         // -------------------------------------------------
 
+        val fullPlayerArtwork =
+            getAlbumArt(song)
+
         cover.animate()
             .alpha(0.18f)
             .scaleX(0.955f)
@@ -10125,7 +10297,7 @@ class MainActivity : ComponentActivity() {
             .setInterpolator(decelerate)
             .withEndAction {
 
-                getAlbumArt(song)?.let {
+                fullPlayerArtwork?.let {
                     cover.setImageBitmap(it)
                 } ?: run {
                     cover.setImageResource(R.drawable.icon)
@@ -10155,7 +10327,7 @@ class MainActivity : ComponentActivity() {
         // BACKGROUND
         // -------------------------------------------------
 
-        getAlbumArt(song)?.let { bitmap ->
+        fullPlayerArtwork?.let { bitmap ->
 
             val colors = run {
 
@@ -10958,6 +11130,25 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        fun getAlbumColors(
+            song: Song,
+            bitmap: android.graphics.Bitmap
+        ): IntArray {
+
+            albumColorCache.get(song.id)?.let {
+                return it
+            }
+
+            val colors = extractColors(bitmap)
+
+            albumColorCache.put(
+                song.id,
+                colors
+            )
+
+            return colors
+        }
+
         var currentColors = intArrayOf(
             Color.rgb(245, 245, 247),
             Color.rgb(225, 225, 230),
@@ -10970,7 +11161,9 @@ class MainActivity : ComponentActivity() {
                 R.drawable.icon
             )
 
-        if (getAlbumArt(song) == null && fallbackArtwork != null) {
+        val initialArtwork = getAlbumArt(song)
+
+        if (initialArtwork == null && fallbackArtwork != null) {
             currentColors = extractColors(fallbackArtwork)
         }
 
@@ -10991,8 +11184,11 @@ class MainActivity : ComponentActivity() {
             root.background = drawable
         }
 
-        getAlbumArt(song)?.let {
-            currentColors = extractColors(it)
+        initialArtwork?.let {
+            currentColors = getAlbumColors(
+                song,
+                it
+            )
         }
 
         applyBackground(currentColors)
@@ -12813,7 +13009,10 @@ class MainActivity : ComponentActivity() {
                     if (bitmap != null) {
 
                         val targetColors =
-                            extractColors(bitmap)
+                            getAlbumColors(
+                                song,
+                                bitmap
+                            )
 
                         val startColors =
                             currentColors.copyOf()
@@ -14085,6 +14284,8 @@ class MainActivity : ComponentActivity() {
          * The actual player belongs to MusicPlaybackService.
          * Destroying the Activity must never release playback.
          */
+        backgroundExecutor.shutdownNow()
+
         super.onDestroy()
     }
 
