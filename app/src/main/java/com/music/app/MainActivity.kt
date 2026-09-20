@@ -143,6 +143,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var miniPlayer: LinearLayout
 
     private var librarySelectionBar: LinearLayout? = null
+    private var libraryReplacedNavigation: View? = null
 
     private var miniGestureDownX = 0f
     private var miniGestureDownY = 0f
@@ -2130,10 +2131,26 @@ class MainActivity : ComponentActivity() {
                     }
 
                 if (selected.isNotEmpty()) {
+
                     playbackQueue =
                         selected.toMutableList()
 
                     playbackIndex = 0
+
+                    selectedLibrarySongs.clear()
+                    librarySelectionMode = false
+
+                    hideLibrarySelectionBar()
+
+                    miniPlayer.visibility =
+                        View.VISIBLE
+
+                    miniPlayer.animate()
+                        .cancel()
+
+                    miniPlayer.alpha = 1f
+
+                    showLibrarySongs()
 
                     playSong(
                         playbackQueue[0]
@@ -2227,33 +2244,73 @@ class MainActivity : ComponentActivity() {
             miniPlayer.parent as? android.view.ViewGroup
 
         if (parent != null) {
-            val index =
+
+            val miniIndex =
                 parent.indexOfChild(miniPlayer)
 
-            parent.addView(
-                bar,
-                index,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(66)
-                ).apply {
-                    leftMargin = dp(8)
-                    rightMargin = dp(8)
-                    topMargin = dp(2)
-                    bottomMargin = dp(3)
-                }
-            )
+            val navigationIndex =
+                miniIndex + 1
+
+            if (
+                navigationIndex >= 0 &&
+                navigationIndex < parent.childCount
+            ) {
+
+                libraryReplacedNavigation =
+                    parent.getChildAt(navigationIndex)
+
+                parent.removeView(
+                    libraryReplacedNavigation
+                )
+
+                parent.addView(
+                    bar,
+                    navigationIndex,
+                    LinearLayout.LayoutParams(
+                        -1,
+                        dp(66)
+                    ).apply {
+                        leftMargin = dp(8)
+                        rightMargin = dp(8)
+                        topMargin = dp(2)
+                        bottomMargin = dp(3)
+                    }
+                )
+            }
         }
     }
 
     private fun hideLibrarySelectionBar() {
 
         librarySelectionBar?.let { bar ->
-            (bar.parent as? android.view.ViewGroup)
-                ?.removeView(bar)
+
+            val parent =
+                bar.parent as? android.view.ViewGroup
+
+            if (parent != null) {
+
+                val index =
+                    parent.indexOfChild(bar)
+
+                parent.removeView(bar)
+
+                libraryReplacedNavigation?.let { navigation ->
+
+                    if (navigation.parent == null) {
+
+                        parent.addView(
+                            navigation,
+                            index.coerceAtMost(
+                                parent.childCount
+                            )
+                        )
+                    }
+                }
+            }
         }
 
         librarySelectionBar = null
+        libraryReplacedNavigation = null
     }
 
     private fun deleteSingleLibrarySong(song: Song) {
