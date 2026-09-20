@@ -498,7 +498,10 @@ class MainActivity : ComponentActivity() {
                 36f,
                 Color.BLACK,
                 true
-            ),
+            ).apply {
+                gravity = Gravity.CENTER
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
+            },
             LinearLayout.LayoutParams(
                 -1,
                 -2
@@ -623,6 +626,7 @@ class MainActivity : ComponentActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             setBackgroundColor(Color.TRANSPARENT)
             setPadding(
                 dp(28),
@@ -634,11 +638,15 @@ class MainActivity : ComponentActivity() {
 
         root.addView(
             onboardingText(
-                "Music player uses these permissions",
+                "Music Player uses these permissions",
                 28f,
                 Color.BLACK,
                 true
-            ),
+            ).apply {
+                gravity = Gravity.CENTER
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
+                setLineSpacing(0f, 1.05f)
+            },
             LinearLayout.LayoutParams(
                 -1,
                 -2
@@ -682,16 +690,6 @@ class MainActivity : ComponentActivity() {
         }
 
         musicRow.addView(
-            onboardingIcon("music"),
-            LinearLayout.LayoutParams(
-                dp(40),
-                dp(40)
-            ).apply {
-                rightMargin = dp(12)
-            }
-        )
-
-        musicRow.addView(
             onboardingText(
                 "Music and audio",
                 20f,
@@ -719,7 +717,7 @@ class MainActivity : ComponentActivity() {
                 14f,
                 Color.rgb(105, 105, 105)
             ).apply {
-                setPadding(dp(52), dp(7), 0, 0)
+                setPadding(0, dp(7), 0, 0)
             },
             LinearLayout.LayoutParams(
                 -1,
@@ -764,16 +762,6 @@ class MainActivity : ComponentActivity() {
         }
 
         notificationRow.addView(
-            onboardingIcon("notification"),
-            LinearLayout.LayoutParams(
-                dp(40),
-                dp(40)
-            ).apply {
-                rightMargin = dp(12)
-            }
-        )
-
-        notificationRow.addView(
             onboardingText(
                 "Notifications",
                 20f,
@@ -801,7 +789,7 @@ class MainActivity : ComponentActivity() {
                 14f,
                 Color.rgb(105, 105, 105)
             ).apply {
-                setPadding(dp(52), dp(7), 0, 0)
+                setPadding(0, dp(7), 0, 0)
                 setLineSpacing(0f, 1.15f)
             },
             LinearLayout.LayoutParams(
@@ -7214,11 +7202,11 @@ class MainActivity : ComponentActivity() {
         miniCover.getLocationOnScreen(miniLocation)
 
         val miniCenterX =
-            miniLocation[0]
+            miniLocation[0] +
                 miniCover.width / 2f
 
         val miniCenterY =
-            miniLocation[1]
+            miniLocation[1] +
                 miniCover.height / 2f
 
         val targetReady =
@@ -7284,11 +7272,11 @@ class MainActivity : ComponentActivity() {
                 fallbackTargetSize
 
         val centerX =
-            miniCenterX
+            miniCenterX +
                 (targetCenterX - miniCenterX) * progress
 
         val centerY =
-            miniCenterY
+            miniCenterY +
                 (targetCenterY - miniCenterY) * progress
 
         val coverSize =
@@ -7694,10 +7682,10 @@ class MainActivity : ComponentActivity() {
 
                 cornerRadii =
                     floatArrayOf(
-                        dp(18).toFloat(),
-                        dp(18).toFloat(),
-                        dp(18).toFloat(),
-                        dp(18).toFloat(),
+                        0f,
+                        0f,
+                        0f,
+                        0f,
                         0f,
                         0f,
                         0f,
@@ -7729,10 +7717,10 @@ class MainActivity : ComponentActivity() {
 
             cornerRadii =
                 floatArrayOf(
-                    dp(18).toFloat(),
-                    dp(18).toFloat(),
-                    dp(18).toFloat(),
-                    dp(18).toFloat(),
+                    0f,
+                    0f,
+                    0f,
+                    0f,
                     0f,
                     0f,
                     0f,
@@ -9555,11 +9543,11 @@ class MainActivity : ComponentActivity() {
             dp(46).toFloat()
 
         val miniCenterX =
-            miniLocation[0]
+            miniLocation[0] +
                 miniSize / 2f
 
         val miniCenterY =
-            miniLocation[1]
+            miniLocation[1] +
                 miniSize / 2f
 
         val screenHeight =
@@ -10396,8 +10384,8 @@ class MainActivity : ComponentActivity() {
             max = 1000
             progress = 0
 
-            minHeight = dp(10)
-            minimumHeight = dp(10)
+            minHeight = dp(14)
+            minimumHeight = dp(14)
 
             setPadding(
                 0,
@@ -10411,7 +10399,7 @@ class MainActivity : ComponentActivity() {
             val backgroundTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(20).toFloat()
+                    cornerRadius = dp(7).toFloat()
                     setColor(
                         Color.argb(
                             70,
@@ -10425,7 +10413,7 @@ class MainActivity : ComponentActivity() {
             val progressTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(20).toFloat()
+                    cornerRadius = dp(7).toFloat()
                     setColor(Color.WHITE)
                 }
 
@@ -10495,9 +10483,9 @@ class MainActivity : ComponentActivity() {
             seekBar,
             LinearLayout.LayoutParams(
                 -1,
-                dp(10)
+                dp(14)
             ).apply {
-                topMargin = -dp(9)
+                topMargin = -dp(11)
             }
         )
 
