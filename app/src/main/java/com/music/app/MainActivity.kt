@@ -89,13 +89,7 @@ class MainActivity : ComponentActivity() {
 
                 showMiniPlayer()
 
-                getAlbumArt(song)?.let {
-                    miniCover.setImageBitmap(it)
-                } ?: run {
-                    miniCover.setImageResource(
-                        R.drawable.icon
-                    )
-                }
+                updateAllPlayerArtwork(song)
 
                 miniTitle.text = song.title
                 miniArtist.text = song.artist
@@ -170,6 +164,7 @@ class MainActivity : ComponentActivity() {
     private var miniTransitionSecondary: View? = null
     private var miniTransitionCoverContainer: View? = null
     private var miniExpansionOpening = false
+    private var fullPlayerCover: ImageView? = null
 
     private var miniFullTargetCenterX = Float.NaN
     private var miniFullTargetCenterY = Float.NaN
@@ -7612,10 +7607,15 @@ class MainActivity : ComponentActivity() {
 
         miniTransitionSeekBar?.apply {
             translationY =
-                dp(20).toFloat() *
-                    (1f - eased) -
-                    dp(6).toFloat()
-            alpha = eased
+                dp(14).toFloat() *
+                    (1f - eased)
+
+            alpha =
+                if (p <= 0.35f)
+                    0f
+                else
+                    ((p - 0.35f) / 0.15f)
+                        .coerceIn(0f, 1f)
         }
 
         miniTransitionTimeRow?.apply {
@@ -8149,6 +8149,42 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private fun updateAllPlayerArtwork(song: Song) {
+        val artwork = getAlbumArt(song)
+
+        if (::miniCover.isInitialized) {
+            artwork?.let {
+                miniCover.setImageBitmap(it)
+            } ?: miniCover.setImageResource(
+                R.drawable.icon
+            )
+        }
+
+        miniExpansionCover?.let { cover ->
+            artwork?.let {
+                cover.setImageBitmap(it)
+            } ?: cover.setImageResource(
+                R.drawable.icon
+            )
+        }
+
+        fullPlayerCover?.let { cover ->
+            artwork?.let {
+                cover.setImageBitmap(it)
+            } ?: cover.setImageResource(
+                R.drawable.icon
+            )
+        }
+
+        (miniTransitionFullCover as? ImageView)?.let { cover ->
+            artwork?.let {
+                cover.setImageBitmap(it)
+            } ?: cover.setImageResource(
+                R.drawable.icon
+            )
+        }
+    }
+
     private fun updatePlaybackUiFromController() {
 
         val controller =
@@ -8174,13 +8210,7 @@ class MainActivity : ComponentActivity() {
 
         showMiniPlayer()
 
-        getAlbumArt(song)?.let {
-            miniCover.setImageBitmap(it)
-        } ?: run {
-            miniCover.setImageResource(
-                R.drawable.icon
-            )
-        }
+        updateAllPlayerArtwork(song)
 
         miniTitle.text = song.title
         miniArtist.text = song.artist
@@ -10188,6 +10218,8 @@ class MainActivity : ComponentActivity() {
                 setImageResource(R.drawable.icon)
             }
         }
+
+        fullPlayerCover = cover
 
         val coverContainer = FrameLayout(this).apply {
 
