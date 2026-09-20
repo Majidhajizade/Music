@@ -128,12 +128,21 @@ class MainActivity : ComponentActivity() {
 
 
     private var playbackQueue = mutableListOf<Song>()
+
+    // Library multi-selection
+    private val selectedLibrarySongs =
+        mutableSetOf<Long>()
+
+    private var librarySelectionMode = false
+
     private var playbackIndex = -1
 
     private lateinit var content: LinearLayout
     private lateinit var avatar: ImageView
     private lateinit var miniCover: ImageView
     private lateinit var miniPlayer: LinearLayout
+
+    private var librarySelectionBar: LinearLayout? = null
 
     private var miniGestureDownX = 0f
     private var miniGestureDownY = 0f
@@ -1980,7 +1989,655 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private fun updateLibrarySelectionMiniPlayer() {
+
+        val shouldShowSelectionBar =
+            librarySelectionMode &&
+                selectedLibrarySongs.isNotEmpty()
+
+        if (shouldShowSelectionBar) {
+
+            showLibrarySelectionBar()
+
+            miniPlayer.animate()
+                .alpha(0f)
+                .setDuration(180L)
+                .withEndAction {
+                    miniPlayer.visibility =
+                        View.GONE
+                }
+                .start()
+
+        } else {
+
+            hideLibrarySelectionBar()
+
+            miniPlayer.visibility =
+                View.VISIBLE
+
+            miniPlayer.animate()
+                .alpha(1f)
+                .setDuration(180L)
+                .start()
+        }
+    }
+
+    private fun showLibrarySelectionBar() {
+
+        librarySelectionBar?.let {
+            if (it.parent != null) {
+                return
+            }
+        }
+
+        val bar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(
+                dp(8),
+                dp(4),
+                dp(8),
+                dp(4)
+            )
+
+            background =
+                GradientDrawable().apply {
+                    cornerRadius = dp(18).toFloat()
+                    setColor(
+                        Color.rgb(
+                            232,
+                            232,
+                            232
+                        )
+                    )
+                }
+
+            elevation = dp(2).toFloat()
+        }
+
+        fun action(
+            iconRes: Int,
+            label: String,
+            click: () -> Unit
+        ): LinearLayout {
+
+            val item = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                isClickable = true
+                isFocusable = true
+
+                setOnClickListener {
+                    click()
+                }
+            }
+
+            val iconView = ImageView(this).apply {
+                setImageResource(iconRes)
+                scaleType = ImageView.ScaleType.CENTER
+                setColorFilter(
+                    Color.rgb(
+                        25,
+                        25,
+                        25
+                    )
+                )
+            }
+
+            item.addView(
+                iconView,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(27)
+                )
+            )
+
+            val labelView = text(
+                label,
+                10f,
+                Color.rgb(
+                    45,
+                    45,
+                    45
+                ),
+                Typeface.BOLD
+            ).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            }
+
+            item.addView(
+                labelView,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(18)
+                )
+            )
+
+            return item
+        }
+
+        bar.addView(
+            action(
+                R.drawable.ic_music_play,
+                "Play"
+            ) {
+                val selected =
+                    songs.filter {
+                        selectedLibrarySongs.contains(
+                            it.id
+                        )
+                    }
+
+                if (selected.isNotEmpty()) {
+                    playbackQueue =
+                        selected.toMutableList()
+
+                    playbackIndex = 0
+
+                    playSong(
+                        playbackQueue[0]
+                    )
+                }
+            },
+            LinearLayout.LayoutParams(
+                0,
+                -1,
+                1f
+            )
+        )
+
+        bar.addView(
+            action(
+                R.drawable.ic_action_add,
+                "Add"
+            ) {
+                showLibraryAddSelection()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                -1,
+                1f
+            )
+        )
+
+        bar.addView(
+            action(
+                R.drawable.ic_music_share,
+                "Share"
+            ) {
+                val selected =
+                    songs.filter {
+                        selectedLibrarySongs.contains(
+                            it.id
+                        )
+                    }
+
+                if (selected.isNotEmpty()) {
+                    val shareText =
+                        selected.joinToString(
+                            separator = "\n"
+                        ) {
+                            "${it.title} — ${it.artist}"
+                        }
+
+                    val intent =
+                        android.content.Intent(
+                            android.content.Intent.ACTION_SEND
+                        ).apply {
+                            type = "text/plain"
+                            putExtra(
+                                android.content.Intent.EXTRA_TEXT,
+                                shareText
+                            )
+                        }
+
+                    startActivity(
+                        android.content.Intent.createChooser(
+                            intent,
+                            "Share songs"
+                        )
+                    )
+                }
+            },
+            LinearLayout.LayoutParams(
+                0,
+                -1,
+                1f
+            )
+        )
+
+        bar.addView(
+            action(
+                R.drawable.ic_action_delete,
+                "Delete"
+            ) {
+                deleteSelectedLibrarySongs()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                -1,
+                1f
+            )
+        )
+
+        librarySelectionBar = bar
+
+        val parent =
+            miniPlayer.parent as? android.view.ViewGroup
+
+        if (parent != null) {
+            val index =
+                parent.indexOfChild(miniPlayer)
+
+            parent.addView(
+                bar,
+                index,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(66)
+                ).apply {
+                    leftMargin = dp(8)
+                    rightMargin = dp(8)
+                    topMargin = dp(2)
+                    bottomMargin = dp(3)
+                }
+            )
+        }
+    }
+
+    private fun hideLibrarySelectionBar() {
+
+        librarySelectionBar?.let { bar ->
+            (bar.parent as? android.view.ViewGroup)
+                ?.removeView(bar)
+        }
+
+        librarySelectionBar = null
+    }
+
+    private fun deleteSingleLibrarySong(song: Song) {
+
+        selectedLibrarySongs.clear()
+        selectedLibrarySongs.add(song.id)
+
+        val uri =
+            android.content.ContentUris.withAppendedId(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                song.id
+            )
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Delete song?")
+            .setMessage(
+                "This song will be removed from your device."
+            )
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "Delete"
+            ) { _, _ ->
+
+                try {
+
+                    val request =
+                        MediaStore.createDeleteRequest(
+                            contentResolver,
+                            listOf(uri)
+                        )
+
+                    startIntentSenderForResult(
+                        request.intentSender,
+                        7001,
+                        null,
+                        0,
+                        0,
+                        0,
+                        null
+                    )
+
+                } catch (e: Exception) {
+
+                    selectedLibrarySongs.clear()
+
+                    Toast.makeText(
+                        this,
+                        "Unable to delete song",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .show()
+    }
+
+    private fun deleteSelectedLibrarySongs() {
+
+        if (selectedLibrarySongs.isEmpty()) {
+            return
+        }
+
+        val selectedIds =
+            selectedLibrarySongs.toSet()
+
+        val count =
+            selectedIds.size
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Delete songs?")
+            .setMessage(
+                if (count == 1) {
+                    "This song will be removed from your device."
+                } else {
+                    "$count songs will be removed from your device."
+                }
+            )
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "Delete"
+            ) { _, _ ->
+
+                val uris =
+                    selectedIds.map {
+                        android.content.ContentUris.withAppendedId(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            it
+                        )
+                    }
+
+                try {
+
+                    val request =
+                        MediaStore.createDeleteRequest(
+                            contentResolver,
+                            uris
+                        )
+
+                    startIntentSenderForResult(
+                        request.intentSender,
+                        7001,
+                        null,
+                        0,
+                        0,
+                        0,
+                        null
+                    )
+
+                } catch (e: Exception) {
+
+                    Toast.makeText(
+                        this,
+                        "Unable to delete selected songs",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .show()
+    }
+
+    private fun showLibraryAddSelection() {
+
+        val dialog =
+            android.app.Dialog(this)
+
+        val root =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(
+                    dp(22),
+                    dp(28),
+                    dp(22),
+                    dp(22)
+                )
+
+                background =
+                    GradientDrawable().apply {
+                        setColor(Color.WHITE)
+                    }
+            }
+
+        val title = text(
+            "Add",
+            28f,
+            Color.BLACK,
+            Typeface.BOLD
+        ).apply {
+            setPadding(
+                0,
+                0,
+                0,
+                dp(20)
+            )
+        }
+
+        root.addView(
+            title,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        fun addItem(
+            iconRes: Int,
+            label: String,
+            click: () -> Unit
+        ) {
+            val item =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+                    isClickable = true
+
+                    setPadding(
+                        dp(4),
+                        dp(12),
+                        dp(4),
+                        dp(12)
+                    )
+
+                    setOnClickListener {
+                        click()
+                    }
+                }
+
+            val iconView = ImageView(this).apply {
+                setImageResource(iconRes)
+                scaleType = ImageView.ScaleType.CENTER
+            }
+
+            item.addView(
+                iconView,
+                LinearLayout.LayoutParams(
+                    dp(44),
+                    dp(48)
+                )
+            )
+
+            val labelView = text(
+                label,
+                17f,
+                Color.BLACK,
+                Typeface.NORMAL
+            ).apply {
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            item.addView(
+                labelView,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(48),
+                    1f
+                )
+            )
+
+            root.addView(
+                item,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(72)
+                )
+            )
+        }
+
+        addItem(
+            R.drawable.ic_action_playlist,
+            "Create Playlist"
+        ) {
+            dialog.dismiss()
+            showCreatePlaylistDialog()
+        }
+
+        addItem(
+            R.drawable.ic_action_queue,
+            "Queue"
+        ) {
+            dialog.dismiss()
+
+            selectedLibrarySongs
+                .mapNotNull { id ->
+                    songs.firstOrNull {
+                        it.id == id
+                    }
+                }
+                .forEach { song ->
+                    playbackQueue.add(song)
+                }
+
+            Toast.makeText(
+                this,
+                "Added to Queue",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        addItem(
+            R.drawable.ic_action_favorite,
+            "Favorite Tracks"
+        ) {
+            dialog.dismiss()
+
+            selectedLibrarySongs
+                .mapNotNull { id ->
+                    songs.firstOrNull {
+                        it.id == id
+                    }
+                }
+                .forEach { song ->
+                    setFavorite(
+                        song,
+                        true
+                    )
+                }
+
+            Toast.makeText(
+                this,
+                "Added to Favorites",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        dialog.setContentView(root)
+
+        val window =
+            dialog.window
+
+        window?.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.WHITE
+            )
+        )
+
+        window?.setLayout(
+            -1,
+            -1
+        )
+
+        dialog.show()
+
+        window?.setLayout(
+            -1,
+            -1
+        )
+    }
+
+    @Deprecated("Deprecated in Android API  Activity Result API migration")
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: android.content.Intent?
+    ) {
+        super.onActivityResult(
+            requestCode,
+            resultCode,
+            data
+        )
+
+        if (requestCode == 7001) {
+
+            if (resultCode == RESULT_OK) {
+
+                val selectedIds =
+                    selectedLibrarySongs.toSet()
+
+                songs.removeAll {
+                    selectedIds.contains(it.id)
+                }
+
+                selectedLibrarySongs.clear()
+                librarySelectionMode = false
+
+                hideLibrarySelectionBar()
+                updateLibrarySelectionMiniPlayer()
+
+                showLibrarySongs()
+
+                Toast.makeText(
+                    this,
+                    "Songs deleted",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            } else {
+
+                Toast.makeText(
+                    this,
+                    "Delete cancelled",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    @Deprecated("Deprecated in Android API  Activity Result API migration")
+    override fun onBackPressed() {
+
+        if (librarySelectionMode) {
+
+            selectedLibrarySongs.clear()
+            librarySelectionMode = false
+
+            hideLibrarySelectionBar()
+            updateLibrarySelectionMiniPlayer()
+
+            showLibrarySongs()
+
+            return
+        }
+
+        super.onBackPressed()
+    }
+
     private fun showLibrarySongs() {
+
+
 
         content.removeAllViews()
 
@@ -2320,20 +2977,117 @@ class MainActivity : ComponentActivity() {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(
-                        0,
+                        if (librarySelectionMode) dp(8) else 0,
                         dp(6),
-                        0,
+                        if (librarySelectionMode) dp(8) else 0,
                         dp(6)
                     )
 
+                    background =
+                        GradientDrawable().apply {
+                            cornerRadius = dp(14).toFloat()
+                            setColor(Color.TRANSPARENT)
+                        }
+
                     setOnClickListener {
-                        playSong(song)
+                        if (librarySelectionMode) {
+                            if (selectedLibrarySongs.contains(song.id)) {
+                                selectedLibrarySongs.remove(song.id)
+                            } else {
+                                selectedLibrarySongs.add(song.id)
+                            }
+
+
+                        if (selectedLibrarySongs.isEmpty()) {
+                            librarySelectionMode = false
+                        }
+
+                        updateLibrarySelectionMiniPlayer()
+                            renderSongs(query)
+                        } else {
+                            playSong(song)
+                        }
                     }
 
                     setOnLongClickListener {
-                        showSongActionSheet(song)
+                        if (!librarySelectionMode) {
+                            librarySelectionMode = true
+                            selectedLibrarySongs.clear()
+                        }
+
+                        selectedLibrarySongs.add(song.id)
+                        updateLibrarySelectionMiniPlayer()
+                        renderSongs(query)
                         true
                     }
+                }
+
+                val selectionCircle = TextView(this).apply {
+                    gravity = Gravity.CENTER
+                    includeFontPadding = false
+                    textSize = 13f
+                    typeface = Typeface.DEFAULT_BOLD
+
+                    val selected =
+                        selectedLibrarySongs.contains(song.id)
+
+                    text =
+                        if (selected) "✓" else ""
+
+                    setTextColor(Color.WHITE)
+
+                    background =
+                        GradientDrawable().apply {
+                            shape = GradientDrawable.OVAL
+
+                            if (selected) {
+                                setColor(
+                                    Color.rgb(
+                                        25,
+                                        25,
+                                        25
+                                    )
+                                )
+                            } else {
+                                setColor(Color.TRANSPARENT)
+                                setStroke(
+                                    dp(2),
+                                    Color.rgb(
+                                        145,
+                                        145,
+                                        145
+                                    )
+                                )
+                            }
+                        }
+
+                    setOnClickListener {
+                        if (selectedLibrarySongs.contains(song.id)) {
+                            selectedLibrarySongs.remove(song.id)
+                        } else {
+                            selectedLibrarySongs.add(song.id)
+                        }
+
+
+                    if (selectedLibrarySongs.isEmpty()) {
+                        librarySelectionMode = false
+                    }
+
+                    updateLibrarySelectionMiniPlayer()
+                        renderSongs(query)
+                    }
+                }
+
+                if (librarySelectionMode) {
+                    row.addView(
+                        selectionCircle,
+                        LinearLayout.LayoutParams(
+                            dp(24),
+                            dp(24)
+                        ).apply {
+                            rightMargin = dp(10)
+                        }
+                    )
                 }
 
                 val cover = ImageView(this).apply {
@@ -2456,30 +3210,32 @@ class MainActivity : ComponentActivity() {
                     )
                 )
 
-                val more = text(
-                    "•••",
-                    12f,
-                    Color.rgb(125, 125, 125),
-                    Typeface.BOLD
-                ).apply {
-                    gravity = Gravity.CENTER
-                    includeFontPadding = false
+                if (!librarySelectionMode) {
+                    val more = text(
+                        "•••",
+                        12f,
+                        Color.rgb(125, 125, 125),
+                        Typeface.BOLD
+                    ).apply {
+                        gravity = Gravity.CENTER
+                        includeFontPadding = false
 
-                    setOnClickListener { view ->
-                        showSongMenu(
-                            view,
-                            song
-                        )
+                        setOnClickListener { view ->
+                            showSongMenu(
+                                view,
+                                song
+                            )
+                        }
                     }
-                }
 
-                row.addView(
-                    more,
-                    LinearLayout.LayoutParams(
-                        dp(34),
-                        dp(56)
+                    row.addView(
+                        more,
+                        LinearLayout.LayoutParams(
+                            dp(34),
+                            dp(56)
+                        )
                     )
-                )
+                }
 
                 list.addView(
                     row,
@@ -8826,6 +9582,25 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val delete = text(
+            "Delete",
+            16f,
+            Color.rgb(200, 0, 0),
+            Typeface.NORMAL
+        ).apply {
+            setPadding(
+                dp(12),
+                dp(16),
+                dp(28),
+                dp(16)
+            )
+
+            setOnClickListener {
+                deleteSingleLibrarySong(song)
+                popup.dismiss()
+            }
+        }
+
         val select = text(
             "Select",
             16f,
@@ -8870,6 +9645,7 @@ class MainActivity : ComponentActivity() {
         box.addView(play)
         box.addView(favorite)
         box.addView(share)
+        box.addView(delete)
         box.addView(select)
         box.addView(info)
 
