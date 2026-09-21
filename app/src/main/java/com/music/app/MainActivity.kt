@@ -146,7 +146,6 @@ class MainActivity : ComponentActivity() {
     private var playbackIndex = -1
 
     private lateinit var content: LinearLayout
-    private lateinit var avatar: ImageView
     private lateinit var miniCover: ImageView
     private lateinit var miniPlayer: LinearLayout
 
@@ -238,23 +237,6 @@ class MainActivity : ComponentActivity() {
             ActivityResultContracts.RequestPermission()
         ) {
             finishOnboarding()
-        }
-
-    private val imagePicker =
-        registerForActivityResult(
-            ActivityResultContracts.GetContent()
-        ) { uri: Uri? ->
-            if (uri != null) {
-                saveAvatar(uri)
-                updateAvatar()
-
-                Toast.makeText(
-                    this@MainActivity,
-                    "Profile updated",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-            }
         }
 
     private var activeNavIndex = 0
@@ -1266,56 +1248,6 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        val headerAvatar = ImageView(this).apply {
-            setImageResource(
-                android.R.drawable.ic_menu_myplaces
-            )
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            setPadding(
-                0,
-                0,
-                0,
-                0
-            )
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.rgb(242, 242, 247))
-            }
-
-            clipToOutline = true
-            outlineProvider = object : android.view.ViewOutlineProvider() {
-                override fun getOutline(
-                    view: View,
-                    outline: android.graphics.Outline
-                ) {
-                    outline.setOval(
-                        0,
-                        0,
-                        view.width,
-                        view.height
-                    )
-                }
-            }
-
-            isClickable = true
-            isFocusable = true
-            elevation = dp(4).toFloat()
-
-            setOnClickListener {
-                showSettings()
-            }
-        }
-
-        updateAvatar(headerAvatar)
-
-        header.addView(
-            headerAvatar,
-            LinearLayout.LayoutParams(
-                dp(42),
-                dp(42)
-            )
-        )
-
         page.addView(
             header,
             LinearLayout.LayoutParams(
@@ -1683,6 +1615,470 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private fun showLibraryMenu(anchor: View) {
+
+        val menu = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(
+                dp(8),
+                dp(8),
+                dp(8),
+                dp(8)
+            )
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(18).toFloat()
+            }
+        }
+
+        fun addMenuItem(
+            label: String,
+            onClick: () -> Unit
+        ) {
+            val item = TextView(this).apply {
+                text = label
+                textSize = 16f
+                gravity = Gravity.CENTER_VERTICAL
+                setTextColor(Color.rgb(25, 25, 25))
+                includeFontPadding = false
+                setPadding(
+                    dp(16),
+                    0,
+                    dp(16),
+                    0
+                )
+                isClickable = true
+                isFocusable = true
+
+                setOnClickListener {
+                    onClick()
+                }
+            }
+
+            menu.addView(
+                item,
+                LinearLayout.LayoutParams(
+                    dp(170),
+                    dp(50)
+                )
+            )
+        }
+
+        var popup: PopupWindow? = null
+
+        addMenuItem("Edit") {
+            popup?.dismiss()
+            showEditLibrarySections()
+        }
+
+        addMenuItem("Settings") {
+            popup?.dismiss()
+            showSettings()
+        }
+
+        popup = PopupWindow(
+            menu,
+            dp(186),
+            dp(116),
+            true
+        ).apply {
+            setBackgroundDrawable(
+                android.graphics.drawable.ColorDrawable(
+                    Color.TRANSPARENT
+                )
+            )
+            elevation = dp(8).toFloat()
+            isOutsideTouchable = true
+        }
+
+        popup?.showAsDropDown(
+            anchor,
+            -dp(138),
+            -dp(4)
+        )
+    }
+
+    private fun showEditLibrarySections() {
+
+        val prefs = getSharedPreferences(
+            "library_sections",
+            MODE_PRIVATE
+        )
+
+        val defaultOrder = listOf(
+            "songs",
+            "playlists",
+            "favorites",
+            "artists",
+            "albums",
+            "recently_added",
+            "most_played"
+        )
+
+        val labels = mapOf(
+            "songs" to "Songs",
+            "playlists" to "Playlists",
+            "favorites" to "Favorites",
+            "artists" to "Artists",
+            "albums" to "Albums",
+            "recently_added" to "Recently added",
+            "most_played" to "Most played"
+        )
+
+        val storedOrder = prefs
+            .getString("order", null)
+            ?.split(",")
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+
+        val order = mutableListOf<String>()
+
+        storedOrder.forEach {
+            if (it in defaultOrder && it !in order) {
+                order.add(it)
+            }
+        }
+
+        defaultOrder.forEach {
+            if (it !in order) {
+                order.add(it)
+            }
+        }
+
+        val visible = mutableMapOf<String, Boolean>()
+
+        order.forEach { id ->
+            visible[id] = prefs.getBoolean(
+                "visible_$id",
+                true
+            )
+        }
+
+        val dialogLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(
+                dp(20),
+                dp(12),
+                dp(20),
+                dp(8)
+            )
+        }
+
+        val title = TextView(this).apply {
+            text = "Edit Library"
+            textSize = 22f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.rgb(20, 20, 20))
+            includeFontPadding = false
+            setPadding(
+                0,
+                dp(8),
+                0,
+                dp(14)
+            )
+        }
+
+        dialogLayout.addView(
+            title,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        val rowsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        dialogLayout.addView(
+            rowsContainer,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
+
+        fun rebuildRows() {
+            rowsContainer.removeAllViews()
+
+            order.forEachIndexed { index, id ->
+
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(
+                        0,
+                        dp(4),
+                        0,
+                        dp(4)
+                    )
+                }
+
+                val name = TextView(this).apply {
+                    text = labels[id] ?: id
+                    textSize = 16f
+                    setTextColor(Color.rgb(25, 25, 25))
+                    includeFontPadding = false
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+
+                row.addView(
+                    name,
+                    LinearLayout.LayoutParams(
+                        0,
+                        dp(52),
+                        1f
+                    )
+                )
+
+                val visibilityButton = TextView(this).apply {
+                    text = if (visible[id] == true) {
+                        "Shown"
+                    } else {
+                        "Hidden"
+                    }
+
+                    textSize = 13f
+                    gravity = Gravity.CENTER
+                    setTextColor(
+                        if (visible[id] == true) {
+                            Color.rgb(30, 30, 30)
+                        } else {
+                            Color.rgb(130, 130, 130)
+                        }
+                    )
+                    setPadding(
+                        dp(8),
+                        0,
+                        dp(8),
+                        0
+                    )
+
+                    setOnClickListener {
+
+                        val currentlyVisible =
+                            visible[id] == true
+
+                        if (currentlyVisible) {
+
+                            val visibleCount =
+                                order.count {
+                                    visible[it] == true
+                                }
+
+                            if (visibleCount <= 1) {
+                                return@setOnClickListener
+                            }
+                        }
+
+                        visible[id] = !currentlyVisible
+                        rebuildRows()
+                    }
+                }
+
+                row.addView(
+                    visibilityButton,
+                    LinearLayout.LayoutParams(
+                        dp(72),
+                        dp(48)
+                    )
+                )
+
+                val upButton = TextView(this).apply {
+                    text = "↑"
+                    textSize = 20f
+                    gravity = Gravity.CENTER
+                    setTextColor(
+                        if (index > 0) {
+                            Color.rgb(30, 30, 30)
+                        } else {
+                            Color.rgb(180, 180, 180)
+                        }
+                    )
+
+                    setOnClickListener {
+                        if (index > 0) {
+                            val temp = order[index - 1]
+                            order[index - 1] = order[index]
+                            order[index] = temp
+                            rebuildRows()
+                        }
+                    }
+                }
+
+                row.addView(
+                    upButton,
+                    LinearLayout.LayoutParams(
+                        dp(40),
+                        dp(48)
+                    )
+                )
+
+                val downButton = TextView(this).apply {
+                    text = "↓"
+                    textSize = 20f
+                    gravity = Gravity.CENTER
+                    setTextColor(
+                        if (index < order.lastIndex) {
+                            Color.rgb(30, 30, 30)
+                        } else {
+                            Color.rgb(180, 180, 180)
+                        }
+                    )
+
+                    setOnClickListener {
+                        if (index < order.lastIndex) {
+                            val temp = order[index + 1]
+                            order[index + 1] = order[index]
+                            order[index] = temp
+                            rebuildRows()
+                        }
+                    }
+                }
+
+                row.addView(
+                    downButton,
+                    LinearLayout.LayoutParams(
+                        dp(40),
+                        dp(48)
+                    )
+                )
+
+                rowsContainer.addView(
+                    row,
+                    LinearLayout.LayoutParams(
+                        -1,
+                        dp(60)
+                    )
+                )
+            }
+        }
+
+        rebuildRows()
+
+        val dialog = android.app.Dialog(this)
+
+        val dialogRoot = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundDrawable(
+                android.graphics.drawable.GradientDrawable().apply {
+                    setColor(Color.WHITE)
+                    cornerRadius = dp(24).toFloat()
+                }
+            )
+        }
+
+        dialogRoot.addView(
+            dialogLayout,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
+
+        val buttons = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(
+                dp(20),
+                dp(8),
+                dp(20),
+                dp(18)
+            )
+        }
+
+        val cancel = TextView(this).apply {
+            text = "Cancel"
+            textSize = 15f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(80, 80, 80))
+            isClickable = true
+
+            setOnClickListener {
+                dialog.dismiss()
+            }
+        }
+
+        buttons.addView(
+            cancel,
+            LinearLayout.LayoutParams(
+                0,
+                dp(48),
+                1f
+            )
+        )
+
+        val save = TextView(this).apply {
+            text = "Save"
+            textSize = 15f
+            gravity = Gravity.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.rgb(20, 20, 20))
+            isClickable = true
+
+            setOnClickListener {
+
+                val editor = prefs.edit()
+
+                editor.putString(
+                    "order",
+                    order.joinToString(",")
+                )
+
+                order.forEach { id ->
+                    editor.putBoolean(
+                        "visible_$id",
+                        visible[id] == true
+                    )
+                }
+
+                editor.apply()
+
+                dialog.dismiss()
+                showLibrary()
+            }
+        }
+
+        buttons.addView(
+            save,
+            LinearLayout.LayoutParams(
+                0,
+                dp(48),
+                1f
+            )
+        )
+
+        dialogRoot.addView(
+            buttons,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        dialog.setContentView(dialogRoot)
+
+        dialog.window?.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(
+                Color.TRANSPARENT
+            )
+        )
+
+        dialog.window?.setLayout(
+            -1,
+            -2
+        )
+
+        dialog.show()
+
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.92f).toInt(),
+            (resources.displayMetrics.heightPixels * 0.78f).toInt()
+        )
+    }
+
     private fun showLibrary() {
 
         // Keep the first ~10% of the screen as top breathing room.
@@ -1713,13 +2109,14 @@ class MainActivity : ComponentActivity() {
 
         // ---------- HEADER ----------
         val header = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             setBackgroundColor(Color.WHITE)
 
             setPadding(
                 dp(18),
                 dp(30),
-                dp(18),
+                dp(8),
                 dp(14)
             )
         }
@@ -1736,8 +2133,31 @@ class MainActivity : ComponentActivity() {
         header.addView(
             title,
             LinearLayout.LayoutParams(
-                -1,
-                dp(44)
+                0,
+                dp(44),
+                1f
+            )
+        )
+
+        val libraryMenuButton = TextView(this).apply {
+            text = "⋮"
+            textSize = 28f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(25, 25, 25))
+            includeFontPadding = false
+            isClickable = true
+            isFocusable = true
+
+            setOnClickListener {
+                showLibraryMenu(this)
+            }
+        }
+
+        header.addView(
+            libraryMenuButton,
+            LinearLayout.LayoutParams(
+                dp(48),
+                dp(48)
             )
         )
 
@@ -1989,122 +2409,174 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        // ---------- SONGS ----------
-        container.addView(
-            libraryRow(
-                "♫",
-                "Songs",
-                "${songs.size} songs"
-            ) {
-                showLibrarySongs()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(78)
-            )
+        // ---------- CONFIGURED LIBRARY SECTIONS ----------
+        val libraryPrefs = getSharedPreferences(
+            "library_sections",
+            MODE_PRIVATE
         )
 
-        divider()
-
-        // ---------- PLAYLISTS ----------
-        container.addView(
-            libraryRow(
-                "☷",
-                "Playlists",
-                "Your playlists"
-            ) {
-                showCreatePlaylistDialog()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(78)
-            )
+        val defaultLibraryOrder = listOf(
+            "songs",
+            "playlists",
+            "favorites",
+            "artists",
+            "albums",
+            "recently_added",
+            "most_played"
         )
 
-        divider()
+        val storedLibraryOrder = libraryPrefs
+            .getString("order", null)
+            ?.split(",")
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
 
-        // ---------- FAVORITES ----------
-        container.addView(
-            libraryRow(
-                "★",
-                "Favorites",
-                "Your favorite songs"
+        val libraryOrder = mutableListOf<String>()
+
+        storedLibraryOrder.forEach { id ->
+            if (
+                id in defaultLibraryOrder &&
+                id !in libraryOrder
             ) {
-                showLibraryFavorites()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(78)
-            )
-        )
+                libraryOrder.add(id)
+            }
+        }
 
-        divider()
+        defaultLibraryOrder.forEach { id ->
+            if (id !in libraryOrder) {
+                libraryOrder.add(id)
+            }
+        }
 
-        // ---------- ARTISTS ----------
-        container.addView(
-            libraryRow(
-                "♟",
-                "Artists",
-                "Browse by artist"
-            ) {
-                showLibraryArtists()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(78)
-            )
-        )
+        val visibleLibrarySections =
+            libraryOrder.filter { id ->
+                libraryPrefs.getBoolean(
+                    "visible_$id",
+                    true
+                )
+            }
 
-        divider()
+        visibleLibrarySections.forEachIndexed { index, id ->
 
-        // ---------- ALBUMS ----------
-        container.addView(
-            libraryRow(
-                "◉",
-                "Albums",
-                "Browse by album"
-            ) {
-                showLibraryAlbums()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(78)
-            )
-        )
+            when (id) {
 
-        divider()
+                "songs" -> {
+                    container.addView(
+                        libraryRow(
+                            "♫",
+                            "Songs",
+                            "${songs.size} songs"
+                        ) {
+                            showLibrarySongs()
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(78)
+                        )
+                    )
+                }
 
-        // ---------- RECENTLY ADDED ----------
-        container.addView(
-            libraryRow(
-                "＋",
-                "Recently added",
-                "Latest songs"
-            ) {
-                showLibraryRecentlyAdded()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(78)
-            )
-        )
+                "playlists" -> {
+                    container.addView(
+                        libraryRow(
+                            "☷",
+                            "Playlists",
+                            "Your playlists"
+                        ) {
+                            showCreatePlaylistDialog()
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(78)
+                        )
+                    )
+                }
 
-        divider()
+                "favorites" -> {
+                    container.addView(
+                        libraryRow(
+                            "★",
+                            "Favorites",
+                            "Your favorite songs"
+                        ) {
+                            showLibraryFavorites()
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(78)
+                        )
+                    )
+                }
 
-        // ---------- MOST PLAYED ----------
-        container.addView(
-            libraryRow(
-                "↗",
-                "Most played",
-                "Your most played songs"
-            ) {
-                showLibraryMostPlayed()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(78)
-            )
-        )
+                "artists" -> {
+                    container.addView(
+                        libraryRow(
+                            "♟",
+                            "Artists",
+                            "Browse by artist"
+                        ) {
+                            showLibraryArtists()
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(78)
+                        )
+                    )
+                }
+
+                "albums" -> {
+                    container.addView(
+                        libraryRow(
+                            "◉",
+                            "Albums",
+                            "Browse by album"
+                        ) {
+                            showLibraryAlbums()
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(78)
+                        )
+                    )
+                }
+
+                "recently_added" -> {
+                    container.addView(
+                        libraryRow(
+                            "＋",
+                            "Recently added",
+                            "Latest songs"
+                        ) {
+                            showLibraryRecentlyAdded()
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(78)
+                        )
+                    )
+                }
+
+                "most_played" -> {
+                    container.addView(
+                        libraryRow(
+                            "↗",
+                            "Most played",
+                            "Your most played songs"
+                        ) {
+                            showLibraryMostPlayed()
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(78)
+                        )
+                    )
+                }
+            }
+
+            if (index < visibleLibrarySections.lastIndex) {
+                divider()
+            }
+        }
     }
 
     private fun updateLibrarySelectionMiniPlayer() {
@@ -4334,42 +4806,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val profileAvatar = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
-
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.rgb(242, 242, 247))
-            }
-
-            clipToOutline = true
-            outlineProvider = object : android.view.ViewOutlineProvider() {
-                override fun getOutline(
-                    view: View,
-                    outline: android.graphics.Outline
-                ) {
-                    outline.setOval(
-                        0,
-                        0,
-                        view.width,
-                        view.height
-                    )
-                }
-            }
-        }
-
-        updateAvatar(profileAvatar)
-
-        profileCard.addView(
-            profileAvatar,
-            LinearLayout.LayoutParams(
-                dp(122),
-                dp(122)
-            ).apply {
-                bottomMargin = dp(14)
-            }
-        )
-
         val profileName = TextView(this).apply {
             text = getProfileName()
             textSize = 22f
@@ -4418,34 +4854,16 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val setProfile = profileButton("Set Profile") {
-            imagePicker.launch("image/*")
-        }
-
         val editInfo = profileButton("Edit Info") {
             showEditInfo()
         }
 
         profileActions.addView(
-            setProfile,
-            LinearLayout.LayoutParams(
-                0,
-                dp(52),
-                1f
-            ).apply {
-                marginEnd = dp(6)
-            }
-        )
-
-        profileActions.addView(
             editInfo,
             LinearLayout.LayoutParams(
-                0,
-                dp(52),
-                1f
-            ).apply {
-                marginStart = dp(6)
-            }
+                -1,
+                dp(52)
+            )
         )
 
         profileCard.addView(
@@ -4578,12 +4996,6 @@ class MainActivity : ComponentActivity() {
         addModernSettingsCard(
             page,
             listOf(
-                ModernSetting(
-                    "Manage tabs",
-                    "Home, Library, Settings"
-                ) {
-                    showManageTabsDialog()
-                },
                 ModernSetting(
                     "Dark mode",
                     if (getSettingsPrefs().getBoolean(
@@ -5086,13 +5498,6 @@ class MainActivity : ComponentActivity() {
         showSettingFullScreen(
             "Manage Playlists",
             "Create and manage playlists"
-        ) {}
-    }
-
-    private fun showManageTabsDialog() {
-        showSettingFullScreen(
-            "Manage tabs",
-            "Home, Library, Settings"
         ) {}
     }
 
@@ -6116,32 +6521,6 @@ class MainActivity : ComponentActivity() {
                             "no_duplicate_songs",
                             which == 0
                         )
-                        .apply()
-
-                    showSettings()
-                }
-            }
-
-            "Manage tabs" -> {
-                val prefs = getSettingsPrefs()
-
-                showMultiSelectionFullScreen(
-                    "Manage tabs",
-                    listOf(
-                        "Home",
-                        "Library",
-                        "Settings"
-                    ),
-                    mutableListOf(
-                        prefs.getBoolean("tab_home", true),
-                        prefs.getBoolean("tab_library", true),
-                        prefs.getBoolean("tab_settings", true)
-                    )
-                ) { checked ->
-                    prefs.edit()
-                        .putBoolean("tab_home", checked[0])
-                        .putBoolean("tab_library", checked[1])
-                        .putBoolean("tab_settings", checked[2])
                         .apply()
 
                     showSettings()
@@ -9690,63 +10069,6 @@ class MainActivity : ComponentActivity() {
             .edit()
             .putString("name", name.trim())
             .apply()
-    }
-
-    private fun updateAvatar(target: ImageView? = null) {
-
-        val image = target ?: avatar
-
-        val file = File(
-            filesDir,
-            "profile_avatar.jpg"
-        )
-
-        if (file.exists()) {
-            image.setImageURI(Uri.fromFile(file))
-        } else {
-            image.setImageResource(android.R.drawable.ic_menu_myplaces)
-            image.setColorFilter(Color.WHITE)
-        }
-    }
-
-    private fun saveAvatar(uri: Uri) {
-
-        try {
-
-            contentResolver.openInputStream(uri)?.use { input ->
-
-                FileOutputStream(
-                    File(filesDir, "profile_avatar.jpg")
-                ).use { output ->
-
-                    input.copyTo(output)
-                }
-            }
-
-        } catch (e: Exception) {
-
-            Toast.makeText(
-                this,
-                "Could not save photo",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    private fun deleteAvatar() {
-
-        File(
-            filesDir,
-            "profile_avatar.jpg"
-        ).delete()
-
-        updateAvatar()
-
-        Toast.makeText(
-            this,
-            "Profile photo removed",
-            Toast.LENGTH_SHORT
-        ).show()
     }
 
     private fun showSongMenu(
