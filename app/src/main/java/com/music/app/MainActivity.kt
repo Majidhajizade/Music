@@ -1189,7 +1189,7 @@ class MainActivity : ComponentActivity() {
             isFillViewport = true
             clipToPadding = false
             setBackgroundColor(Color.WHITE)
-            setPadding(0, topSpaceDp, 0, 0)
+            setPadding(0, 0, 0, 0)
             overScrollMode = View.OVER_SCROLL_NEVER
         }
 
@@ -1212,6 +1212,12 @@ class MainActivity : ComponentActivity() {
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(
+                dp(20),
+                topSpaceDp + dp(28),
+                dp(20),
+                dp(14)
+            )
         }
 
         val greetingBox = LinearLayout(this).apply {
