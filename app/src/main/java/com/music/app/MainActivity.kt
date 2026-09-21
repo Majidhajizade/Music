@@ -188,6 +188,17 @@ class MainActivity : ComponentActivity() {
     private var miniFullTargetCenterY = Float.NaN
     private var miniFullTargetSize = 0
 
+    // Cached geometry for the Mini -> Full animation.
+    // These values remain stable during one expansion.
+    private var miniFullCachedMiniCenterX = Float.NaN
+    private var miniFullCachedMiniCenterY = Float.NaN
+    private var miniFullCachedCardCenterX = Float.NaN
+    private var miniFullCachedScreenWidth = 0
+    private var miniFullCachedScreenHeight = 0
+    private var miniFullCachedMiniHeight = 0
+    private var miniFullCachedMiniTop = 0
+    private var miniFullCachedCoverSize = 0
+
 
     private val playerPrefs by lazy {
         getSharedPreferences("player_state", MODE_PRIVATE)
@@ -7760,6 +7771,7 @@ class MainActivity : ComponentActivity() {
                         miniGestureDownX = event.rawX
                         miniGestureDownY = event.rawY
                         miniGestureLastX = event.rawX
+
                         miniGestureLastY = event.rawY
 
                         miniGestureDragging = false
@@ -7860,9 +7872,6 @@ class MainActivity : ComponentActivity() {
 
                                 miniFullTransitionProgress = progress
 
-                                updateMiniFullTransition(
-                                    progress
-                                )
 
                                 miniGestureLastY = event.rawY
 
@@ -8014,6 +8023,35 @@ class MainActivity : ComponentActivity() {
         val miniHeight =
             miniPlayer.height.coerceAtLeast(dp(60))
 
+        val miniCoverLocation = IntArray(2)
+        miniCover.getLocationOnScreen(miniCoverLocation)
+
+        miniFullCachedMiniCenterX =
+            miniCoverLocation[0].toFloat() +
+                miniCover.width / 2f
+
+        miniFullCachedMiniCenterY =
+            miniCoverLocation[1].toFloat() +
+                miniCover.height / 2f
+
+        miniFullCachedScreenWidth =
+            screenWidth
+
+        miniFullCachedScreenHeight =
+            resources.displayMetrics.heightPixels
+
+        miniFullCachedMiniHeight =
+            miniHeight
+
+        miniFullCachedMiniTop =
+            top
+
+        miniFullCachedCardCenterX =
+            screenWidth / 2f
+
+        miniFullCachedCardBaseCenterY =
+            top + miniHeight / 2f
+
         val card = FrameLayout(this).apply {
             clipChildren = false
             background = createMiniExpansionBackground(song)
@@ -8040,7 +8078,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-            getAlbumArt(song)?.let {
+            initialArtwork?.let {
                 setImageBitmap(it)
             } ?: run {
                 setImageResource(R.drawable.icon)
@@ -8142,10 +8180,15 @@ class MainActivity : ComponentActivity() {
         val cover = miniExpansionCover ?: return
 
         val screenHeight =
-            resources.displayMetrics.heightPixels.toFloat()
+            miniFullCachedScreenHeight
+                .takeIf { it > 0 }
+                ?.toFloat()
+                ?: resources.displayMetrics.heightPixels.toFloat()
 
         val miniHeight =
-            miniPlayer.height.coerceAtLeast(dp(60))
+            miniFullCachedMiniHeight
+                .takeIf { it > 0 }
+                ?: miniPlayer.height.coerceAtLeast(dp(60))
 
         val maxUp =
             (screenHeight - miniHeight).coerceAtLeast(1f)
@@ -8162,32 +8205,39 @@ class MainActivity : ComponentActivity() {
             card.layoutParams as? FrameLayout.LayoutParams
                 ?: return
 
-        lp.width =
-            resources.displayMetrics.widthPixels
+        val targetWidth =
+            miniFullCachedScreenWidth
+                .takeIf { it > 0 }
+                ?: resources.displayMetrics.widthPixels
 
-        lp.height =
+        val targetHeight =
             (miniHeight + upward).toInt()
 
-        lp.leftMargin = 0
+        val targetTop =
+            miniFullCachedMiniTop - upward.toInt()
 
-        lp.topMargin =
-            (miniPlayerTopInDecor() - upward).toInt()
+        if (
+            lp.width != targetWidth ||
+            lp.height != targetHeight ||
+            lp.leftMargin != 0 ||
+            lp.topMargin != targetTop
+        ) {
+            lp.width = targetWidth
+            lp.height = targetHeight
+            lp.leftMargin = 0
+            lp.topMargin = targetTop
 
-        card.layoutParams = lp
+            card.layoutParams = lp
+        }
 
         /*
          * Continuous Mini -> Full artwork path.
          */
-        val miniLocation = IntArray(2)
-        miniCover.getLocationOnScreen(miniLocation)
-
         val miniCenterX =
-            miniLocation[0] +
-                miniCover.width / 2f
+            miniFullCachedMiniCenterX
 
         val miniCenterY =
-            miniLocation[1] +
-                miniCover.height / 2f
+            miniFullCachedMiniCenterY
 
         val targetReady =
             !miniFullTargetCenterX.isNaN() &&
@@ -8267,21 +8317,21 @@ class MainActivity : ComponentActivity() {
                 .toInt()
                 .coerceAtLeast(dp(46))
 
-        val coverLp = cover.layoutParams
-        coverLp.width = coverSize
-        coverLp.height = coverSize
-        cover.layoutParams = coverLp
+        if (miniFullCachedCoverSize != coverSize) {
+            val coverLp = cover.layoutParams
+            coverLp.width = coverSize
+            coverLp.height = coverSize
+            cover.layoutParams = coverLp
 
-        val cardLocation = IntArray(2)
-        card.getLocationOnScreen(cardLocation)
+            miniFullCachedCoverSize = coverSize
+        }
 
         val cardCenterX =
-            cardLocation[0].toFloat() +
-                card.width / 2f
+            miniFullCachedCardCenterX
 
         val cardCenterY =
-            cardLocation[1].toFloat() +
-                card.height / 2f
+            miniFullCachedCardBaseCenterY -
+                upward / 2f
 
         cover.translationX =
             centerX - cardCenterX
@@ -8353,9 +8403,6 @@ class MainActivity : ComponentActivity() {
                         -maxUp * progress
                     )
 
-                    updateMiniFullTransition(
-                        progress
-                    )
                 }
 
                 addListener(
@@ -8530,22 +8577,11 @@ class MainActivity : ComponentActivity() {
                 1f - p
         }
 
-        if (miniExpansionCard != null) {
-            miniPlayer.alpha = 0f
-        }
-
         /*
          * During 0 -> 50% ONLY artwork/background is visible.
+         * Static visual state is initialized when the expansion card
+         * is created, so no per-frame setters are needed here.
          */
-        miniExpansionCover?.apply {
-            alpha = 1f
-            rotation = 0f
-            scaleX = 1f
-            scaleY = 1f
-        }
-
-        miniExpansionTitle?.alpha = 0f
-        miniExpansionArtist?.alpha = 0f
 
         /*
          * Create the real Full Player exactly at the 50%
@@ -8576,12 +8612,7 @@ class MainActivity : ComponentActivity() {
 
         root.alpha = eased
 
-        miniTransitionFullCover?.apply {
-            alpha = eased
-            scaleX = 1f
-            scaleY = 1f
-            rotation = 0f
-        }
+        miniTransitionFullCover?.alpha = eased
 
         miniTransitionInfo?.apply {
             translationY =
@@ -10289,8 +10320,15 @@ class MainActivity : ComponentActivity() {
         // COVER
         // -------------------------------------------------
 
+        /*
+         * Resolve artwork before the cover transition starts.
+         * If it is already cached this is effectively free, while
+         * avoiding an artwork lookup in the middle of animation.
+         */
         val fullPlayerArtwork =
-            getAlbumArt(song)
+            initialArtwork
+
+        cover.animate().cancel()
 
         cover.animate()
             .alpha(0.18f)
@@ -10405,23 +10443,12 @@ class MainActivity : ComponentActivity() {
                     colors
                 )
 
-            // Briefly soften the entire surface while swapping
-            // the background, then restore it.
-            root.animate()
-                .alpha(0.88f)
-                .setDuration(150L)
-                .setInterpolator(decelerate)
-                .withEndAction {
-
-                    root.background = newBackground
-
-                    root.animate()
-                        .alpha(1f)
-                        .setDuration(360L)
-                        .setInterpolator(decelerate)
-                        .start()
-                }
-                .start()
+              // Swap the background directly.
+              // The cover and controls are already animating, so
+              // animating the entire root would add extra compositing.
+              root.animate().cancel()
+              root.alpha = 1f
+              root.background = newBackground
         }
     }
 
@@ -10831,11 +10858,11 @@ class MainActivity : ComponentActivity() {
             dp(46).toFloat()
 
         val miniCenterX =
-            miniLocation[0]
+            miniLocation[0] +
                 miniSize / 2f
 
         val miniCenterY =
-            miniLocation[1]
+            miniLocation[1] +
                 miniSize / 2f
 
         val currentCoverLocation =
@@ -10846,11 +10873,11 @@ class MainActivity : ComponentActivity() {
         )
 
         val currentCenterX =
-            currentCoverLocation[0]
+            currentCoverLocation[0] +
                 cover.width / 2f
 
         val currentCenterY =
-            currentCoverLocation[1]
+            currentCoverLocation[1] +
                 cover.height / 2f
 
         val finalX =
@@ -10869,18 +10896,34 @@ class MainActivity : ComponentActivity() {
         val closeDuration =
             280L
 
+        /*
+         * Cancel stale transition animations before starting
+         * the Full Player -> Mini Player transition.
+         */
+        root.animate().cancel()
+        cover.animate().cancel()
+        miniPlayer.animate().cancel()
+        miniBottomNavigation?.animate()?.cancel()
+
+        root.findViewWithTag<View>(
+            "full_player_controls"
+        )?.animate()?.cancel()
+
         miniPlayer.alpha = 0f
 
         miniBottomNavigation?.apply {
             translationY =
                 dp(82).toFloat()
-
             alpha = 0f
         }
 
         cover.animate()
-            .translationXBy(finalX.toFloat())
-            .translationYBy(finalY.toFloat())
+            .translationX(
+                finalX
+            )
+            .translationY(
+                finalY
+            )
             .scaleX(
                 miniSize /
                     fullWidth
@@ -10889,38 +10932,19 @@ class MainActivity : ComponentActivity() {
                 miniSize /
                     fullWidth
             )
-            .setDuration(closeDuration)
-            .setInterpolator(
-                DecelerateInterpolator()
+            .setDuration(
+                closeDuration
             )
-            .start()
-
-        miniPlayer.animate()
-            .alpha(1f)
-            .setDuration(closeDuration)
-            .setInterpolator(
-                DecelerateInterpolator()
-            )
-            .start()
-
-        miniBottomNavigation?.animate()
-            ?.translationY(0f)
-            ?.alpha(1f)
-            ?.setDuration(closeDuration)
-            ?.setInterpolator(
-                DecelerateInterpolator()
-            )
-            ?.start()
-
-        root.animate()
-            .translationY(root.translationY)
-            .alpha(1f)
-            .setDuration(closeDuration)
             .setInterpolator(
                 DecelerateInterpolator()
             )
             .withEndAction {
 
+                /*
+                 * The root was moved by the close gesture.
+                 * Reset it only after the cover reaches the Mini Player,
+                 * avoiding a second root-wide animator during the transition.
+                 */
                 root.translationY = 0f
                 root.alpha = 1f
 
@@ -10977,6 +11001,27 @@ class MainActivity : ComponentActivity() {
                 dialog.dismiss()
             }
             .start()
+
+        miniPlayer.animate()
+            .alpha(1f)
+            .setDuration(
+                closeDuration
+            )
+            .setInterpolator(
+                DecelerateInterpolator()
+            )
+            .start()
+
+        miniBottomNavigation?.animate()
+            ?.translationY(0f)
+            ?.alpha(1f)
+            ?.setDuration(
+                closeDuration
+            )
+            ?.setInterpolator(
+                DecelerateInterpolator()
+            )
+            ?.start()
     }
 
     private fun showNowPlaying() {
@@ -11158,16 +11203,31 @@ class MainActivity : ComponentActivity() {
             Color.rgb(205, 205, 210)
         )
 
-        val fallbackArtwork =
-            android.graphics.BitmapFactory.decodeResource(
-                resources,
-                R.drawable.icon
-            )
+        val initialArtwork =
+            if (miniExpansionOpening) {
+                (
+                    miniExpansionCover?.drawable
+                        as? android.graphics.drawable.BitmapDrawable
+                )?.bitmap
+            } else {
+                getAlbumArt(song)
+            }
 
-        val initialArtwork = getAlbumArt(song)
+        /*
+         * During Mini -> Full handoff, avoid bitmap/color work on
+         * the animation frame. The background will be refreshed
+         * by colorUpdater immediately after the player is shown.
+         */
+        if (!miniExpansionOpening) {
+            val fallbackArtwork =
+                android.graphics.BitmapFactory.decodeResource(
+                    resources,
+                    R.drawable.icon
+                )
 
-        if (initialArtwork == null && fallbackArtwork != null) {
-            currentColors = extractColors(fallbackArtwork)
+            if (initialArtwork == null && fallbackArtwork != null) {
+                currentColors = extractColors(fallbackArtwork)
+            }
         }
 
         fun applyBackground(colors: IntArray) {
@@ -11187,11 +11247,13 @@ class MainActivity : ComponentActivity() {
             root.background = drawable
         }
 
-        initialArtwork?.let {
-            currentColors = getAlbumColors(
-                song,
-                it
-            )
+        if (!miniExpansionOpening) {
+            initialArtwork?.let {
+                currentColors = getAlbumColors(
+                    song,
+                    it
+                )
+            }
         }
 
         applyBackground(currentColors)
@@ -11244,7 +11306,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-            getAlbumArt(song)?.let {
+            initialArtwork?.let {
                 setImageBitmap(it)
             } ?: run {
                 setImageResource(R.drawable.icon)
@@ -13094,7 +13156,15 @@ class MainActivity : ComponentActivity() {
             }
 
         handler.post(updater)
-        handler.post(colorUpdater)
+
+        if (miniExpansionOpening) {
+            handler.postDelayed(
+                colorUpdater,
+                400L
+            )
+        } else {
+            handler.post(colorUpdater)
+        }
 
         // ---------- ATTACH LOWER PLAYER PANEL ----------
 
@@ -13283,10 +13353,6 @@ class MainActivity : ComponentActivity() {
                      * exactly the same center/size.
                      */
                     updateMiniExpansionCard(
-                        miniFullTransitionProgress
-                    )
-
-                    updateMiniFullTransition(
                         miniFullTransitionProgress
                     )
                 }
