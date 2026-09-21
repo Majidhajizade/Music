@@ -1197,6 +1197,8 @@ class MainActivity : ComponentActivity() {
             clipToPadding = false
         }
 
+        var homeCollapsed = false
+
         // -------------------------------------------------
         // Apple Music style header
         // -------------------------------------------------
@@ -1212,38 +1214,25 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        val greetingBox = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        val greeting = TextView(this).apply {
+        // Home title that appears inside the header while scrolling.
+        val collapsingGreeting = TextView(this).apply {
             text = "Home"
-            textSize = 28f
+            textSize = 22f
             setTextColor(Color.BLACK)
             typeface = Typeface.create(
                 Typeface.DEFAULT,
                 Typeface.BOLD
             )
             includeFontPadding = false
-            translationY = dp(8).toFloat()
+            alpha = 0f
+            translationY = dp(10).toFloat()
         }
 
-
-        greetingBox.addView(
-            greeting,
+        header.addView(
+            collapsingGreeting,
             LinearLayout.LayoutParams(
                 -1,
                 -2
-            )
-        )
-
-        header.addView(
-            greetingBox,
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
             )
         )
 
@@ -1252,6 +1241,32 @@ class MainActivity : ComponentActivity() {
         // -------------------------------------------------
 
         if (songs.isNotEmpty()) {
+
+            val pageGreeting = TextView(this).apply {
+                text = "Home"
+                textSize = 28f
+                setTextColor(Color.BLACK)
+                typeface = Typeface.create(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+                )
+                includeFontPadding = false
+                translationY = dp(8).toFloat()
+                setPadding(
+                    0,
+                    0,
+                    0,
+                    dp(24)
+                )
+            }
+
+            page.addView(
+                pageGreeting,
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                )
+            )
 
             val topPicksTitle = TextView(this).apply {
                 text = "Top Picks for You"
@@ -1264,7 +1279,7 @@ class MainActivity : ComponentActivity() {
                 includeFontPadding = false
                 setPadding(
                     0,
-                    dp(24),
+                    0,
                     0,
                     dp(14)
                 )
@@ -1277,6 +1292,69 @@ class MainActivity : ComponentActivity() {
                     -2
                 )
             )
+
+            scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+
+                val collapseDistance =
+                    dp(90).coerceAtLeast(1)
+
+                val progress =
+                    (scrollY.toFloat() / collapseDistance.toFloat())
+                        .coerceIn(0f, 1f)
+
+                // Move the large Home title upward while
+                // smoothly handing it off to the compact header title.
+                pageGreeting.alpha =
+                    1f - progress
+
+                pageGreeting.translationY =
+                    -dp(42).toFloat() * progress
+
+                pageGreeting.scaleX =
+                    1f - (0.12f * progress)
+
+                pageGreeting.scaleY =
+                    1f - (0.12f * progress)
+
+                collapsingGreeting.alpha =
+                    progress
+
+                collapsingGreeting.translationY =
+                    dp(10).toFloat() * (1f - progress)
+
+                collapsingGreeting.scaleX =
+                    0.94f + (0.06f * progress)
+
+                collapsingGreeting.scaleY =
+                    0.94f + (0.06f * progress)
+
+                if (progress >= 0.95f && !homeCollapsed) {
+
+                    homeCollapsed = true
+
+                    collapsingGreeting.animate()
+                        .alpha(1f)
+                        .translationY(0f)
+                        .setDuration(180L)
+                        .setInterpolator(
+                            android.view.animation.DecelerateInterpolator()
+                        )
+                        .start()
+
+                } else if (progress <= 0.05f && homeCollapsed) {
+
+                    homeCollapsed = false
+
+                    collapsingGreeting.animate()
+                        .alpha(0f)
+                        .translationY(dp(10).toFloat())
+                        .setDuration(180L)
+                        .setInterpolator(
+                            android.view.animation.DecelerateInterpolator()
+                        )
+                        .start()
+                }
+            }
 
             val suggestionPool =
                 songs.filterNot {
@@ -3314,7 +3392,7 @@ class MainActivity : ComponentActivity() {
 
                     setColor(
                         Color.rgb(
-                            25, 103, 210
+                            42, 125, 225
                         )
                     )
 
@@ -3757,7 +3835,7 @@ class MainActivity : ComponentActivity() {
                             if (selected) {
                                 setColor(
                                     Color.rgb(
-                                        25, 103, 210
+                                        42, 125, 225
                                     )
                                 )
                             } else {
