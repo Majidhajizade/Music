@@ -1226,7 +1226,7 @@ class MainActivity : ComponentActivity() {
                 Typeface.BOLD
             )
             includeFontPadding = false
-            translationY = dp(40).toFloat()
+            translationY = dp(8).toFloat()
         }
 
 
@@ -3291,13 +3291,18 @@ class MainActivity : ComponentActivity() {
             selectedLibrarySongs.contains(songId)
 
         val selectionCircle =
-            row.findViewWithTag<TextView>(
+            row.findViewWithTag<ImageView>(
                 "library_selection_circle"
             )
                 ?: return
 
-        selectionCircle.text =
-            if (selected) "✓" else ""
+        selectionCircle.setImageResource(
+            if (selected) {
+                R.drawable.ic_selection_check
+            } else {
+                0
+            }
+        )
 
         selectionCircle.background =
             GradientDrawable().apply {
@@ -3309,9 +3314,7 @@ class MainActivity : ComponentActivity() {
 
                     setColor(
                         Color.rgb(
-                            25,
-                            25,
-                            25
+                            25, 103, 210
                         )
                     )
 
@@ -3730,21 +3733,22 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                val selectionCircle = TextView(this).apply {
+                val selectionCircle = ImageView(this).apply {
                     tag = "library_selection_circle"
 
-                    gravity = Gravity.CENTER
-                    includeFontPadding = false
-                    textSize = 13f
-                    typeface = Typeface.DEFAULT_BOLD
+                    scaleType =
+                        ImageView.ScaleType.CENTER_INSIDE
 
                     val selected =
                         selectedLibrarySongs.contains(song.id)
 
-                    text =
-                        if (selected) "✓" else ""
-
-                    setTextColor(Color.WHITE)
+                    setImageResource(
+                        if (selected) {
+                            R.drawable.ic_selection_check
+                        } else {
+                            0
+                        }
+                    )
 
                     background =
                         GradientDrawable().apply {
@@ -3753,9 +3757,7 @@ class MainActivity : ComponentActivity() {
                             if (selected) {
                                 setColor(
                                     Color.rgb(
-                                        25,
-                                        25,
-                                        25
+                                        25, 103, 210
                                     )
                                 )
                             } else {
