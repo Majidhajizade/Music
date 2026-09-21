@@ -1248,14 +1248,6 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        page.addView(
-            header,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
-        )
-
         // -------------------------------------------------
         // Made For You
         // -------------------------------------------------
@@ -1602,6 +1594,14 @@ class MainActivity : ComponentActivity() {
                 )
             )
         }
+
+        content.addView(
+            header,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
 
         scroll.addView(page)
 
