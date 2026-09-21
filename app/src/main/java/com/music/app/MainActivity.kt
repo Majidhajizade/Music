@@ -37,6 +37,14 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import android.os.Handler
+import android.os.Looper
+import android.webkit.URLUtil
+import java.net.HttpURLConnection
+import java.net.URLEncoder
+import java.net.URL
+import org.json.JSONObject
+import org.json.JSONArray
 
 data class Song(
     val id: Long,
@@ -46,6 +54,14 @@ data class Song(
     val dateAdded: Long = 0L
 )
 
+private data class OnlineTrack(
+    val identifier: String,
+    val title: String,
+    val artist: String,
+    val audioUrl: String,
+    val fileName: String
+)
+
 class MainActivity : ComponentActivity() {
 
     private val backgroundExecutor: ExecutorService =
@@ -53,6 +69,14 @@ class MainActivity : ComponentActivity() {
 
     private val songs = mutableListOf<Song>()
     private var mediaPlayer: MediaController? = null
+
+    private val onlineSearchExecutor =
+        Executors.newSingleThreadExecutor()
+
+    private val mainHandler =
+        Handler(Looper.getMainLooper())
+
+    private var lastOnlineQuery = ""
     private var currentSong: Song? = null
 
     /*
@@ -7458,6 +7482,450 @@ class MainActivity : ComponentActivity() {
         return row
     }
 
+    private fun searchInternetArchive(
+        query: String,
+        callback: (List<OnlineTrack>) -> Unit
+    ) {
+
+        onlineSearchExecutor.execute {
+
+            val result = mutableListOf<OnlineTrack>()
+
+            try {
+
+                val encoded =
+                    URLEncoder.encode(
+                        query.trim(),
+                        "UTF-8"
+                    )
+
+                val searchUrl =
+                    "https://archive.org/advancedsearch.php" +
+                    "?q=mediatype%3Aaudio+AND+" +
+                    "(title%3A$encoded+OR+creator%3A$encoded)" +
+                    "&fl%5B%5D=identifier" +
+                    "&fl%5B%5D=title" +
+                    "&fl%5B%5D=creator" +
+                    "&rows=15" +
+                    "&page=1" +
+                    "&output=json"
+
+                val json =
+                    httpGet(searchUrl)
+
+                val docs =
+                    JSONObject(json)
+                        .getJSONObject("response")
+                        .getJSONArray("docs")
+
+                for (i in 0 until docs.length()) {
+
+                    val doc =
+                        docs.getJSONObject(i)
+
+                    val identifier =
+                        doc.optString("identifier")
+
+                    if (identifier.isBlank()) {
+                        continue
+                    }
+
+                    val title =
+                        doc.optString(
+                            "title",
+                            "Unknown title"
+                        )
+
+                    val creator =
+                        when {
+                            doc.optJSONArray("creator") != null ->
+                                doc.optJSONArray("creator")
+                                    ?.optString(0)
+                                    ?: "Unknown artist"
+
+                            doc.optString("creator").isNotBlank() ->
+                                doc.optString("creator")
+
+                            else ->
+                                "Unknown artist"
+                        }
+
+                    val audio =
+                        findArchiveAudio(
+                            identifier
+                        )
+
+                    if (audio != null) {
+
+                        result.add(
+                            OnlineTrack(
+                                identifier = identifier,
+                                title = title,
+                                artist = creator,
+                                audioUrl = audio.first,
+                                fileName = audio.second
+                            )
+                        )
+                    }
+
+                    if (result.size >= 10) {
+                        break
+                    }
+                }
+
+            } catch (_: Exception) {
+            }
+
+            mainHandler.post {
+                callback(result)
+            }
+        }
+    }
+
+    private fun findArchiveAudio(
+        identifier: String
+    ): Pair<String, String>? {
+
+        return try {
+
+            val metadataUrl =
+                "https://archive.org/metadata/" +
+                URLEncoder.encode(
+                    identifier,
+                    "UTF-8"
+                )
+
+            val json =
+                JSONObject(
+                    httpGet(metadataUrl)
+                )
+
+            val files =
+                json.optJSONArray("files")
+                    ?: return null
+
+            for (i in 0 until files.length()) {
+
+                val file =
+                    files.optJSONObject(i)
+                        ?: continue
+
+                val name =
+                    file.optString("name")
+
+                if (name.isBlank()) {
+                    continue
+                }
+
+                val format =
+                    file.optString("format")
+                        .lowercase()
+
+                val mime =
+                    file.optString("mimetype")
+                        .lowercase()
+
+                val isAudio =
+                    format.contains("mp3") ||
+                    format.contains("mpeg audio") ||
+                    format.contains("ogg") ||
+                    format.contains("vorbis") ||
+                    mime.startsWith("audio/")
+
+                val restricted =
+                    file.optString("private")
+                        .equals(
+                            "true",
+                            ignoreCase = true
+                        )
+
+                if (!isAudio || restricted) {
+                    continue
+                }
+
+                if (
+                    name.endsWith(".mp3", true) ||
+                    name.endsWith(".ogg", true) ||
+                    name.endsWith(".oga", true)
+                ) {
+
+                    val url =
+                        "https://archive.org/download/" +
+                        identifier +
+                        "/" +
+                        name.split("/")
+                            .joinToString("/") {
+                                URLEncoder.encode(
+                                    it,
+                                    "UTF-8"
+                                ).replace("+", "%20")
+                            }
+
+                    return Pair(
+                        url,
+                        name.substringAfterLast("/")
+                    )
+                }
+            }
+
+            null
+
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun httpGet(
+        address: String
+    ): String {
+
+        val connection =
+            URL(address)
+                .openConnection() as HttpURLConnection
+
+        connection.connectTimeout = 15000
+        connection.readTimeout = 20000
+        connection.requestMethod = "GET"
+        connection.setRequestProperty(
+            "User-Agent",
+            "Music Android Player"
+        )
+
+        return try {
+
+            if (
+                connection.responseCode !in
+                200..299
+            ) {
+                throw java.io.IOException(
+                    "HTTP ${connection.responseCode}"
+                )
+            }
+
+            connection.inputStream
+                .bufferedReader()
+                .use {
+                    it.readText()
+                }
+
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun playOnlineTrack(
+        track: OnlineTrack
+    ) {
+
+        val controller =
+            mediaPlayer
+
+        if (controller == null) {
+            connectToPlaybackService()
+
+            Toast.makeText(
+                this,
+                "Playback is still connecting",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        val metadata =
+            MediaMetadata.Builder()
+                .setTitle(track.title)
+                .setArtist(track.artist)
+                .build()
+
+        val item =
+            MediaItem.Builder()
+                .setMediaId(
+                    "online:${track.identifier}"
+                )
+                .setUri(track.audioUrl)
+                .setMediaMetadata(
+                    metadata
+                )
+                .build()
+
+        try {
+
+            controller.setMediaItem(item)
+            controller.prepare()
+            controller.play()
+
+            Toast.makeText(
+                this,
+                "Playing ${track.title}",
+                Toast.LENGTH_SHORT
+            ).show()
+
+        } catch (_: Exception) {
+
+            Toast.makeText(
+                this,
+                "Couldn't play this song",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun downloadOnlineTrack(
+        track: OnlineTrack,
+        onProgress: (Int) -> Unit,
+        onComplete: (Boolean) -> Unit
+    ) {
+
+        onlineSearchExecutor.execute {
+
+            var connection:
+                HttpURLConnection? = null
+
+            var success = false
+
+            try {
+
+                connection =
+                    URL(track.audioUrl)
+                        .openConnection()
+                            as HttpURLConnection
+
+                connection.connectTimeout = 15000
+                connection.readTimeout = 30000
+                connection.requestMethod = "GET"
+                connection.setRequestProperty(
+                    "User-Agent",
+                    "Music Android Player"
+                )
+
+                connection.connect()
+
+                if (
+                    connection.responseCode !in
+                    200..299
+                ) {
+                    throw java.io.IOException(
+                        "HTTP ${connection.responseCode}"
+                    )
+                }
+
+                val contentLength =
+                    connection.contentLengthLong
+
+                val safeName =
+                    track.fileName
+                        .replace(
+                            Regex("[\\\\/:*?\"<>|]"),
+                            "_"
+                        )
+
+                val extension =
+                    when {
+                        safeName.endsWith(
+                            ".ogg",
+                            true
+                        ) -> ".ogg"
+
+                        safeName.endsWith(
+                            ".oga",
+                            true
+                        ) -> ".oga"
+
+                        else -> ".mp3"
+                    }
+
+                val finalName =
+                    if (
+                        safeName.endsWith(
+                            extension,
+                            true
+                        )
+                    ) {
+                        safeName
+                    } else {
+                        safeName + extension
+                    }
+
+                val dir =
+                    File(
+                        filesDir,
+                        "downloads"
+                    ).apply {
+                        mkdirs()
+                    }
+
+                val output =
+                    File(dir, finalName)
+
+                connection.inputStream.use { input ->
+
+                    FileOutputStream(output).use { out ->
+
+                        val buffer =
+                            ByteArray(16 * 1024)
+
+                        var total = 0L
+
+                        while (true) {
+
+                            val count =
+                                input.read(buffer)
+
+                            if (count <= 0) {
+                                break
+                            }
+
+                            out.write(
+                                buffer,
+                                0,
+                                count
+                            )
+
+                            total += count
+
+                            if (
+                                contentLength > 0
+                            ) {
+
+                                val progress =
+                                    (
+                                        total * 100 /
+                                        contentLength
+                                    )
+                                        .toInt()
+                                        .coerceIn(
+                                            0,
+                                            100
+                                        )
+
+                                mainHandler.post {
+                                    onProgress(
+                                        progress
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                success = output.exists() &&
+                    output.length() > 0
+
+            } catch (_: Exception) {
+
+                success = false
+
+            } finally {
+                connection?.disconnect()
+            }
+
+            mainHandler.post {
+                onComplete(success)
+            }
+        }
+    }
+
     private fun showSearch() {
 
         // Keep the first ~10% of the screen as top breathing room.
@@ -7776,131 +8244,384 @@ class MainActivity : ComponentActivity() {
 
             if (normalized.isBlank()) {
 
-                clearButton.visibility =
-                    View.GONE
-
+                clearButton.visibility = View.GONE
                 showBrowseState()
 
                 return
             }
 
-            clearButton.visibility =
-                View.VISIBLE
+            clearButton.visibility = View.VISIBLE
 
-            val matches =
+            // --------------------------------------------------------
+            // Local results
+            // --------------------------------------------------------
+
+            val localHeader =
+                TextView(this).apply {
+                    text = "On your device"
+                    textSize = 15f
+                    setTextColor(Color.BLACK)
+                    typeface =
+                        Typeface.create(
+                            Typeface.DEFAULT,
+                            Typeface.BOLD
+                        )
+                    setPadding(
+                        dp(2),
+                        dp(18),
+                        dp(2),
+                        dp(8)
+                    )
+                }
+
+            val localMatches =
                 songs.filter { song ->
 
                     song.title
                         .lowercase()
                         .contains(normalized) ||
+
                     song.artist
                         .lowercase()
                         .contains(normalized)
                 }
 
-            if (matches.isEmpty()) {
+            if (localMatches.isNotEmpty()) {
 
-                val empty =
-                    LinearLayout(this).apply {
-                        orientation =
-                            LinearLayout.VERTICAL
-                        gravity =
-                            Gravity.CENTER_HORIZONTAL
-                        setPadding(
-                            dp(20),
-                            dp(50),
-                            dp(20),
-                            dp(60)
-                        )
-                    }
+                resultsContainer.addView(
+                    localHeader
+                )
 
-                val icon =
-                    TextView(this).apply {
-                        text = "⌕"
-                        textSize = 42f
-                        gravity = Gravity.CENTER
-                        setTextColor(
-                            Color.rgb(80, 80, 80)
-                        )
-                    }
+                localMatches
+                    .take(50)
+                    .forEach { song ->
 
-                val emptyTitle =
-                    TextView(this).apply {
-                        text = "Nothing found"
-                        textSize = 19f
-                        setTextColor(Color.BLACK)
-                        gravity = Gravity.CENTER
-                        typeface =
-                            Typeface.create(
-                                Typeface.DEFAULT,
-                                Typeface.BOLD
-                            )
-                        setPadding(
-                            0,
-                            dp(9),
-                            0,
-                            0
-                        )
-                    }
+                        val row =
+                            createRealSongRow(song) {
+                                playSong(song)
+                            }
 
-                val emptyText =
-                    TextView(this).apply {
-                        text =
-                            "Try another song or artist."
-                        textSize = 13f
-                        setTextColor(
-                            Color.rgb(
-                                110,
-                                110,
-                                110
+                        resultsContainer.addView(
+                            row,
+                            LinearLayout.LayoutParams(
+                                -1,
+                                -2
                             )
                         )
-                        gravity = Gravity.CENTER
-                        setPadding(
-                            0,
-                            dp(7),
-                            0,
-                            0
-                        )
                     }
+            }
 
-                empty.addView(icon)
-                empty.addView(emptyTitle)
-                empty.addView(emptyText)
+            // --------------------------------------------------------
+            // Online section
+            // --------------------------------------------------------
 
-                resultsContainer.addView(empty)
+            val onlineHeader =
+                TextView(this).apply {
+                    text = "Online"
+                    textSize = 15f
+                    setTextColor(Color.BLACK)
+                    typeface =
+                        Typeface.create(
+                            Typeface.DEFAULT,
+                            Typeface.BOLD
+                        )
+                    setPadding(
+                        dp(2),
+                        dp(22),
+                        dp(2),
+                        dp(8)
+                    )
+                }
 
-            } else {
+            resultsContainer.addView(
+                onlineHeader
+            )
 
-                matches.take(50).forEach { song ->
+            val loading =
+                TextView(this).apply {
+                    text = "Searching online…"
+                    textSize = 13f
+                    setTextColor(
+                        Color.rgb(
+                            110,
+                            110,
+                            110
+                        )
+                    )
+                    setPadding(
+                        dp(2),
+                        dp(10),
+                        dp(2),
+                        dp(20)
+                    )
+                }
+
+            resultsContainer.addView(loading)
+
+            lastOnlineQuery = normalized
+
+            searchInternetArchive(
+                query
+            ) { onlineResults ->
+
+                if (
+                    lastOnlineQuery !=
+                    normalized
+                ) {
+                    return@searchInternetArchive
+                }
+
+                val index =
+                    resultsContainer.indexOfChild(
+                        loading
+                    )
+
+                if (index >= 0) {
+                    resultsContainer.removeViewAt(
+                        index
+                    )
+                }
+
+                if (onlineResults.isEmpty()) {
+
+                    val noOnline =
+                        TextView(this).apply {
+                            text =
+                                "No online audio found."
+                            textSize = 13f
+                            setTextColor(
+                                Color.rgb(
+                                    110,
+                                    110,
+                                    110
+                                )
+                            )
+                            setPadding(
+                                dp(2),
+                                dp(10),
+                                dp(2),
+                                dp(20)
+                            )
+                        }
+
+                    resultsContainer.addView(
+                        noOnline
+                    )
+
+                    return@searchInternetArchive
+                }
+
+                onlineResults.forEach { track ->
 
                     val row =
-                        createRealSongRow(song) {
-                            playSong(song)
+                        LinearLayout(this).apply {
+
+                            orientation =
+                                LinearLayout.HORIZONTAL
+
+                            gravity =
+                                Gravity.CENTER_VERTICAL
+
+                            setPadding(
+                                dp(12),
+                                dp(10),
+                                dp(8),
+                                dp(10)
+                            )
+
+                            background =
+                                GradientDrawable().apply {
+                                    setColor(
+                                        Color.WHITE
+                                    )
+                                    cornerRadius =
+                                        dp(14).toFloat()
+                                    setStroke(
+                                        dp(1),
+                                        Color.rgb(
+                                            235,
+                                            235,
+                                            235
+                                        )
+                                    )
+                                }
+
+                            elevation =
+                                dp(1).toFloat()
                         }
+
+                    val textBox =
+                        LinearLayout(this).apply {
+                            orientation =
+                                LinearLayout.VERTICAL
+                        }
+
+                    val title =
+                        TextView(this).apply {
+                            text = track.title
+                            textSize = 15f
+                            setTextColor(
+                                Color.BLACK
+                            )
+                            typeface =
+                                Typeface.create(
+                                    Typeface.DEFAULT,
+                                    Typeface.BOLD
+                                )
+                            maxLines = 1
+                            ellipsize =
+                                TextUtils.TruncateAt.END
+                        }
+
+                    val artist =
+                        TextView(this).apply {
+                            text =
+                                track.artist
+                            textSize = 12f
+                            setTextColor(
+                                Color.rgb(
+                                    105,
+                                    105,
+                                    105
+                                )
+                            )
+                            maxLines = 1
+                            ellipsize =
+                                TextUtils.TruncateAt.END
+                            setPadding(
+                                0,
+                                dp(4),
+                                0,
+                                0
+                            )
+                        }
+
+                    textBox.addView(title)
+                    textBox.addView(artist)
+
+                    row.addView(
+                        textBox,
+                        LinearLayout.LayoutParams(
+                            0,
+                            -2,
+                            1f
+                        )
+                    )
+
+                    val play =
+                        TextView(this).apply {
+                            text = "▶"
+                            textSize = 18f
+                            gravity =
+                                Gravity.CENTER
+                            setTextColor(
+                                Color.rgb(
+                                    25,
+                                    103,
+                                    210
+                                )
+                            )
+                            isClickable = true
+                            isFocusable = true
+
+                            setPadding(
+                                dp(10),
+                                0,
+                                dp(10),
+                                0
+                            )
+
+                            setOnClickListener {
+                                playOnlineTrack(
+                                    track
+                                )
+                            }
+                        }
+
+                    row.addView(
+                        play,
+                        LinearLayout.LayoutParams(
+                            dp(46),
+                            dp(46)
+                        )
+                    )
+
+                    val download =
+                        TextView(this).apply {
+                            text = "↓"
+                            textSize = 23f
+                            gravity =
+                                Gravity.CENTER
+                            setTextColor(
+                                Color.rgb(
+                                    45,
+                                    45,
+                                    45
+                                )
+                            )
+                            isClickable = true
+                            isFocusable = true
+
+                            setPadding(
+                                dp(8),
+                                0,
+                                dp(8),
+                                0
+                            )
+
+                            setOnClickListener {
+
+                                isEnabled = false
+                                text = "…"
+
+                                downloadOnlineTrack(
+                                    track,
+                                    onProgress = { progress ->
+                                        text =
+                                            if (
+                                                progress in
+                                                1..99
+                                            ) {
+                                                "$progress%"
+                                            } else {
+                                                "…"
+                                            }
+                                    },
+                                    onComplete = { success ->
+
+                                        isEnabled = true
+                                        text = "↓"
+
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            if (success)
+                                                "Downloaded"
+                                            else
+                                                "Download failed",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                )
+                            }
+                        }
+
+                    row.addView(
+                        download,
+                        LinearLayout.LayoutParams(
+                            dp(46),
+                            dp(46)
+                        )
+                    )
 
                     resultsContainer.addView(
                         row,
                         LinearLayout.LayoutParams(
                             -1,
                             -2
-                        )
+                        ).apply {
+                            bottomMargin = dp(8)
+                        }
                     )
-
-                    row.alpha = 0f
-                    row.translationY = dp(8).toFloat()
-
-                    row.animate()
-                        .alpha(1f)
-                        .translationY(0f)
-                        .setDuration(180)
-                        .setStartDelay(
-                            (
-                                resultsContainer.childCount
-                                    .coerceAtMost(8) * 18
-                            ).toLong()
-                        )
-                        .start()
                 }
             }
         }
