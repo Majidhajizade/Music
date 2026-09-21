@@ -134,6 +134,8 @@ class MainActivity : ComponentActivity() {
 
     private var playbackQueue = mutableListOf<Song>()
 
+    private var librarySelectionPlayback = false
+
     // Library multi-selection
     private val selectedLibrarySongs =
         mutableSetOf<Long>()
@@ -1214,7 +1216,7 @@ class MainActivity : ComponentActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(
                 dp(20),
-                topSpaceDp + dp(28),
+                topSpaceDp + dp(68),
                 dp(20),
                 dp(14)
             )
@@ -2638,12 +2640,12 @@ class MainActivity : ComponentActivity() {
 
             background =
                 GradientDrawable().apply {
-                    cornerRadius = dp(18).toFloat()
+                    cornerRadius = 0f
                     setColor(
                         Color.rgb(
-                            232,
-                            232,
-                            232
+                            245,
+                            245,
+                            245
                         )
                     )
                 }
@@ -2683,8 +2685,8 @@ class MainActivity : ComponentActivity() {
             item.addView(
                 iconView,
                 LinearLayout.LayoutParams(
-                    -1,
-                    dp(27)
+                    dp(24),
+                    dp(24)
                 )
             )
 
@@ -2696,7 +2698,7 @@ class MainActivity : ComponentActivity() {
                     45,
                     45
                 ),
-                Typeface.BOLD
+                Typeface.NORMAL
             ).apply {
                 gravity = Gravity.CENTER
                 includeFontPadding = false
@@ -2731,6 +2733,7 @@ class MainActivity : ComponentActivity() {
                         selected.toMutableList()
 
                     playbackIndex = 0
+                    librarySelectionPlayback = true
 
                     selectedLibrarySongs.clear()
                     librarySelectionMode = false
@@ -3056,7 +3059,7 @@ class MainActivity : ComponentActivity() {
             "Add",
             28f,
             Color.BLACK,
-            Typeface.BOLD
+            Typeface.NORMAL
         ).apply {
             setPadding(
                 0,
@@ -9181,6 +9184,8 @@ class MainActivity : ComponentActivity() {
                 index < playbackQueue.lastIndex
             ) {
                 playbackQueue[index + 1]
+            } else if (librarySelectionPlayback) {
+                null
             } else {
                 findAdjacentSong(
                     current.id,
@@ -9391,6 +9396,10 @@ class MainActivity : ComponentActivity() {
 
         if (index >= 0 && index < playbackQueue.lastIndex) {
             playSong(playbackQueue[index + 1])
+            return
+        }
+
+        if (librarySelectionPlayback) {
             return
         }
 
@@ -14515,6 +14524,15 @@ class MainActivity : ComponentActivity() {
         }
 
         currentSong = song
+
+        if (
+            librarySelectionPlayback &&
+            playbackQueue.none {
+                it.id == song.id
+            }
+        ) {
+            librarySelectionPlayback = false
+        }
 
         showMiniPlayer()
 
