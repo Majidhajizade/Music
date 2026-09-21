@@ -193,6 +193,7 @@ class MainActivity : ComponentActivity() {
     private var miniFullCachedMiniCenterX = Float.NaN
     private var miniFullCachedMiniCenterY = Float.NaN
     private var miniFullCachedCardCenterX = Float.NaN
+    private var miniFullCachedCardBaseCenterY = Float.NaN
     private var miniFullCachedScreenWidth = 0
     private var miniFullCachedScreenHeight = 0
     private var miniFullCachedMiniHeight = 0
@@ -8052,6 +8053,12 @@ class MainActivity : ComponentActivity() {
         miniFullCachedCardBaseCenterY =
             top + miniHeight / 2f
 
+        val initialArtwork =
+            (
+                miniExpansionCover?.drawable
+                    as? android.graphics.drawable.BitmapDrawable
+            )?.bitmap
+
         val card = FrameLayout(this).apply {
             clipChildren = false
             background = createMiniExpansionBackground(song)
@@ -10326,7 +10333,7 @@ class MainActivity : ComponentActivity() {
          * avoiding an artwork lookup in the middle of animation.
          */
         val fullPlayerArtwork =
-            initialArtwork
+            getAlbumArt(song)
 
         cover.animate().cancel()
 
