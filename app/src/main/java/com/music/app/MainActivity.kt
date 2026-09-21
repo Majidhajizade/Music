@@ -994,24 +994,14 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(20), dp(10), dp(20), dp(14))
         }
 
-        val homeScroll = ScrollView(this).apply {
-        isFillViewport = true
-        clipToPadding = false
-        setBackgroundColor(Color.TRANSPARENT)
-    }
-
-    homeScroll.addView(
-        content,
-        android.view.ViewGroup.LayoutParams(
-            -1,
-            -2
+        root.addView(
+            content,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
         )
-    )
-
-    root.addView(
-        homeScroll,
-        LinearLayout.LayoutParams(-1, 0, 1f)
-    )
 
         // ---------- MINI PLAYER ----------
         miniPlayer = createMiniPlayer().apply {
@@ -1032,8 +1022,8 @@ class MainActivity : ComponentActivity() {
             ).apply {
                 leftMargin = dp(10)
                 rightMargin = dp(10)
-                topMargin = dp(2)
-                bottomMargin = dp(3)
+                topMargin = 0
+                bottomMargin = 0
             }
         )
 
@@ -1044,8 +1034,8 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(66)
             ).apply {
-                leftMargin = dp(8)
-                rightMargin = dp(8)
+                leftMargin = 0
+                rightMargin = 0
                 topMargin = 0
                 bottomMargin = dp(2)
             }
@@ -1216,7 +1206,7 @@ class MainActivity : ComponentActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(
                 dp(20),
-                topSpaceDp + dp(68),
+                topSpaceDp + dp(28),
                 dp(20),
                 dp(14)
             )
@@ -1236,6 +1226,7 @@ class MainActivity : ComponentActivity() {
                 Typeface.BOLD
             )
             includeFontPadding = false
+            translationY = dp(40).toFloat()
         }
 
 
@@ -2868,10 +2859,10 @@ class MainActivity : ComponentActivity() {
                         -1,
                         dp(66)
                     ).apply {
-                        leftMargin = dp(8)
-                        rightMargin = dp(8)
-                        topMargin = dp(2)
-                        bottomMargin = dp(3)
+                        leftMargin = 0
+                        rightMargin = 0
+                        topMargin = 0
+                        bottomMargin = 0
                     }
                 )
             }
