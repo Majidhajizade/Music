@@ -7604,6 +7604,10 @@ class MainActivity : ComponentActivity() {
                 json.optJSONArray("files")
                     ?: return null
 
+            // Prefer MP3 first.
+            var fallbackAudio:
+                Pair<String, String>? = null
+
             for (i in 0 until files.length()) {
 
                 val file =
@@ -7612,8 +7616,20 @@ class MainActivity : ComponentActivity() {
 
                 val name =
                     file.optString("name")
+                        .trim()
 
                 if (name.isBlank()) {
+                    continue
+                }
+
+                // Skip directories / metadata files.
+                if (
+                    name.endsWith("/") ||
+                    name.contains("_files.xml") ||
+                    name.contains("_meta.sqlite") ||
+                    name.contains("_meta.xml") ||
+                    name.contains("_archive.torrent")
+                ) {
                     continue
                 }
 
@@ -7625,50 +7641,80 @@ class MainActivity : ComponentActivity() {
                     file.optString("mimetype")
                         .lowercase()
 
-                val isAudio =
+                val lowerName =
+                    name.lowercase()
+
+                val isMp3 =
+                    lowerName.endsWith(".mp3") ||
                     format.contains("mp3") ||
-                    format.contains("mpeg audio") ||
+                    mime == "audio/mpeg" ||
+                    mime == "audio/mp3"
+
+                val isOgg =
+                    lowerName.endsWith(".ogg") ||
+                    lowerName.endsWith(".oga") ||
                     format.contains("ogg") ||
                     format.contains("vorbis") ||
-                    mime.startsWith("audio/")
+                    mime == "audio/ogg"
 
-                val restricted =
-                    file.optString("private")
-                        .equals(
-                            "true",
-                            ignoreCase = true
-                        )
+                val isAudio =
+                    isMp3 || isOgg
 
-                if (!isAudio || restricted) {
+                if (!isAudio) {
                     continue
                 }
 
+                // Internet Archive sometimes stores this as
+                // a string instead of a boolean.
+                val privateValue =
+                    file.optString(
+                        "private",
+                        "false"
+                    )
+
                 if (
-                    name.endsWith(".mp3", true) ||
-                    name.endsWith(".ogg", true) ||
-                    name.endsWith(".oga", true)
+                    privateValue.equals(
+                        "true",
+                        ignoreCase = true
+                    )
                 ) {
+                    continue
+                }
 
-                    val url =
-                        "https://archive.org/download/" +
-                        identifier +
-                        "/" +
-                        name.split("/")
-                            .joinToString("/") {
-                                URLEncoder.encode(
-                                    it,
-                                    "UTF-8"
-                                ).replace("+", "%20")
-                            }
+                val encodedPath =
+                    name.split("/")
+                        .joinToString("/") { part ->
+                            URLEncoder.encode(
+                                part,
+                                "UTF-8"
+                            ).replace(
+                                "+",
+                                "%20"
+                            )
+                        }
 
-                    return Pair(
-                        url,
+                val audioUrl =
+                    "https://archive.org/download/" +
+                    identifier +
+                    "/" +
+                    encodedPath
+
+                val result =
+                    Pair(
+                        audioUrl,
                         name.substringAfterLast("/")
                     )
+
+                if (isMp3) {
+                    return result
+                }
+
+                if (fallbackAudio == null) {
+                    fallbackAudio = result
                 }
             }
 
-            null
+            fallbackAudio
 
         } catch (_: Exception) {
             null
