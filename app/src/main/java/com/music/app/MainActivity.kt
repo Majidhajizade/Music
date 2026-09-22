@@ -7502,11 +7502,11 @@ class MainActivity : ComponentActivity() {
                 val searchUrl =
                     "https://archive.org/advancedsearch.php" +
                     "?q=mediatype%3Aaudio+AND+" +
-                    "(title%3A$encoded+OR+creator%3A$encoded)" +
+                    "title%3A$encoded" +
                     "&fl%5B%5D=identifier" +
                     "&fl%5B%5D=title" +
                     "&fl%5B%5D=creator" +
-                    "&rows=15" +
+                    "&rows=20" +
                     "&page=1" +
                     "&output=json"
 
