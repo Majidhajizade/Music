@@ -46,13 +46,7 @@ import java.net.URL
 import org.json.JSONObject
 import org.json.JSONArray
 
-data class Song(
-    val id: Long,
-    val title: String,
-    val artist: String,
-    val album: String = "Unknown Album",
-    val dateAdded: Long = 0L
-)
+import com.music.app.model.Song
 
 private data class OnlineTrack(
     val identifier: String,
@@ -7489,10 +7483,35 @@ class MainActivity : ComponentActivity() {
 
         onlineSearchExecutor.execute {
 
-            val result = mutableListOf<OnlineTrack>()
+            val result =
+                mutableListOf<OnlineTrack>()
 
-            // FreeToUse search
+            val seen =
+                mutableSetOf<String>()
+
+            fun addResult(
+                track: OnlineTrack
+            ) {
+                val key =
+                    (
+                        track.title.trim() +
+                        "|" +
+                        track.artist.trim()
+                    ).lowercase()
+
+                if (
+                    seen.add(key) &&
+                    result.size < 30
+                ) {
+                    result.add(track)
+                }
+            }
+
+            // -------------------------------------------------
+            // FreeToUse
+            // -------------------------------------------------
             try {
+
                 val encoded =
                     URLEncoder.encode(
                         query.trim(),
@@ -7501,8 +7520,9 @@ class MainActivity : ComponentActivity() {
 
                 val searchUrl =
                     "https://api.freetouse.com/v3/music/tracks/search" +
-                    "?query=" + encoded +
-                    "&limit=10"
+                    "?query=" +
+                    encoded +
+                    "&limit=15"
 
                 val json =
                     httpGet(searchUrl)
@@ -7510,12 +7530,15 @@ class MainActivity : ComponentActivity() {
                 val root =
                     JSONObject(json)
 
-                val data =
-                    root.optJSONObject("data")
-
+                // Current FreeToUse response:
+                // { "ok": true, "data": [ ... ] }
+                //
+                // Keep support for the older/nested shape too.
                 val tracks =
-                    data?.optJSONArray("data")
-                        ?: root.optJSONArray("data")
+                    root.optJSONArray("data")
+                        ?: root
+                            .optJSONObject("data")
+                            ?.optJSONArray("data")
 
                 if (tracks != null) {
 
@@ -7543,8 +7566,11 @@ class MainActivity : ComponentActivity() {
 
                         val artist =
                             try {
+
                                 val artists =
-                                    track.optJSONArray("artists")
+                                    track.optJSONArray(
+                                        "artists"
+                                    )
 
                                 val entry =
                                     artists?.optJSONArray(0)
@@ -7552,17 +7578,21 @@ class MainActivity : ComponentActivity() {
                                 val artistObject =
                                     entry?.optJSONObject(1)
 
-                                artistObject?.optString(
-                                    "name",
-                                    ""
-                                )?.takeIf {
-                                    it.isNotBlank()
-                                } ?: track.optString(
-                                    "artist",
-                                    "Unknown artist"
-                                )
+                                artistObject
+                                    ?.optString(
+                                        "name",
+                                        ""
+                                    )
+                                    ?.takeIf {
+                                        it.isNotBlank()
+                                    }
+                                    ?: track.optString(
+                                        "artist",
+                                        "Unknown artist"
+                                    )
 
                             } catch (_: Exception) {
+
                                 track.optString(
                                     "artist",
                                     "Unknown artist"
@@ -7570,7 +7600,9 @@ class MainActivity : ComponentActivity() {
                             }
 
                         val files =
-                            track.optJSONObject("files")
+                            track.optJSONObject(
+                                "files"
+                            )
 
                         var audioUrl =
                             files?.optString(
@@ -7578,11 +7610,12 @@ class MainActivity : ComponentActivity() {
                                 ""
                             ) ?: ""
 
-                        // Some FreeToUse search responses may
-                        // only provide the track ID. Fetch details.
+                        // Some FreeToUse results may only
+                        // provide the track ID.
                         if (audioUrl.isBlank()) {
 
                             try {
+
                                 val detailJson =
                                     httpGet(
                                         "https://api.freetouse.com/v3/music/tracks/" +
@@ -7593,15 +7626,21 @@ class MainActivity : ComponentActivity() {
                                     )
 
                                 val detailRoot =
-                                    JSONObject(detailJson)
+                                    JSONObject(
+                                        detailJson
+                                    )
 
                                 val detailData =
-                                    detailRoot.optJSONObject("data")
+                                    detailRoot
+                                        .optJSONObject(
+                                            "data"
+                                        )
 
                                 val detailFiles =
-                                    detailData?.optJSONObject(
-                                        "files"
-                                    )
+                                    detailData
+                                        ?.optJSONObject(
+                                            "files"
+                                        )
 
                                 audioUrl =
                                     detailFiles?.optString(
@@ -7617,7 +7656,7 @@ class MainActivity : ComponentActivity() {
                             continue
                         }
 
-                        result.add(
+                        addResult(
                             OnlineTrack(
                                 identifier = id,
                                 title = title,
@@ -7627,7 +7666,7 @@ class MainActivity : ComponentActivity() {
                             )
                         )
 
-                        if (result.size >= 10) {
+                        if (result.size >= 30) {
                             break
                         }
                     }
@@ -7636,93 +7675,123 @@ class MainActivity : ComponentActivity() {
             } catch (_: Exception) {
             }
 
-            // Keep Internet Archive as fallback.
-            if (result.isEmpty()) {
+            // -------------------------------------------------
+            // Internet Archive
+            // Always search it and combine with FreeToUse.
+            // -------------------------------------------------
+            try {
 
-                try {
+                val archiveQuery =
+                    "mediatype:audio AND (" +
+                    "title:\"" +
+                    query.trim()
+                        .replace("\"", "")
+                        .replace("\\", " ") +
+                    "\" OR creator:\"" +
+                    query.trim()
+                        .replace("\"", "")
+                        .replace("\\", " ") +
+                    "\")"
 
-                    val encoded =
-                        URLEncoder.encode(
-                            query.trim(),
-                            "UTF-8"
-                        )
+                val encodedQuery =
+                    URLEncoder.encode(
+                        archiveQuery,
+                        "UTF-8"
+                    )
 
-                    val searchUrl =
-                        "https://archive.org/advancedsearch.php" +
-                        "?q=mediatype%3Aaudio+AND+" +
-                        "title%3A$encoded" +
-                        "&fl%5B%5D=identifier" +
-                        "&fl%5B%5D=title" +
-                        "&fl%5B%5D=creator" +
-                        "&rows=20" +
-                        "&page=1" +
-                        "&output=json"
+                val searchUrl =
+                    "https://archive.org/advancedsearch.php" +
+                    "?q=" +
+                    encodedQuery +
+                    "&fl%5B%5D=identifier" +
+                    "&fl%5B%5D=title" +
+                    "&fl%5B%5D=creator" +
+                    "&rows=20" +
+                    "&page=1" +
+                    "&output=json"
 
-                    val json =
-                        httpGet(searchUrl)
+                val json =
+                    httpGet(searchUrl)
 
-                    val docs =
-                        JSONObject(json)
-                            .getJSONObject("response")
-                            .getJSONArray("docs")
+                val docs =
+                    JSONObject(json)
+                        .getJSONObject("response")
+                        .getJSONArray("docs")
 
-                    for (i in 0 until docs.length()) {
+                for (i in 0 until docs.length()) {
 
-                        val doc =
-                            docs.getJSONObject(i)
-
-                        val identifier =
-                            doc.optString("identifier")
-
-                        if (identifier.isBlank()) {
-                            continue
-                        }
-
-                        val title =
-                            doc.optString(
-                                "title",
-                                "Unknown title"
-                            )
-
-                        val creator =
-                            when {
-                                doc.optJSONArray("creator") != null ->
-                                    doc.optJSONArray("creator")
-                                        ?.optString(0)
-                                        ?: "Unknown artist"
-
-                                doc.optString("creator").isNotBlank() ->
-                                    doc.optString("creator")
-
-                                else ->
-                                    "Unknown artist"
-                            }
-
-                        val audio =
-                            findArchiveAudio(
-                                identifier
-                            )
-
-                        if (audio != null) {
-
-                            result.add(
-                                OnlineTrack(
-                                    identifier = identifier,
-                                    title = title,
-                                    artist = creator,
-                                    audioUrl = audio.first,
-                                    fileName = audio.second
-                                )
-                            )
-                        }
-
-                        if (result.size >= 10) {
-                            break
-                        }
+                    if (result.size >= 30) {
+                        break
                     }
 
-                } catch (_: Exception) {
+                    val doc =
+                        docs.getJSONObject(i)
+
+                    val identifier =
+                        doc.optString(
+                            "identifier"
+                        )
+
+                    if (identifier.isBlank()) {
+                        continue
+                    }
+
+                    val title =
+                        doc.optString(
+                            "title",
+                            "Unknown title"
+                        )
+
+                    val creator =
+                        when {
+
+                            doc.optJSONArray(
+                                "creator"
+                            ) != null ->
+
+                                doc.optJSONArray(
+                                    "creator"
+                                )
+                                    ?.optString(0)
+                                    ?: "Unknown artist"
+
+                            doc.optString(
+                                "creator"
+                            ).isNotBlank() ->
+
+                                doc.optString(
+                                    "creator"
+                                )
+
+                            else ->
+                                "Unknown artist"
+                        }
+
+                    val audio =
+                        findArchiveAudio(
+                            identifier
+                        )
+
+                    if (audio != null) {
+
+                        addResult(
+                            OnlineTrack(
+                                identifier =
+                                    identifier,
+                                title =
+                                    title,
+                                artist =
+                                    creator,
+                                audioUrl =
+                                    audio.first,
+                                fileName =
+                                    audio.second
+                            )
+                        )
+                    }
                 }
+
+            } catch (_: Exception) {
             }
 
             mainHandler.post {
@@ -7753,7 +7822,6 @@ class MainActivity : ComponentActivity() {
                 json.optJSONArray("files")
                     ?: return null
 
-            // Prefer MP3 first.
             var fallbackAudio:
                 Pair<String, String>? = null
 
@@ -7771,7 +7839,6 @@ class MainActivity : ComponentActivity() {
                     continue
                 }
 
-                // Skip directories / metadata files.
                 if (
                     name.endsWith("/") ||
                     name.contains("_files.xml") ||
@@ -7813,8 +7880,6 @@ class MainActivity : ComponentActivity() {
                     continue
                 }
 
-                // Internet Archive sometimes stores this as
-                // a string instead of a boolean.
                 val privateValue =
                     file.optString(
                         "private",
