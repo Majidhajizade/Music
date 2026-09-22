@@ -7491,8 +7491,8 @@ class MainActivity : ComponentActivity() {
 
             val result = mutableListOf<OnlineTrack>()
 
+            // FreeToUse search
             try {
-
                 val encoded =
                     URLEncoder.encode(
                         query.trim(),
@@ -7500,80 +7500,229 @@ class MainActivity : ComponentActivity() {
                     )
 
                 val searchUrl =
-                    "https://archive.org/advancedsearch.php" +
-                    "?q=mediatype%3Aaudio+AND+" +
-                    "title%3A$encoded" +
-                    "&fl%5B%5D=identifier" +
-                    "&fl%5B%5D=title" +
-                    "&fl%5B%5D=creator" +
-                    "&rows=20" +
-                    "&page=1" +
-                    "&output=json"
+                    "https://api.freetouse.com/v3/music/tracks/search" +
+                    "?query=" + encoded +
+                    "&limit=10"
 
                 val json =
                     httpGet(searchUrl)
 
-                val docs =
+                val root =
                     JSONObject(json)
-                        .getJSONObject("response")
-                        .getJSONArray("docs")
 
-                for (i in 0 until docs.length()) {
+                val data =
+                    root.optJSONObject("data")
 
-                    val doc =
-                        docs.getJSONObject(i)
+                val tracks =
+                    data?.optJSONArray("data")
+                        ?: root.optJSONArray("data")
 
-                    val identifier =
-                        doc.optString("identifier")
+                if (tracks != null) {
 
-                    if (identifier.isBlank()) {
-                        continue
-                    }
+                    for (i in 0 until tracks.length()) {
 
-                    val title =
-                        doc.optString(
-                            "title",
-                            "Unknown title"
-                        )
+                        val track =
+                            tracks.optJSONObject(i)
+                                ?: continue
 
-                    val creator =
-                        when {
-                            doc.optJSONArray("creator") != null ->
-                                doc.optJSONArray("creator")
-                                    ?.optString(0)
-                                    ?: "Unknown artist"
+                        val id =
+                            track.optString("id")
+                                .ifBlank {
+                                    track.optString("uuid")
+                                }
 
-                            doc.optString("creator").isNotBlank() ->
-                                doc.optString("creator")
-
-                            else ->
-                                "Unknown artist"
+                        if (id.isBlank()) {
+                            continue
                         }
 
-                    val audio =
-                        findArchiveAudio(
-                            identifier
-                        )
+                        val title =
+                            track.optString(
+                                "title",
+                                "Unknown title"
+                            )
 
-                    if (audio != null) {
+                        val artist =
+                            try {
+                                val artists =
+                                    track.optJSONArray("artists")
+
+                                val entry =
+                                    artists?.optJSONArray(0)
+
+                                val artistObject =
+                                    entry?.optJSONObject(1)
+
+                                artistObject?.optString(
+                                    "name",
+                                    ""
+                                )?.takeIf {
+                                    it.isNotBlank()
+                                } ?: track.optString(
+                                    "artist",
+                                    "Unknown artist"
+                                )
+
+                            } catch (_: Exception) {
+                                track.optString(
+                                    "artist",
+                                    "Unknown artist"
+                                )
+                            }
+
+                        val files =
+                            track.optJSONObject("files")
+
+                        var audioUrl =
+                            files?.optString(
+                                "mp3",
+                                ""
+                            ) ?: ""
+
+                        // Some FreeToUse search responses may
+                        // only provide the track ID. Fetch details.
+                        if (audioUrl.isBlank()) {
+
+                            try {
+                                val detailJson =
+                                    httpGet(
+                                        "https://api.freetouse.com/v3/music/tracks/" +
+                                        URLEncoder.encode(
+                                            id,
+                                            "UTF-8"
+                                        )
+                                    )
+
+                                val detailRoot =
+                                    JSONObject(detailJson)
+
+                                val detailData =
+                                    detailRoot.optJSONObject("data")
+
+                                val detailFiles =
+                                    detailData?.optJSONObject(
+                                        "files"
+                                    )
+
+                                audioUrl =
+                                    detailFiles?.optString(
+                                        "mp3",
+                                        ""
+                                    ) ?: ""
+
+                            } catch (_: Exception) {
+                            }
+                        }
+
+                        if (audioUrl.isBlank()) {
+                            continue
+                        }
 
                         result.add(
                             OnlineTrack(
-                                identifier = identifier,
+                                identifier = id,
                                 title = title,
-                                artist = creator,
-                                audioUrl = audio.first,
-                                fileName = audio.second
+                                artist = artist,
+                                audioUrl = audioUrl,
+                                fileName = "file.mp3"
                             )
                         )
-                    }
 
-                    if (result.size >= 10) {
-                        break
+                        if (result.size >= 10) {
+                            break
+                        }
                     }
                 }
 
             } catch (_: Exception) {
+            }
+
+            // Keep Internet Archive as fallback.
+            if (result.isEmpty()) {
+
+                try {
+
+                    val encoded =
+                        URLEncoder.encode(
+                            query.trim(),
+                            "UTF-8"
+                        )
+
+                    val searchUrl =
+                        "https://archive.org/advancedsearch.php" +
+                        "?q=mediatype%3Aaudio+AND+" +
+                        "title%3A$encoded" +
+                        "&fl%5B%5D=identifier" +
+                        "&fl%5B%5D=title" +
+                        "&fl%5B%5D=creator" +
+                        "&rows=20" +
+                        "&page=1" +
+                        "&output=json"
+
+                    val json =
+                        httpGet(searchUrl)
+
+                    val docs =
+                        JSONObject(json)
+                            .getJSONObject("response")
+                            .getJSONArray("docs")
+
+                    for (i in 0 until docs.length()) {
+
+                        val doc =
+                            docs.getJSONObject(i)
+
+                        val identifier =
+                            doc.optString("identifier")
+
+                        if (identifier.isBlank()) {
+                            continue
+                        }
+
+                        val title =
+                            doc.optString(
+                                "title",
+                                "Unknown title"
+                            )
+
+                        val creator =
+                            when {
+                                doc.optJSONArray("creator") != null ->
+                                    doc.optJSONArray("creator")
+                                        ?.optString(0)
+                                        ?: "Unknown artist"
+
+                                doc.optString("creator").isNotBlank() ->
+                                    doc.optString("creator")
+
+                                else ->
+                                    "Unknown artist"
+                            }
+
+                        val audio =
+                            findArchiveAudio(
+                                identifier
+                            )
+
+                        if (audio != null) {
+
+                            result.add(
+                                OnlineTrack(
+                                    identifier = identifier,
+                                    title = title,
+                                    artist = creator,
+                                    audioUrl = audio.first,
+                                    fileName = audio.second
+                                )
+                            )
+                        }
+
+                        if (result.size >= 10) {
+                            break
+                        }
+                    }
+
+                } catch (_: Exception) {
+                }
             }
 
             mainHandler.post {
