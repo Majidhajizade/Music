@@ -8178,6 +8178,7 @@ class MainActivity : ComponentActivity() {
             var connection:
                 HttpURLConnection? = null
 
+            var outputUri: Uri? = null
             var success = false
 
             try {
@@ -8243,20 +8244,71 @@ class MainActivity : ComponentActivity() {
                         safeName + extension
                     }
 
-                val dir =
-                    File(
-                        filesDir,
-                        "downloads"
-                    ).apply {
-                        mkdirs()
+                val mimeType =
+                    when (extension.lowercase()) {
+                        ".ogg",
+                        ".oga" -> "audio/ogg"
+                        else -> "audio/mpeg"
                     }
 
-                val output =
-                    File(dir, finalName)
+                val values =
+                    android.content.ContentValues().apply {
+
+                        put(
+                            MediaStore.Audio.Media.DISPLAY_NAME,
+                            finalName
+                        )
+
+                        put(
+                            MediaStore.Audio.Media.MIME_TYPE,
+                            mimeType
+                        )
+
+                        put(
+                            MediaStore.Audio.Media.TITLE,
+                            track.title
+                        )
+
+                        put(
+                            MediaStore.Audio.Media.ARTIST,
+                            track.artist
+                        )
+
+                        put(
+                            MediaStore.Audio.Media.IS_MUSIC,
+                            1
+                        )
+
+                        if (Build.VERSION.SDK_INT >= 29) {
+                            put(
+                                MediaStore.Audio.Media.RELATIVE_PATH,
+                                "Music/"
+                            )
+
+                            put(
+                                MediaStore.Audio.Media.IS_PENDING,
+                                1
+                            )
+                        }
+                    }
+
+                outputUri =
+                    contentResolver.insert(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        values
+                    )
+
+                if (outputUri == null) {
+                    throw java.io.IOException(
+                        "Unable to create MediaStore entry"
+                    )
+                }
 
                 connection.inputStream.use { input ->
 
-                    FileOutputStream(output).use { out ->
+                    contentResolver.openOutputStream(
+                        outputUri!!
+                    )?.use { out ->
 
                         val buffer =
                             ByteArray(16 * 1024)
@@ -8280,9 +8332,7 @@ class MainActivity : ComponentActivity() {
 
                             total += count
 
-                            if (
-                                contentLength > 0
-                            ) {
+                            if (contentLength > 0) {
 
                                 val progress =
                                     (
@@ -8296,27 +8346,63 @@ class MainActivity : ComponentActivity() {
                                         )
 
                                 mainHandler.post {
-                                    onProgress(
-                                        progress
-                                    )
+                                    onProgress(progress)
                                 }
                             }
                         }
-                    }
+
+                        out.flush()
+
+                    } ?: throw java.io.IOException(
+                        "Unable to open MediaStore output"
+                    )
                 }
 
-                success = output.exists() &&
-                    output.length() > 0
+                if (Build.VERSION.SDK_INT >= 29) {
+
+                    val completeValues =
+                        android.content.ContentValues().apply {
+                            put(
+                                MediaStore.Audio.Media.IS_PENDING,
+                                0
+                            )
+                        }
+
+                    contentResolver.update(
+                        outputUri!!,
+                        completeValues,
+                        null,
+                        null
+                    )
+                }
+
+                success = true
 
             } catch (_: Exception) {
 
                 success = false
+
+                outputUri?.let { uri ->
+                    try {
+                        contentResolver.delete(
+                            uri,
+                            null,
+                            null
+                        )
+                    } catch (_: Exception) {
+                    }
+                }
 
             } finally {
                 connection?.disconnect()
             }
 
             mainHandler.post {
+
+                if (success) {
+                    loadMusic()
+                }
+
                 onComplete(success)
             }
         }
