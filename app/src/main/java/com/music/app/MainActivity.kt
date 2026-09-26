@@ -9111,7 +9111,7 @@ class MainActivity : ComponentActivity() {
                                     canvas.drawArc(
                                         rect,
                                         -90f,
-                                        (3.6f * progress).toInt(),
+                                        3.6f * progress.toFloat(),
                                         false,
                                         paint
                                     )
@@ -9157,7 +9157,7 @@ class MainActivity : ComponentActivity() {
                                     android.graphics.Paint.Style.STROKE
 
                                 paint.strokeWidth =
-                                    dp(2.4f)
+                                    dp(2.4f).toFloat()
 
                                 paint.strokeCap =
                                     android.graphics.Paint.Cap.ROUND
