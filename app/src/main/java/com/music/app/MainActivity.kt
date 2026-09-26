@@ -8950,7 +8950,7 @@ class MainActivity : ComponentActivity() {
                                     android.graphics.Paint.ANTI_ALIAS_FLAG
                                 )
 
-                            private var progress = 0f
+                            private var progress = 0
                             private var downloading = false
                             private var completed = false
 
@@ -8975,9 +8975,10 @@ class MainActivity : ComponentActivity() {
 
                                             post {
                                                 progress =
-                                                    value
-                                                        .coerceIn(0, 100)
-                                                        .toFloat()
+                                                    value.coerceIn(
+                                                        0,
+                                                        100
+                                                    )
                                                 invalidate()
                                             }
                                         },
@@ -9110,7 +9111,7 @@ class MainActivity : ComponentActivity() {
                                     canvas.drawArc(
                                         rect,
                                         -90f,
-                                        3.6f * progress,
+                                        3.6f * progress.toFloat(),
                                         false,
                                         paint
                                     )
