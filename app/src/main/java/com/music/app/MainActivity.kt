@@ -9111,7 +9111,7 @@ class MainActivity : ComponentActivity() {
                                     canvas.drawArc(
                                         rect,
                                         -90f,
-                                        3.6f * progress.toFloat(),
+                                        (3.6f * progress).toInt(),
                                         false,
                                         paint
                                     )
