@@ -8943,60 +8943,261 @@ class MainActivity : ComponentActivity() {
                     )
 
                     val download =
-                        TextView(this).apply {
-                            text = "↓"
-                            textSize = 23f
-                            gravity =
-                                Gravity.CENTER
-                            setTextColor(
-                                Color.rgb(
-                                    45,
-                                    45,
-                                    45
+                        object : View(this) {
+
+                            private val paint =
+                                android.graphics.Paint(
+                                    android.graphics.Paint.ANTI_ALIAS_FLAG
                                 )
-                            )
-                            isClickable = true
-                            isFocusable = true
 
-                            setPadding(
-                                dp(8),
-                                0,
-                                dp(8),
-                                0
-                            )
+                            private var progress = 0
+                            private var downloading = false
+                            private var completed = false
 
-                            setOnClickListener {
+                            init {
+                                isClickable = true
+                                isFocusable = true
 
-                                isEnabled = false
-                                text = "…"
+                                setOnClickListener {
 
-                                downloadOnlineTrack(
-                                    track,
-                                    onProgress = { progress ->
-                                        text =
-                                            if (
-                                                progress in
-                                                1..99
-                                            ) {
-                                                "$progress%"
-                                            } else {
-                                                "…"
-                                            }
-                                    },
-                                    onComplete = { success ->
-
-                                        isEnabled = true
-                                        text = "↓"
-
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            if (success)
-                                                "Downloaded"
-                                            else
-                                                "Download failed",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                    if (downloading) {
+                                        return@setOnClickListener
                                     }
+
+                                    downloading = true
+                                    completed = false
+                                    progress = 0
+                                    invalidate()
+
+                                    downloadOnlineTrack(
+                                        track,
+                                        onProgress = { value ->
+
+                                            post {
+                                                progress =
+                                                    value.coerceIn(
+                                                        0,
+                                                        100
+                                                    )
+                                                invalidate()
+                                            }
+                                        },
+                                        onComplete = { success ->
+
+                                            post {
+
+                                                downloading = false
+
+                                                if (success) {
+                                                    completed = true
+                                                    progress = 100
+                                                } else {
+                                                    completed = false
+                                                    progress = 0
+                                                }
+
+                                                invalidate()
+
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    if (success)
+                                                        "Downloaded"
+                                                    else
+                                                        "Download failed",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            override fun onDraw(
+                                canvas: android.graphics.Canvas
+                            ) {
+                                super.onDraw(canvas)
+
+                                val cx =
+                                    width / 2f
+
+                                val cy =
+                                    height / 2f
+
+                                val radius =
+                                    dp(18).toFloat()
+
+                                /*
+                                 * Completed state:
+                                 *
+                                 * light blue circular background
+                                 * + white download arrow.
+                                 */
+                                if (completed) {
+
+                                    paint.style =
+                                        android.graphics.Paint.Style.FILL
+
+                                    paint.color =
+                                        android.graphics.Color.rgb(
+                                            125,
+                                            190,
+                                            255
+                                        )
+
+                                    canvas.drawCircle(
+                                        cx,
+                                        cy,
+                                        radius,
+                                        paint
+                                    )
+
+                                    drawArrow(
+                                        canvas,
+                                        cx,
+                                        cy,
+                                        android.graphics.Color.WHITE
+                                    )
+
+                                    return
+                                }
+
+                                /*
+                                 * Downloading state:
+                                 *
+                                 * circular progress around
+                                 * the arrow, no percentage text.
+                                 */
+                                if (downloading) {
+
+                                    paint.style =
+                                        android.graphics.Paint.Style.STROKE
+
+                                    paint.strokeWidth =
+                                        dp(2).toFloat()
+
+                                    paint.strokeCap =
+                                        android.graphics.Paint.Cap.ROUND
+
+                                    paint.color =
+                                        android.graphics.Color.rgb(
+                                            215,
+                                            215,
+                                            215
+                                        )
+
+                                    val rect =
+                                        android.graphics.RectF(
+                                            cx - radius,
+                                            cy - radius,
+                                            cx + radius,
+                                            cy + radius
+                                        )
+
+                                    canvas.drawArc(
+                                        rect,
+                                        -90f,
+                                        360f,
+                                        false,
+                                        paint
+                                    )
+
+                                    paint.color =
+                                        android.graphics.Color.rgb(
+                                            25,
+                                            103,
+                                            210
+                                        )
+
+                                    canvas.drawArc(
+                                        rect,
+                                        -90f,
+                                        3.6f * progress,
+                                        false,
+                                        paint
+                                    )
+
+                                    drawArrow(
+                                        canvas,
+                                        cx,
+                                        cy,
+                                        android.graphics.Color.rgb(
+                                            45,
+                                            45,
+                                            45
+                                        )
+                                    )
+
+                                    return
+                                }
+
+                                /*
+                                 * Normal state:
+                                 * clean black download arrow.
+                                 */
+                                drawArrow(
+                                    canvas,
+                                    cx,
+                                    cy,
+                                    android.graphics.Color.rgb(
+                                        35,
+                                        35,
+                                        35
+                                    )
+                                )
+                            }
+
+                            private fun drawArrow(
+                                canvas: android.graphics.Canvas,
+                                cx: Float,
+                                cy: Float,
+                                color: Int
+                            ) {
+
+                                paint.style =
+                                    android.graphics.Paint.Style.STROKE
+
+                                paint.strokeWidth =
+                                    dp(2.4f)
+
+                                paint.strokeCap =
+                                    android.graphics.Paint.Cap.ROUND
+
+                                paint.strokeJoin =
+                                    android.graphics.Paint.Join.ROUND
+
+                                paint.color = color
+
+                                val path =
+                                    android.graphics.Path()
+
+                                path.moveTo(
+                                    cx,
+                                    cy - dp(9)
+                                )
+
+                                path.lineTo(
+                                    cx,
+                                    cy + dp(7)
+                                )
+
+                                path.moveTo(
+                                    cx - dp(6),
+                                    cy + dp(1)
+                                )
+
+                                path.lineTo(
+                                    cx,
+                                    cy + dp(7)
+                                )
+
+                                path.lineTo(
+                                    cx + dp(6),
+                                    cy + dp(1)
+                                )
+
+                                canvas.drawPath(
+                                    path,
+                                    paint
                                 )
                             }
                         }
