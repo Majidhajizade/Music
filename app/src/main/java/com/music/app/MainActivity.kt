@@ -9157,7 +9157,7 @@ class MainActivity : ComponentActivity() {
                                     android.graphics.Paint.Style.STROKE
 
                                 paint.strokeWidth =
-                                    dp(2.4f).toFloat()
+                                    dp(2).toFloat()
 
                                 paint.strokeCap =
                                     android.graphics.Paint.Cap.ROUND
