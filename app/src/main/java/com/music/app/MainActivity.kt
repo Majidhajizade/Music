@@ -13330,8 +13330,8 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        titleRow.translationY = -dp(12).toFloat()
-        artist.translationY = -dp(12).toFloat()
+        titleRow.translationY = -dp(48).toFloat()
+        artist.translationY = -dp(48).toFloat()
 
         info.addView(
             titleRow,
