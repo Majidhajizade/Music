@@ -12059,7 +12059,7 @@ class MainActivity : ComponentActivity() {
             .withEndAction {
 
                 artist.text = song.artist
-                artist.translationY = -dp(4).toFloat()
+                artist.translationY = -dp(48).toFloat()
 
                 artist.animate()
                     .alpha(0.68f)
