@@ -13948,6 +13948,11 @@ class MainActivity : ComponentActivity() {
                 "Queue"
             )
 
+        // Move Lyrics / Cast / Queue downward by 12dp.
+        lyrics.translationY = dp(12).toFloat()
+        cast.translationY = dp(12).toFloat()
+        queue.translationY = dp(12).toFloat()
+
         // ---------- ADD SECONDARY PLAYER BUTTONS ----------
         secondary.addView(
             lyrics,
