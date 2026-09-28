@@ -13176,7 +13176,7 @@ class MainActivity : ComponentActivity() {
                 0,
                 1f
             ).apply {
-                topMargin = dp(2)
+                topMargin = -dp(18)
                 bottomMargin = dp(2)
             }
         )
@@ -13240,16 +13240,44 @@ class MainActivity : ComponentActivity() {
 
         val favorite =
             ImageView(this).apply {
-                setImageResource(
-                    R.drawable.ic_music_favourite_outline
-                )
+
                 scaleType =
                     ImageView.ScaleType.CENTER_INSIDE
+
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        shape =
+                            android.graphics.drawable.GradientDrawable.OVAL
+
+                        setColor(
+                            Color.argb(
+                                52,
+                                255,
+                                255,
+                                255
+                            )
+                        )
+                    }
+
+                val updateFavoriteIcon = {
+                    if (isFavorite(song)) {
+                        setImageResource(
+                            R.drawable.ic_music_favourite
+                        )
+                    } else {
+                        setImageResource(
+                            R.drawable.ic_music_favourite_outline
+                        )
+                    }
+                }
+
+                updateFavoriteIcon()
 
                 isClickable = true
                 isFocusable = true
 
                 setOnClickListener {
+
                     val nowFavorite =
                         !isFavorite(song)
 
@@ -13257,6 +13285,16 @@ class MainActivity : ComponentActivity() {
                         song,
                         nowFavorite
                     )
+
+                    if (nowFavorite) {
+                        setImageResource(
+                            R.drawable.ic_music_favourite
+                        )
+                    } else {
+                        setImageResource(
+                            R.drawable.ic_music_favourite_outline
+                        )
+                    }
 
                     Toast.makeText(
                         this@MainActivity,
@@ -13282,8 +13320,8 @@ class MainActivity : ComponentActivity() {
         titleRow.addView(
             favorite,
             LinearLayout.LayoutParams(
-                dp(24),
-                dp(24)
+                dp(36),
+                dp(36)
             ).apply {
                 marginStart = dp(8)
             }
