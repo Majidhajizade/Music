@@ -12063,7 +12063,7 @@ class MainActivity : ComponentActivity() {
 
                 artist.animate()
                     .alpha(0.68f)
-                    .translationY(0f)
+                    .translationY(-dp(48).toFloat())
                     .setDuration(240L)
                     .setInterpolator(decelerate)
                     .start()
@@ -13376,14 +13376,14 @@ class MainActivity : ComponentActivity() {
             max = 1000
             progress = 0
 
-            minHeight = dp(14)
-            minimumHeight = dp(14)
+            minHeight = dp(7)
+            minimumHeight = dp(7)
 
             setPadding(
                 0,
-                dp(1),
                 0,
-                dp(1)
+                0,
+                0
             )
 
             thumb = null
@@ -13391,7 +13391,7 @@ class MainActivity : ComponentActivity() {
             val backgroundTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(7).toFloat()
+                    cornerRadius = dp(3.5f).toFloat()
                     setColor(
                         Color.argb(
                             70,
@@ -13405,7 +13405,7 @@ class MainActivity : ComponentActivity() {
             val progressTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(7).toFloat()
+                    cornerRadius = dp(3.5f).toFloat()
                     setColor(Color.WHITE)
                 }
 
@@ -13475,9 +13475,9 @@ class MainActivity : ComponentActivity() {
             seekBar,
             LinearLayout.LayoutParams(
                 -1,
-                dp(14)
+                dp(7)
             ).apply {
-                topMargin = -dp(11)
+                topMargin = -dp(23)
             }
         )
 
