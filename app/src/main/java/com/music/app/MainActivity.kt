@@ -13159,6 +13159,9 @@ class MainActivity : ComponentActivity() {
 
         cover.scaleY = cover.scaleX
 
+        // Move only the artwork upward without moving the info panel.
+        cover.translationY = -dp(18).toFloat()
+
         // Queue panel is attached after its declaration below.
 
 
@@ -13176,7 +13179,7 @@ class MainActivity : ComponentActivity() {
                 0,
                 1f
             ).apply {
-                topMargin = -dp(18)
+                topMargin = dp(2)
                 bottomMargin = dp(2)
             }
         )
@@ -13331,7 +13334,7 @@ class MainActivity : ComponentActivity() {
             titleRow,
             LinearLayout.LayoutParams(
                 -1,
-                dp(28)
+                dp(36)
             )
         )
 
@@ -13350,11 +13353,14 @@ class MainActivity : ComponentActivity() {
         bottomPanel.clipChildren = false
         bottomPanel.clipToPadding = false
 
+        root.clipChildren = false
+        root.clipToPadding = false
+
         root.addView(
             info,
             LinearLayout.LayoutParams(
                 -1,
-                dp(55)
+                dp(63)
             ).apply {
                 topMargin = -dp(2)
                 bottomMargin = 0
