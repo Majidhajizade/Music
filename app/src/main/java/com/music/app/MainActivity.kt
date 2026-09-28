@@ -13811,7 +13811,6 @@ class MainActivity : ComponentActivity() {
             }
         )
 
-        controls.translationY = dp(8).toFloat()
 
         bottomPanel.addView(
             controls,
@@ -13819,7 +13818,7 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(84)
             ).apply {
-                topMargin = -dp(10)
+                topMargin = -dp(2)
             }
         )
 
@@ -13948,11 +13947,6 @@ class MainActivity : ComponentActivity() {
                 com.music.app.R.drawable.ic_player_queue,
                 "Queue"
             )
-
-        // Move only Lyrics / Cast / Queue downward by 18dp.
-        lyrics.translationY = dp(18).toFloat()
-        cast.translationY = dp(18).toFloat()
-        queue.translationY = dp(18).toFloat()
 
         // ---------- ADD SECONDARY PLAYER BUTTONS ----------
         secondary.addView(
