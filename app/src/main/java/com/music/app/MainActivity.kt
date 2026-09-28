@@ -13391,7 +13391,7 @@ class MainActivity : ComponentActivity() {
             val backgroundTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(3.5f).toFloat()
+                    cornerRadius = dp(3).toFloat()
                     setColor(
                         Color.argb(
                             70,
@@ -13405,7 +13405,7 @@ class MainActivity : ComponentActivity() {
             val progressTrack =
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(3.5f).toFloat()
+                    cornerRadius = dp(3).toFloat()
                     setColor(Color.WHITE)
                 }
 
