@@ -13608,9 +13608,9 @@ class MainActivity : ComponentActivity() {
 
                 setImageResource(
                     if (mediaPlayer?.isPlaying == true)
-                        com.music.app.R.drawable.ic_player_pause
+                        com.music.app.R.drawable.ic_player_pause_custom
                     else
-                        com.music.app.R.drawable.ic_music_play_full
+                        com.music.app.R.drawable.ic_player_play_custom
                 )
 
                 scaleType =
@@ -13666,14 +13666,14 @@ class MainActivity : ComponentActivity() {
                                     .start()
 
                                 setImageResource(
-                                    com.music.app.R.drawable.ic_music_play
+                                    com.music.app.R.drawable.ic_player_play_custom
                                 )
 
                                 contentDescription = "Play"
 
 
                                 playButton.setImageResource(
-                                    com.music.app.R.drawable.ic_music_play
+                                    com.music.app.R.drawable.ic_player_play_custom
                                 )
 
                             } else {
@@ -13690,14 +13690,14 @@ class MainActivity : ComponentActivity() {
                                     .start()
 
                                 setImageResource(
-                                    com.music.app.R.drawable.ic_player_pause
+                                    com.music.app.R.drawable.ic_player_pause_custom
                                 )
 
                                 contentDescription = "Pause"
 
 
                                 playButton.setImageResource(
-                                    com.music.app.R.drawable.ic_player_pause
+                                    com.music.app.R.drawable.ic_player_pause_custom
                                 )
                             }
 
