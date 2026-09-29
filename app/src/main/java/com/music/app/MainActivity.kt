@@ -9530,7 +9530,7 @@ class MainActivity : ComponentActivity() {
                         if (it.isPlaying) {
                             it.pause()
                             setImageResource(
-                                com.music.app.R.drawable.ic_music_play_full
+                                com.music.app.R.drawable.ic_music_play
                             )
                             contentDescription = "Play"
                         } else {
@@ -13782,8 +13782,8 @@ class MainActivity : ComponentActivity() {
                 dp(70)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(2)
-                marginEnd = dp(2)
+                marginStart = dp(14)
+                marginEnd = dp(14)
             }
         )
 
@@ -13806,8 +13806,8 @@ class MainActivity : ComponentActivity() {
                 dp(70)
             ).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                marginStart = dp(2)
-                marginEnd = dp(2)
+                marginStart = dp(14)
+                marginEnd = dp(14)
             }
         )
 
@@ -13818,7 +13818,7 @@ class MainActivity : ComponentActivity() {
                 -1,
                 dp(84)
             ).apply {
-                topMargin = -dp(2)
+                topMargin = 0
             }
         )
 
