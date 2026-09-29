@@ -13616,9 +13616,6 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                scaleX = 1.5f
-                scaleY = 1.5f
-
                 background = null
 
                 contentDescription =
@@ -13669,12 +13666,10 @@ class MainActivity : ComponentActivity() {
                                     .start()
 
                                 setImageResource(
-                                    com.music.app.R.drawable.ic_music_play_full
+                                    com.music.app.R.drawable.ic_music_play
                                 )
 
                                 contentDescription = "Play"
-                                scaleX = 1.5f
-                                scaleY = 1.5f
 
 
                                 playButton.setImageResource(
@@ -13699,8 +13694,6 @@ class MainActivity : ComponentActivity() {
                                 )
 
                                 contentDescription = "Pause"
-                                scaleX = 1.5f
-                                scaleY = 1.5f
 
 
                                 playButton.setImageResource(
