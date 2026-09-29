@@ -12485,14 +12485,14 @@ class MainActivity : ComponentActivity() {
          * toward the Mini Player cover.
          */
         val centerX =
-            fullPlayerCloseStartCenterX
+            fullPlayerCloseStartCenterX +
                 (
                     miniCenterX -
                         fullPlayerCloseStartCenterX
                 ) * progress
 
         val centerY =
-            fullPlayerCloseStartCenterY
+            fullPlayerCloseStartCenterY +
                 (
                     miniCenterY -
                         fullPlayerCloseStartCenterY
@@ -12532,7 +12532,7 @@ class MainActivity : ComponentActivity() {
                 fullWidth
 
         val scale =
-            fullPlayerCloseInitialScale
+            fullPlayerCloseInitialScale +
                 (
                     targetScale -
                         fullPlayerCloseInitialScale
@@ -13608,9 +13608,9 @@ class MainActivity : ComponentActivity() {
 
                 setImageResource(
                     if (mediaPlayer?.isPlaying == true)
-                        com.music.app.R.drawable.ic_player_pause_custom
+                        com.music.app.R.drawable.ic_player_pause
                     else
-                        com.music.app.R.drawable.ic_player_play_custom
+                        com.music.app.R.drawable.ic_music_play_full
                 )
 
                 scaleType =
@@ -13666,14 +13666,14 @@ class MainActivity : ComponentActivity() {
                                     .start()
 
                                 setImageResource(
-                                    com.music.app.R.drawable.ic_player_play_custom
+                                    com.music.app.R.drawable.ic_music_play_full
                                 )
 
                                 contentDescription = "Play"
 
 
                                 playButton.setImageResource(
-                                    com.music.app.R.drawable.ic_player_play_custom
+                                    com.music.app.R.drawable.ic_music_play_full
                                 )
 
                             } else {
@@ -13690,14 +13690,14 @@ class MainActivity : ComponentActivity() {
                                     .start()
 
                                 setImageResource(
-                                    com.music.app.R.drawable.ic_player_pause_custom
+                                    com.music.app.R.drawable.ic_player_pause
                                 )
 
                                 contentDescription = "Pause"
 
 
                                 playButton.setImageResource(
-                                    com.music.app.R.drawable.ic_player_pause_custom
+                                    com.music.app.R.drawable.ic_player_pause
                                 )
                             }
 
