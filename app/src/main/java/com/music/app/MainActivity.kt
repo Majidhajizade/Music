@@ -12506,11 +12506,11 @@ class MainActivity : ComponentActivity() {
         )
 
         val containerCenterX =
-            containerLocation[0]
+            containerLocation[0] +
                 coverContainer.width / 2f
 
         val containerCenterY =
-            containerLocation[1]
+            containerLocation[1] +
                 coverContainer.height / 2f
 
         cover.translationX =
