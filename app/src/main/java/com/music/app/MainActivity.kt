@@ -165,6 +165,14 @@ class MainActivity : ComponentActivity() {
 
     private var playbackIndex = -1
 
+    private var shuffleEnabled = false
+    private var repeatEnabled = false
+    private var infinityEnabled = true
+
+    private lateinit var shuffleButton: TextView
+    private lateinit var repeatButton: TextView
+    private lateinit var infinityButton: TextView
+
     private lateinit var content: LinearLayout
     private lateinit var miniCover: ImageView
     private lateinit var miniPlayer: LinearLayout
@@ -14456,14 +14464,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-        var shuffleEnabled = false
-        var repeatEnabled = false
-        var infinityEnabled = true
-
-        lateinit var shuffleButton: TextView
-        lateinit var repeatButton: TextView
-        lateinit var infinityButton: TextView
 
         fun modeCard(
             icon: String,
