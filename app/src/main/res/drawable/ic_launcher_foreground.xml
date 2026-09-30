@@ -1,10 +1,9 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:left="27dp"
-        android:top="27dp"
-        android:right="27dp"
-        android:bottom="27dp">
+        android:width="54dp"
+        android:height="54dp"
+        android:gravity="center">
 
         <bitmap
             android:src="@drawable/icon"
