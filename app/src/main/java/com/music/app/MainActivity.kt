@@ -361,7 +361,7 @@ class MainActivity : ComponentActivity() {
             isFocusable = true
 
             background = GradientDrawable().apply {
-                setColor(Color.BLACK)
+                setColor(Color.rgb(10, 132, 255))
                 cornerRadius = dp(40).toFloat()
             }
 
@@ -10483,6 +10483,11 @@ class MainActivity : ComponentActivity() {
 
         root.alpha = eased
 
+        miniTransitionRoot?.background?.alpha =
+            (255f * eased)
+                .toInt()
+                .coerceIn(0, 255)
+
         miniTransitionFullCover?.alpha = eased
 
         miniTransitionInfo?.apply {
@@ -12522,8 +12527,7 @@ class MainActivity : ComponentActivity() {
 
         cover.translationY =
             centerY -
-                containerCenterY -
-                rootTranslationY
+                containerCenterY
 
         val fullWidth =
             cover.width
@@ -12763,10 +12767,16 @@ class MainActivity : ComponentActivity() {
             .withEndAction {
 
                 /*
-                 * The root was moved by the close gesture.
-                 * Reset it only after the cover reaches the Mini Player,
-                 * avoiding a second root-wide animator during the transition.
+                 * The cover has reached the Mini Player in screen space,
+                 * but the Full Player root is still translated downward.
+                 * Preserve the cover's screen position before resetting root.
                  */
+                val rootTranslationAtEnd =
+                    root.translationY
+
+                cover.translationY +=
+                    rootTranslationAtEnd
+
                 root.translationY = 0f
                 root.alpha = 1f
 
@@ -15061,7 +15071,16 @@ class MainActivity : ComponentActivity() {
             miniTransitionSecondary = secondary
             miniTransitionCoverContainer = coverContainer
 
+            /*
+             * During the Mini -> Full handoff the real Full Player
+             * must be completely invisible until the 50% handoff.
+             * This includes its dynamic background; otherwise the
+             * background appears before the artwork and causes a
+             * white/background flash while dragging upward.
+             */
             root.alpha = 0f
+
+            root.background?.alpha = 0
 
             cover.alpha = 0f
             info.alpha = 0f
