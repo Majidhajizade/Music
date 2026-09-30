@@ -14,8 +14,8 @@
     android:maxSdkVersion="32" />
 
     <application
-        android:roundIcon="@drawable/icon"
-        android:icon="@drawable/icon"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Music"
         android:label="Music"
         android:allowBackup="true"
