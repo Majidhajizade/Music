@@ -14446,44 +14446,71 @@ class MainActivity : ComponentActivity() {
                 gravity = Gravity.CENTER
                 setTypeface(null, Typeface.BOLD)
 
-                if (icon == "SHUFFLE_DRAWABLE") {
-                    text = ""
-                    val shuffleDrawable =
-                        androidx.core.content.ContextCompat.getDrawable(
-                            this@MainActivity,
-                            R.drawable.ic_player_shuffle
-                        )?.mutate()
+                includeFontPadding = false
 
-                    shuffleDrawable?.setTint(Color.WHITE)
+                when (icon) {
 
-                    setCompoundDrawables(
-                        null,
-                        shuffleDrawable,
-                        null,
-                        null
-                    )
+                    "SHUFFLE_DRAWABLE" -> {
 
-                    compoundDrawablePadding = 0
-                } else if (icon == "REPEAT_DRAWABLE") {
-                    text = ""
-                    val repeatDrawable =
-                        androidx.core.content.ContextCompat.getDrawable(
-                            this@MainActivity,
-                            R.drawable.ic_player_repeat_queue
-                        )?.mutate()
+                        text = ""
 
-                    repeatDrawable?.setTint(Color.WHITE)
+                        val drawable =
+                            androidx.core.content.ContextCompat.getDrawable(
+                                this@MainActivity,
+                                R.drawable.ic_player_shuffle
+                            )?.mutate()
 
-                    setCompoundDrawables(
-                        null,
-                        repeatDrawable,
-                        null,
-                        null
-                    )
+                        drawable?.setTint(Color.WHITE)
 
-                    compoundDrawablePadding = 0
-                } else {
-                    text = icon
+                        drawable?.setBounds(
+                            0,
+                            0,
+                            dp(24),
+                            dp(24)
+                        )
+
+                        setCompoundDrawables(
+                            null,
+                            drawable,
+                            null,
+                            null
+                        )
+
+                        compoundDrawablePadding = 0
+                    }
+
+                    "REPEAT_DRAWABLE" -> {
+
+                        text = ""
+
+                        val drawable =
+                            androidx.core.content.ContextCompat.getDrawable(
+                                this@MainActivity,
+                                R.drawable.ic_player_repeat_queue
+                            )?.mutate()
+
+                        drawable?.setTint(Color.WHITE)
+
+                        drawable?.setBounds(
+                            0,
+                            0,
+                            dp(24),
+                            dp(24)
+                        )
+
+                        setCompoundDrawables(
+                            null,
+                            drawable,
+                            null,
+                            null
+                        )
+
+                        compoundDrawablePadding = 0
+                    }
+
+                    else -> {
+                        text = icon
+                    }
                 }
 
                 background =
@@ -14519,28 +14546,23 @@ class MainActivity : ComponentActivity() {
 
                 setOnTouchListener { view, event ->
 
-                    when (
-                        event.actionMasked
-                    ) {
+                    when (event.actionMasked) {
 
-                        android.view.MotionEvent
-                            .ACTION_DOWN -> {
+                        android.view.MotionEvent.ACTION_DOWN -> {
 
                             view.animate()
-                                .scaleX(0.91f)
-                                .scaleY(0.91f)
+                                .scaleX(0.94f)
+                                .scaleY(0.94f)
                                 .setDuration(70L)
                                 .start()
                         }
 
-                        android.view.MotionEvent
-                            .ACTION_UP,
-                        android.view.MotionEvent
-                            .ACTION_CANCEL -> {
+                        android.view.MotionEvent.ACTION_UP,
+                        android.view.MotionEvent.ACTION_CANCEL -> {
 
                             view.animate()
-                                .scaleX(2f)
-                                .scaleY(2f)
+                                .scaleX(1f)
+                                .scaleY(1f)
                                 .setDuration(110L)
                                 .start()
                         }
