@@ -14441,6 +14441,11 @@ class MainActivity : ComponentActivity() {
 
             return TextView(this).apply {
 
+                textSize = 21f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                setTypeface(null, Typeface.BOLD)
+
                 if (icon == "SHUFFLE_DRAWABLE") {
                     text = ""
                     val shuffleDrawable =
@@ -14451,9 +14456,27 @@ class MainActivity : ComponentActivity() {
 
                     shuffleDrawable?.setTint(Color.WHITE)
 
-                    setCompoundDrawablesWithIntrinsicBounds(
+                    setCompoundDrawables(
+                        null,
                         shuffleDrawable,
                         null,
+                        null
+                    )
+
+                    compoundDrawablePadding = 0
+                } else if (icon == "REPEAT_DRAWABLE") {
+                    text = ""
+                    val repeatDrawable =
+                        androidx.core.content.ContextCompat.getDrawable(
+                            this@MainActivity,
+                            R.drawable.ic_player_repeat_queue
+                        )?.mutate()
+
+                    repeatDrawable?.setTint(Color.WHITE)
+
+                    setCompoundDrawables(
+                        null,
+                        repeatDrawable,
                         null,
                         null
                     )
@@ -14462,11 +14485,6 @@ class MainActivity : ComponentActivity() {
                 } else {
                     text = icon
                 }
-
-                textSize = 21f
-                setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER
-                setTypeface(null, Typeface.BOLD)
 
                 background =
                     GradientDrawable().apply {
@@ -14553,7 +14571,7 @@ class MainActivity : ComponentActivity() {
         // Apple Music-style repeat symbol:
         // two curved arrows facing opposite directions.
         repeatButton =
-            modeCard("↻") {
+            modeCard("REPEAT_DRAWABLE") {
 
                 repeatEnabled =
                     !repeatEnabled
