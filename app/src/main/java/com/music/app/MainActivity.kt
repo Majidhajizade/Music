@@ -1338,13 +1338,10 @@ class MainActivity : ComponentActivity() {
                     progress
 
                 collapsingGreeting.translationY =
-                    dp(10).toFloat() * (1f - progress)
+                    dp(32).toFloat() * (1f - progress)
 
-                collapsingGreeting.scaleX =
-                    0.94f + (0.06f * progress)
-
-                collapsingGreeting.scaleY =
-                    0.94f + (0.06f * progress)
+                collapsingGreeting.scaleX = 1f
+                collapsingGreeting.scaleY = 1f
 
                 if (progress >= 0.95f && !homeCollapsed) {
 
@@ -1353,6 +1350,8 @@ class MainActivity : ComponentActivity() {
                     collapsingGreeting.animate()
                         .alpha(1f)
                         .translationY(0f)
+                        .scaleX(1f)
+                        .scaleY(1f)
                         .setDuration(180L)
                         .setInterpolator(
                             android.view.animation.DecelerateInterpolator()
@@ -1365,7 +1364,9 @@ class MainActivity : ComponentActivity() {
 
                     collapsingGreeting.animate()
                         .alpha(0f)
-                        .translationY(dp(10).toFloat())
+                        .translationY(dp(32).toFloat())
+                        .scaleX(1f)
+                        .scaleY(1f)
                         .setDuration(180L)
                         .setInterpolator(
                             android.view.animation.DecelerateInterpolator()
@@ -11439,7 +11440,9 @@ class MainActivity : ComponentActivity() {
                 dp(1)
             )
 
-            background = android.graphics.drawable.ColorDrawable(Color.TRANSPARENT)
+            background = android.graphics.drawable.ColorDrawable(
+                Color.argb(153, 255, 255, 255)
+            )
 
             clipToOutline = false
             elevation = 0f
