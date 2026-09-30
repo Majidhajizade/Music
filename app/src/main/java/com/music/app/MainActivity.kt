@@ -10837,6 +10837,35 @@ class MainActivity : ComponentActivity() {
         miniHideRunnable = null
     }
 
+    private fun syncQueueModesFromPlayer() {
+
+        val controller = mediaPlayer ?: return
+
+        if (!::shuffleButton.isInitialized ||
+            !::repeatButton.isInitialized ||
+            !::infinityButton.isInitialized
+        ) {
+            return
+        }
+
+        shuffleEnabled = controller.shuffleModeEnabled
+
+        repeatEnabled =
+            controller.repeatMode == Player.REPEAT_MODE_ONE
+
+        infinityEnabled =
+            controller.repeatMode == Player.REPEAT_MODE_ALL
+
+        shuffleButton.alpha =
+            if (shuffleEnabled) 1f else 0.78f
+
+        repeatButton.alpha =
+            if (repeatEnabled) 1f else 0.78f
+
+        infinityButton.alpha =
+            if (infinityEnabled) 1f else 0.78f
+    }
+
     private fun showMiniPlayer() {
 
         if (!::miniPlayer.isInitialized) {
@@ -11030,6 +11059,8 @@ class MainActivity : ComponentActivity() {
                     controller.addListener(
                         mediaControllerListener
                     )
+
+                    syncQueueModesFromPlayer()
 
                     /*
                      * The Activity can now restore the visible
@@ -14443,10 +14474,19 @@ class MainActivity : ComponentActivity() {
 
                 textSize = 21f
                 setTextColor(Color.WHITE)
+
                 gravity = Gravity.CENTER
+
                 setTypeface(null, Typeface.BOLD)
 
                 includeFontPadding = false
+
+                setPadding(
+                    0,
+                    0,
+                    0,
+                    0
+                )
 
                 when (icon) {
 
@@ -14470,13 +14510,11 @@ class MainActivity : ComponentActivity() {
                         )
 
                         setCompoundDrawables(
-                            null,
                             drawable,
+                            null,
                             null,
                             null
                         )
-
-                        compoundDrawablePadding = 0
                     }
 
                     "REPEAT_DRAWABLE" -> {
@@ -14499,26 +14537,28 @@ class MainActivity : ComponentActivity() {
                         )
 
                         setCompoundDrawables(
-                            null,
                             drawable,
+                            null,
                             null,
                             null
                         )
-
-                        compoundDrawablePadding = 0
                     }
 
                     else -> {
+
                         text = icon
                     }
                 }
 
                 background =
                     GradientDrawable().apply {
+
                         shape =
                             GradientDrawable.RECTANGLE
+
                         cornerRadius =
                             dp(14).toFloat()
+
                         setColor(
                             Color.argb(
                                 48,
@@ -14527,6 +14567,7 @@ class MainActivity : ComponentActivity() {
                                 255
                             )
                         )
+
                         setStroke(
                             dp(1),
                             Color.argb(
@@ -14546,7 +14587,9 @@ class MainActivity : ComponentActivity() {
 
                 setOnTouchListener { view, event ->
 
-                    when (event.actionMasked) {
+                    when (
+                        event.actionMasked
+                    ) {
 
                         android.view.MotionEvent.ACTION_DOWN -> {
 
@@ -14573,49 +14616,60 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // SHUFFLE
         shuffleButton =
             modeCard("SHUFFLE_DRAWABLE") {
 
-                shuffleEnabled =
-                    !shuffleEnabled
+                val controller =
+                    mediaPlayer
+                        ?: return@modeCard
 
-                shuffleButton.alpha =
-                    if (shuffleEnabled)
-                        1f
-                    else
-                        0.78f
+                controller.shuffleModeEnabled =
+                    !controller.shuffleModeEnabled
 
-                if (shuffleEnabled) {
-                    playbackQueue.shuffle()
-                }
+                syncQueueModesFromPlayer()
             }
 
-        // Apple Music-style repeat symbol:
-        // two curved arrows facing opposite directions.
+        // REPEAT ONE
         repeatButton =
             modeCard("REPEAT_DRAWABLE") {
 
-                repeatEnabled =
-                    !repeatEnabled
+                val controller =
+                    mediaPlayer
+                        ?: return@modeCard
 
-                repeatButton.alpha =
-                    if (repeatEnabled)
-                        1f
-                    else
-                        0.78f
+                controller.repeatMode =
+                    if (
+                        controller.repeatMode ==
+                        Player.REPEAT_MODE_ONE
+                    ) {
+                        Player.REPEAT_MODE_OFF
+                    } else {
+                        Player.REPEAT_MODE_ONE
+                    }
+
+                syncQueueModesFromPlayer()
             }
 
+        // INFINITY = REPEAT ALL
         infinityButton =
             modeCard("∞") {
 
-                infinityEnabled =
-                    !infinityEnabled
+                val controller =
+                    mediaPlayer
+                        ?: return@modeCard
 
-                infinityButton.alpha =
-                    if (infinityEnabled)
-                        1f
-                    else
-                        0.78f
+                controller.repeatMode =
+                    if (
+                        controller.repeatMode ==
+                        Player.REPEAT_MODE_ALL
+                    ) {
+                        Player.REPEAT_MODE_OFF
+                    } else {
+                        Player.REPEAT_MODE_ALL
+                    }
+
+                syncQueueModesFromPlayer()
             }
 
         fun addModeCard(
