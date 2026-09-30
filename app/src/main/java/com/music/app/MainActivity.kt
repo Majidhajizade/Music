@@ -1003,7 +1003,7 @@ class MainActivity : ComponentActivity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.TRANSPARENT)
-            setPadding(0, 0, 0, dp(6))
+            setPadding(0, 0, 0, 0)
         }
 
         content = LinearLayout(this).apply {
@@ -11441,7 +11441,7 @@ class MainActivity : ComponentActivity() {
             )
 
             background = android.graphics.drawable.ColorDrawable(
-                Color.argb(153, 255, 255, 255)
+                Color.TRANSPARENT
             )
 
             clipToOutline = false
