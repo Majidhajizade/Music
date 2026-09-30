@@ -1,0 +1,15 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:left="27dp"
+        android:top="27dp"
+        android:right="27dp"
+        android:bottom="27dp">
+
+        <bitmap
+            android:src="@drawable/icon"
+            android:gravity="fill" />
+
+    </item>
+
+</layer-list>
