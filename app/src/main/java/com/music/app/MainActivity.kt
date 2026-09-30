@@ -14017,7 +14017,7 @@ class MainActivity : ComponentActivity() {
                 alpha = 0f
                 setPadding(
                     dp(4),
-                    0,
+                    dp(52),
                     dp(4),
                     0
                 )
