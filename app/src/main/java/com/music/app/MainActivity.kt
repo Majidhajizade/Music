@@ -73,6 +73,18 @@ class MainActivity : ComponentActivity() {
     private var lastOnlineQuery = ""
     private var currentSong: Song? = null
 
+    private var queueBackgroundColors =
+        intArrayOf(
+            Color.rgb(245, 245, 247),
+            Color.rgb(225, 225, 230),
+            Color.rgb(205, 205, 210)
+        )
+
+    private var queueBackgroundRoot: View? = null
+
+    private var queueBackgroundAnimator:
+        android.animation.ValueAnimator? = null
+
     /*
      * Background playback controller.
      *
@@ -83,6 +95,120 @@ class MainActivity : ComponentActivity() {
         ListenableFuture<MediaController>? = null
 
     private var restoredPosition = 0L
+
+    private fun animateQueueBackgroundColors(
+        targetColors: IntArray
+    ) {
+
+        val root =
+            queueBackgroundRoot
+                ?: return
+
+        if (targetColors.size < 3) {
+            return
+        }
+
+        val startColors =
+            queueBackgroundColors.copyOf()
+
+        queueBackgroundAnimator?.cancel()
+
+        queueBackgroundAnimator =
+            android.animation.ValueAnimator.ofFloat(
+                0f,
+                1f
+            ).apply {
+
+                duration = 650L
+
+                interpolator =
+                    android.view.animation.DecelerateInterpolator()
+
+                addUpdateListener { animator ->
+
+                    val fraction =
+                        animator.animatedValue as Float
+
+                    fun mix(a: Int, b: Int): Int {
+                        return Color.rgb(
+                            (
+                                Color.red(a) +
+                                    (
+                                        Color.red(b) -
+                                            Color.red(a)
+                                    ) * fraction
+                            ).toInt(),
+                            (
+                                Color.green(a) +
+                                    (
+                                        Color.green(b) -
+                                            Color.green(a)
+                                    ) * fraction
+                            ).toInt(),
+                            (
+                                Color.blue(a) +
+                                    (
+                                        Color.blue(b) -
+                                            Color.blue(a)
+                                    ) * fraction
+                            ).toInt()
+                        )
+                    }
+
+                    val colors =
+                        intArrayOf(
+                            mix(
+                                startColors[0],
+                                targetColors[0]
+                            ),
+                            mix(
+                                startColors[1],
+                                targetColors[1]
+                            ),
+                            mix(
+                                startColors[2],
+                                targetColors[2]
+                            )
+                        )
+
+                    root.background =
+                        android.graphics.drawable.GradientDrawable(
+                            android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                            colors
+                        )
+                }
+
+                addListener(
+                    object :
+                        android.animation.Animator.AnimatorListener {
+
+                        override fun onAnimationStart(
+                            animation: android.animation.Animator
+                        ) {
+                        }
+
+                        override fun onAnimationEnd(
+                            animation: android.animation.Animator
+                        ) {
+                            queueBackgroundColors =
+                                targetColors.copyOf()
+                        }
+
+                        override fun onAnimationCancel(
+                            animation: android.animation.Animator
+                        ) {
+                        }
+
+                        override fun onAnimationRepeat(
+                            animation: android.animation.Animator
+                        ) {
+                        }
+                    }
+                )
+
+                start()
+            }
+    }
 
     private val mediaControllerListener =
         object : Player.Listener {
@@ -113,6 +239,34 @@ class MainActivity : ComponentActivity() {
                 showMiniPlayer()
 
                 updateAllPlayerArtwork(song)
+
+                // Queue keeps the main artwork hidden.
+                // The new bitmap is still loaded underneath so
+                // it is ready immediately when Queue is closed.
+                if (queueExpanded) {
+                    fullPlayerCover?.alpha = 0f
+
+                    /*
+                     * Queue stays visually stable while the current
+                     * song changes. Only the background colors transition
+                     * softly from the previous song to the new song.
+                     */
+                    val newArtwork =
+                        getAlbumArt(song)
+
+                    if (newArtwork != null) {
+
+                        val newColors =
+                            getAlbumColors(
+                                song,
+                                newArtwork
+                            )
+
+                        animateQueueBackgroundColors(
+                            newColors
+                        )
+                    }
+                }
 
                 miniTitle.text = song.title
                 miniArtist.text = song.artist
@@ -14131,6 +14285,26 @@ class MainActivity : ComponentActivity() {
 
         var queueExpanded = false
 
+        queueBackgroundRoot = root
+
+        fun setQueueInfoVisible(
+            visible: Boolean
+        ) {
+
+            val targetAlpha =
+                if (visible) 1f else 0f
+
+            titleRow.animate()
+                .alpha(targetAlpha)
+                .setDuration(220L)
+                .start()
+
+            artist.animate()
+                .alpha(targetAlpha)
+                .setDuration(220L)
+                .start()
+        }
+
         val queuePanel =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -14164,6 +14338,17 @@ class MainActivity : ComponentActivity() {
 
             if (queueExpanded) {
 
+                // Hide title, artist and favorite while Queue is open.
+                setQueueInfoVisible(false)
+
+                // Keep the main artwork hidden while Queue is visible.
+                cover.animate()
+                    .alpha(0f)
+                    .scaleX(0.94f)
+                    .scaleY(0.94f)
+                    .setDuration(220L)
+                    .start()
+
                 // Restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
                 controls.alpha = 1f
@@ -14189,6 +14374,9 @@ class MainActivity : ComponentActivity() {
                     .start()
 
             } else {
+
+                // Restore title, artist and favorite.
+                setQueueInfoVisible(true)
 
                 queuePanel.animate()
                     .alpha(0f)
