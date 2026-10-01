@@ -10864,14 +10864,96 @@ class MainActivity : ComponentActivity() {
         infinityEnabled =
             controller.repeatMode == Player.REPEAT_MODE_ALL
 
-        shuffleButton.alpha =
-            if (shuffleEnabled) 1f else 0.78f
+        fun updateButton(
+            button: TextView,
+            active: Boolean
+        ) {
 
-        repeatButton.alpha =
-            if (repeatEnabled) 1f else 0.78f
+            button.alpha =
+                if (active) 1f else 0.78f
 
-        infinityButton.alpha =
-            if (infinityEnabled) 1f else 0.78f
+            button.background =
+                GradientDrawable().apply {
+
+                    shape =
+                        GradientDrawable.RECTANGLE
+
+                    cornerRadius =
+                        dp(14).toFloat()
+
+                    setColor(
+                        if (active)
+                            Color.argb(
+                                105,
+                                255,
+                                255,
+                                255
+                            )
+                        else
+                            Color.argb(
+                                48,
+                                255,
+                                255,
+                                255
+                            )
+                    )
+
+                    setStroke(
+                        dp(1),
+                        if (active)
+                            Color.argb(
+                                125,
+                                255,
+                                255,
+                                255
+                            )
+                        else
+                            Color.argb(
+                                55,
+                                255,
+                                255,
+                                255
+                            )
+                    )
+                }
+
+            val modeIcon =
+                button.compoundDrawables[0]
+
+            if (modeIcon != null) {
+
+                modeIcon.setTint(
+                    if (active)
+                        Color.rgb(45, 45, 45)
+                    else
+                        Color.WHITE
+                )
+
+            } else {
+
+                button.setTextColor(
+                    if (active)
+                        Color.rgb(45, 45, 45)
+                    else
+                        Color.WHITE
+                )
+            }
+        }
+
+        updateButton(
+            shuffleButton,
+            shuffleEnabled
+        )
+
+        updateButton(
+            repeatButton,
+            repeatEnabled
+        )
+
+        updateButton(
+            infinityButton,
+            infinityEnabled
+        )
     }
 
     private fun showMiniPlayer() {
@@ -14488,6 +14570,39 @@ class MainActivity : ComponentActivity() {
                     0
                 )
 
+                val normalBackground =
+                    GradientDrawable().apply {
+
+                        shape =
+                            GradientDrawable.RECTANGLE
+
+                        cornerRadius =
+                            dp(14).toFloat()
+
+                        setColor(
+                            Color.argb(
+                                48,
+                                255,
+                                255,
+                                255
+                            )
+                        )
+
+                        setStroke(
+                            dp(1),
+                            Color.argb(
+                                55,
+                                255,
+                                255,
+                                255
+                            )
+                        )
+                    }
+
+                background = normalBackground
+
+                alpha = 0.78f
+
                 when (icon) {
 
                     "SHUFFLE_DRAWABLE" -> {
@@ -14550,37 +14665,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                background =
-                    GradientDrawable().apply {
-
-                        shape =
-                            GradientDrawable.RECTANGLE
-
-                        cornerRadius =
-                            dp(14).toFloat()
-
-                        setColor(
-                            Color.argb(
-                                48,
-                                255,
-                                255,
-                                255
-                            )
-                        )
-
-                        setStroke(
-                            dp(1),
-                            Color.argb(
-                                55,
-                                255,
-                                255,
-                                255
-                            )
-                        )
-                    }
-
-                alpha = 0.78f
-
                 setOnClickListener {
                     action()
                 }
@@ -14613,6 +14697,7 @@ class MainActivity : ComponentActivity() {
 
                     false
                 }
+
             }
         }
 
