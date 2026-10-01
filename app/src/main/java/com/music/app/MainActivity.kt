@@ -240,34 +240,6 @@ class MainActivity : ComponentActivity() {
 
                 updateAllPlayerArtwork(song)
 
-                // Queue keeps the main artwork hidden.
-                // The new bitmap is still loaded underneath so
-                // it is ready immediately when Queue is closed.
-                if (queueExpanded) {
-                    fullPlayerCover?.alpha = 0f
-
-                    /*
-                     * Queue stays visually stable while the current
-                     * song changes. Only the background colors transition
-                     * softly from the previous song to the new song.
-                     */
-                    val newArtwork =
-                        getAlbumArt(song)
-
-                    if (newArtwork != null) {
-
-                        val newColors =
-                            getAlbumColors(
-                                song,
-                                newArtwork
-                            )
-
-                        animateQueueBackgroundColors(
-                            newColors
-                        )
-                    }
-                }
-
                 miniTitle.text = song.title
                 miniArtist.text = song.artist
 
@@ -14340,14 +14312,6 @@ class MainActivity : ComponentActivity() {
 
                 // Hide title, artist and favorite while Queue is open.
                 setQueueInfoVisible(false)
-
-                // Keep the main artwork hidden while Queue is visible.
-                cover.animate()
-                    .alpha(0f)
-                    .scaleX(0.94f)
-                    .scaleY(0.94f)
-                    .setDuration(220L)
-                    .start()
 
                 // Restore Previous / Play / Next.
                 controls.visibility = View.VISIBLE
