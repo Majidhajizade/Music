@@ -336,6 +336,8 @@ class MainActivity : ComponentActivity() {
     private var miniTransitionCoverContainer: View? = null
     private var miniExpansionOpening = false
     private var fullPlayerCover: ImageView? = null
+    private var fullPlayerDialog: android.app.Dialog? = null
+    private var fullPlayerQueueExpanded = false
 
     private var miniFullTargetCenterX = Float.NaN
     private var miniFullTargetCenterY = Float.NaN
@@ -11319,6 +11321,10 @@ class MainActivity : ComponentActivity() {
             } ?: cover.setImageResource(
                 R.drawable.icon
             )
+
+            if (fullPlayerQueueExpanded) {
+                cover.alpha = 0f
+            }
         }
 
         (miniTransitionFullCover as? ImageView)?.let { cover ->
@@ -13105,6 +13111,13 @@ class MainActivity : ComponentActivity() {
 
     private fun showNowPlaying() {
 
+        if (fullPlayerDialog?.isShowing == true) {
+            return
+        }
+
+        fullPlayerDialog = null
+        fullPlayerQueueExpanded = false
+
         if (android.os.Build.VERSION.SDK_INT >= 30) {
             window.setDecorFitsSystemWindows(false)
         }
@@ -13124,6 +13137,8 @@ class MainActivity : ComponentActivity() {
             this,
             android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen
         )
+
+        fullPlayerDialog = dialog
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -14307,6 +14322,7 @@ class MainActivity : ComponentActivity() {
         queue.setOnClickListener {
 
             queueExpanded = !queueExpanded
+            fullPlayerQueueExpanded = queueExpanded
 
             if (queueExpanded) {
 
@@ -15455,6 +15471,11 @@ class MainActivity : ComponentActivity() {
         }
 
         dialog.setOnDismissListener {
+
+            if (fullPlayerDialog === dialog) {
+                fullPlayerDialog = null
+                fullPlayerQueueExpanded = false
+            }
 
             handler.removeCallbacks(
                 updater
