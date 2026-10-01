@@ -11323,7 +11323,11 @@ class MainActivity : ComponentActivity() {
             )
 
             if (fullPlayerQueueExpanded) {
+                cover.animate().cancel()
+                cover.clearAnimation()
                 cover.alpha = 0f
+                cover.scaleX = 0.94f
+                cover.scaleY = 0.94f
             }
         }
 
@@ -12424,23 +12428,31 @@ class MainActivity : ComponentActivity() {
                     cover.setImageResource(R.drawable.icon)
                 }
 
-                cover.animate()
-                    .alpha(1f)
-                    .scaleX(
-                        if (mediaPlayer?.isPlaying == true)
-                            1f
-                        else
-                            0.94f
-                    )
-                    .scaleY(
-                        if (mediaPlayer?.isPlaying == true)
-                            1f
-                        else
-                            0.94f
-                    )
-                    .setDuration(480L)
-                    .setInterpolator(decelerate)
-                    .start()
+                if (fullPlayerQueueExpanded) {
+                    cover.animate().cancel()
+                    cover.clearAnimation()
+                    cover.alpha = 0f
+                    cover.scaleX = 0.94f
+                    cover.scaleY = 0.94f
+                } else {
+                    cover.animate()
+                        .alpha(1f)
+                        .scaleX(
+                            if (mediaPlayer?.isPlaying == true)
+                                1f
+                            else
+                                0.94f
+                        )
+                        .scaleY(
+                            if (mediaPlayer?.isPlaying == true)
+                                1f
+                            else
+                                0.94f
+                        )
+                        .setDuration(480L)
+                        .setInterpolator(decelerate)
+                        .start()
+                }
             }
             .start()
 
@@ -14337,12 +14349,11 @@ class MainActivity : ComponentActivity() {
                 queuePanel.alpha = 0f
                 queuePanel.translationY = dp(18).toFloat()
 
-                cover.animate()
-                    .alpha(0f)
-                    .scaleX(0.94f)
-                    .scaleY(0.94f)
-                    .setDuration(220L)
-                    .start()
+                cover.animate().cancel()
+                cover.clearAnimation()
+                cover.alpha = 0f
+                cover.scaleX = 0.94f
+                cover.scaleY = 0.94f
 
                 queuePanel.animate()
                     .alpha(1f)

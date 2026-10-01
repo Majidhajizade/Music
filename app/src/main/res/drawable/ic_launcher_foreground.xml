@@ -1,19 +1,15 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <inset
-        android:insetLeft="14dp"
-        android:insetTop="14dp"
-        android:insetRight="14dp"
-        android:insetBottom="14dp">
+    <item
+        android:left="27dp"
+        android:top="27dp"
+        android:right="27dp"
+        android:bottom="27dp">
 
         <bitmap
             android:src="@drawable/icon"
             android:gravity="fill" />
 
-    </inset>
+    </item>
 
-</vector>
+</layer-list>
