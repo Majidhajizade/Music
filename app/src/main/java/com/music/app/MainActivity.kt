@@ -427,7 +427,7 @@ class MainActivity : ComponentActivity() {
             setColor(Color.TRANSPARENT)
         }
 
-        val premiumBlue = Color.parseColor("#2AABEE")
+        val premiumBlue = Color.parseColor("#0000FF")
         val itemColor = if (selected) premiumBlue else Color.BLACK
 
         if (icon != null) {
@@ -2346,6 +2346,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showLibrary() {
+
+        setActiveNavigation(2)
 
         // Keep the first ~10% of the screen as top breathing room.
         val topSpaceDp = (resources.displayMetrics.heightPixels /
@@ -8580,6 +8582,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showSearch() {
+
+        setActiveNavigation(1)
 
         // Keep the first ~10% of the screen as top breathing room.
         val topSpaceDp = (resources.displayMetrics.heightPixels /
