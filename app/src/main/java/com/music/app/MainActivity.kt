@@ -427,12 +427,15 @@ class MainActivity : ComponentActivity() {
             setColor(Color.TRANSPARENT)
         }
 
+        val premiumBlue = Color.parseColor("#2AABEE")
+        val itemColor = if (selected) premiumBlue else Color.BLACK
+
         if (icon != null) {
             icon.clearColorFilter()
-            icon.setColorFilter(Color.BLACK)
+            icon.setColorFilter(itemColor)
         }
 
-        label?.setTextColor(Color.BLACK)
+        label?.setTextColor(itemColor)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -11742,7 +11745,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val items = listOf(
-            Triple("Home", R.drawable.ic_nav_home) { showHome() },
+            Triple("Home", R.drawable.home_custom) { showHome() },
             Triple("Search", R.drawable.ic_nav_search) { showSearch() },
             Triple("Library", R.drawable.ic_nav_library) { showLibrary() }
         )
