@@ -1136,12 +1136,23 @@ class MainActivity : ComponentActivity() {
 
     private fun showMain() {
 
-        // Transparent Android system navigation bar.
+        // Draw the app canvas behind Android system navigation.
         if (android.os.Build.VERSION.SDK_INT >= 30) {
             window.setDecorFitsSystemWindows(false)
+
+            window.insetsController?.setSystemBarsAppearance(
+                android.view.WindowInsetsController
+                    .APPEARANCE_LIGHT_NAVIGATION_BARS,
+                android.view.WindowInsetsController
+                    .APPEARANCE_LIGHT_NAVIGATION_BARS
+            )
         }
 
         window.navigationBarColor = Color.TRANSPARENT
+
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            window.navigationBarDividerColor = Color.TRANSPARENT
+        }
 
         if (android.os.Build.VERSION.SDK_INT >= 29) {
             window.isNavigationBarContrastEnforced = false
@@ -1154,7 +1165,11 @@ class MainActivity : ComponentActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.TRANSPARENT)
+
+            // The app background continues behind the transparent
+            // Android navigation bar.
+            setBackgroundColor(Color.WHITE)
+
             setPadding(0, 0, 0, 0)
         }
 
@@ -11779,7 +11794,7 @@ class MainActivity : ComponentActivity() {
             scaleType = ImageView.ScaleType.CENTER_INSIDE
         }
 
-        val iconSize = if (title == "Home") dp(22) else dp(25)
+        val iconSize = dp(26)
 
         item.addView(
             icon,
