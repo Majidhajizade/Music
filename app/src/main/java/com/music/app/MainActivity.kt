@@ -1136,6 +1136,22 @@ class MainActivity : ComponentActivity() {
 
     private fun showMain() {
 
+        // Transparent Android system navigation bar.
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            window.setDecorFitsSystemWindows(false)
+        }
+
+        window.navigationBarColor = Color.TRANSPARENT
+
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            window.isNavigationBarContrastEnforced = false
+        }
+
+        window.decorView.systemUiVisibility =
+            window.decorView.systemUiVisibility or
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.TRANSPARENT)
