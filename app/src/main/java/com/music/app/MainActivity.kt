@@ -9859,6 +9859,7 @@ private fun loadAlbumArtAsync(
 
                         miniGestureDragging = false
                         miniGestureVertical = false
+                        miniFullTransitionProgress = 0f
 
                         cancelMiniHide()
 
@@ -9978,8 +9979,7 @@ private fun loadAlbumArtAsync(
                         }
                     }
 
-                    android.view.MotionEvent.ACTION_UP,
-                    android.view.MotionEvent.ACTION_CANCEL -> {
+                    android.view.MotionEvent.ACTION_UP -> {
 
                         cancelMiniHide()
 
@@ -10057,6 +10057,49 @@ private fun loadAlbumArtAsync(
                             miniGestureDragging = false
                             true
                         }
+                    }
+
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+
+                        cancelMiniHide()
+
+                        if (!miniGestureDragging) {
+                            return@OnTouchListener false
+                        }
+
+                        if (miniGestureVertical) {
+
+                            /*
+                             * ACTION_CANCEL has no reliable final
+                             * finger coordinates. Use the last
+                             * progress calculated during ACTION_MOVE.
+                             */
+                            val progress =
+                                miniFullTransitionProgress
+                                    .coerceIn(0f, 1f)
+
+                            if (progress >= 0.5f) {
+                                completeMiniExpansion(layout)
+                            } else {
+                                cancelMiniExpansion(layout)
+                            }
+
+                        } else {
+
+                            /*
+                             * Cancelled horizontal gestures must
+                             * never trigger previous/next playback.
+                             */
+                            layout.translationX = 0f
+                            layout.translationY = 0f
+
+                            miniCover.rotation = 0f
+                            miniCover.scaleX = 1f
+                            miniCover.scaleY = 1f
+                        }
+
+                        miniGestureDragging = false
+                        true
                     }
 
                     else -> false
@@ -10646,6 +10689,10 @@ private fun loadAlbumArtAsync(
             duration = 360L
         ) {
             updateMiniFullTransition(1f)
+
+            miniTransitionDialog?.window?.clearFlags(
+                android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            )
 
             removeMiniExpansionCard()
 
@@ -15768,6 +15815,16 @@ private fun loadAlbumArtAsync(
                 miniTransitionSecondary = null
                 miniTransitionCoverContainer = null
             }
+        }
+
+        if (miniExpansionOpening) {
+            /*
+             * Keep the Activity as the touch owner while the
+             * Mini -> Full gesture is still being dragged.
+             */
+            dialog.window?.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            )
         }
 
         dialog.show()
