@@ -10442,11 +10442,24 @@ private fun loadAlbumArtAsync(
             miniFullCachedCoverSize = coverSize
         }
 
+        /*
+         * Convert the Expansion card center to screen coordinates.
+         * Artwork source and destination centers are both screen-based.
+         */
+        val decorLocation =
+            IntArray(2)
+
+        window.decorView.getLocationOnScreen(
+            decorLocation
+        )
+
         val cardCenterX =
-            miniFullCachedCardCenterX
+            decorLocation[0].toFloat() +
+                miniFullCachedCardCenterX
 
         val cardCenterY =
-            miniFullCachedCardBaseCenterY -
+            decorLocation[1].toFloat() +
+                miniFullCachedCardBaseCenterY -
                 upward / 2f
 
         cover.translationX =
