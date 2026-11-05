@@ -13956,11 +13956,14 @@ class MainActivity : ComponentActivity() {
                     else
                         "Play"
 
+                val initialIconPadding =
+                    if (mediaPlayer?.isPlaying == true) dp(2) else dp(7)
+
                 setPadding(
-                    dp(4),
-                    dp(4),
-                    dp(4),
-                    dp(4)
+                    initialIconPadding,
+                    initialIconPadding,
+                    initialIconPadding,
+                    initialIconPadding
                 )
 
                 setColorFilter(
@@ -14009,6 +14012,7 @@ class MainActivity : ComponentActivity() {
                                         android.view.animation.AccelerateDecelerateInterpolator()
                                     )
                                     .withEndAction {
+                                        fullPlayerIconView.setPadding(dp(7), dp(7), dp(7), dp(7))
                                         fullPlayerIconView.setImageResource(
                                             com.music.app.R.drawable.ic_music_play_full
                                         )
@@ -14055,6 +14059,7 @@ class MainActivity : ComponentActivity() {
                                         android.view.animation.AccelerateDecelerateInterpolator()
                                     )
                                     .withEndAction {
+                                        fullPlayerIconView.setPadding(dp(2), dp(2), dp(2), dp(2))
                                         fullPlayerIconView.setImageResource(
                                             com.music.app.R.drawable.ic_player_pause
                                         )
