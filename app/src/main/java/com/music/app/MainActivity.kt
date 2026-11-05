@@ -14151,6 +14151,8 @@ class MainActivity : ComponentActivity() {
                 orientation =
                     LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
+                clipChildren = false
+                clipToPadding = false
                 setPadding(
                     dp(4),
                     0,
@@ -14229,8 +14231,8 @@ class MainActivity : ComponentActivity() {
             box.addView(
                 image,
                 LinearLayout.LayoutParams(
-                    dp(36),
-                    dp(36)
+                    dp(28),
+                    dp(28)
                 )
             )
 
