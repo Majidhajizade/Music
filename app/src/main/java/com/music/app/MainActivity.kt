@@ -13933,6 +13933,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+        var fullPlayerIconAnimating = false
+
         val play =
             ImageView(this).apply {
 
@@ -13976,6 +13978,8 @@ class MainActivity : ComponentActivity() {
                 }
 
 
+                val fullPlayerIconView = this
+
                 setOnClickListener {
 
                     mediaPlayer?.let {
@@ -13995,11 +13999,33 @@ class MainActivity : ComponentActivity() {
                                     )
                                     .start()
 
-                                setImageResource(
-                                    com.music.app.R.drawable.ic_music_play_full
-                                )
-
-                                contentDescription = "Play"
+                                fullPlayerIconAnimating = true
+                                fullPlayerIconView.animate().cancel()
+                                fullPlayerIconView.animate()
+                                    .scaleX(0.78f)
+                                    .scaleY(0.78f)
+                                    .setDuration(110)
+                                    .setInterpolator(
+                                        android.view.animation.AccelerateDecelerateInterpolator()
+                                    )
+                                    .withEndAction {
+                                        fullPlayerIconView.setImageResource(
+                                            com.music.app.R.drawable.ic_music_play_full
+                                        )
+                                        fullPlayerIconView.contentDescription = "Play"
+                                        fullPlayerIconView.animate()
+                                            .scaleX(1f)
+                                            .scaleY(1f)
+                                            .setDuration(170)
+                                            .setInterpolator(
+                                                android.view.animation.DecelerateInterpolator()
+                                            )
+                                            .withEndAction {
+                                                fullPlayerIconAnimating = false
+                                            }
+                                            .start()
+                                    }
+                                    .start()
 
 
                                 playButton.setImageResource(
@@ -14019,11 +14045,33 @@ class MainActivity : ComponentActivity() {
                                     )
                                     .start()
 
-                                setImageResource(
-                                    com.music.app.R.drawable.ic_player_pause
-                                )
-
-                                contentDescription = "Pause"
+                                fullPlayerIconAnimating = true
+                                fullPlayerIconView.animate().cancel()
+                                fullPlayerIconView.animate()
+                                    .scaleX(0.78f)
+                                    .scaleY(0.78f)
+                                    .setDuration(110)
+                                    .setInterpolator(
+                                        android.view.animation.AccelerateDecelerateInterpolator()
+                                    )
+                                    .withEndAction {
+                                        fullPlayerIconView.setImageResource(
+                                            com.music.app.R.drawable.ic_player_pause
+                                        )
+                                        fullPlayerIconView.contentDescription = "Pause"
+                                        fullPlayerIconView.animate()
+                                            .scaleX(1f)
+                                            .scaleY(1f)
+                                            .setDuration(170)
+                                            .setInterpolator(
+                                                android.view.animation.DecelerateInterpolator()
+                                            )
+                                            .withEndAction {
+                                                fullPlayerIconAnimating = false
+                                            }
+                                            .start()
+                                    }
+                                    .start()
 
 
                                 playButton.setImageResource(
@@ -15383,14 +15431,14 @@ class MainActivity : ComponentActivity() {
                                                 position
                                         )
 
-                                play.setImageResource(
-                                    if (
-                                        player.isPlaying
+                                if (!fullPlayerIconAnimating) {
+                                    play.setImageResource(
+                                        if (player.isPlaying)
+                                            com.music.app.R.drawable.ic_player_pause
+                                        else
+                                            com.music.app.R.drawable.ic_music_play_full
                                     )
-                                        com.music.app.R.drawable.ic_player_pause
-                                    else
-                                        com.music.app.R.drawable.ic_music_play
-                                )
+                                }
 
                                 playButton.setImageResource(
                                     if (
