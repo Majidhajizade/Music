@@ -12714,6 +12714,7 @@ private fun loadAlbumArtAsync(
     private var fullPlayerCloseDragging = false
     private var fullPlayerCloseDownY = 0f
     private var fullPlayerCloseProgress = 0f
+    private var fullPlayerCloseAnimationCompleted = false
     private var fullPlayerCloseInitialScale = 1f
     private var fullPlayerCloseStartCenterX = 0f
     private var fullPlayerCloseStartCenterY = 0f
@@ -13100,6 +13101,8 @@ private fun loadAlbumArtAsync(
         coverContainer: View
     ) {
 
+        fullPlayerCloseAnimationCompleted = false
+
         val miniLocation =
             IntArray(2)
 
@@ -13257,6 +13260,7 @@ private fun loadAlbumArtAsync(
 
                 fullPlayerCloseProgress = 0f
 
+                fullPlayerCloseAnimationCompleted = true
                 dialog.dismiss()
             }
             .start()
@@ -15794,6 +15798,38 @@ private fun loadAlbumArtAsync(
         dialog.setOnDismissListener {
 
             if (fullPlayerDialog === dialog) {
+
+                /*
+                 * A completed close animation has already restored
+                 * the Mini Player and navigation. Do not cancel it.
+                 *
+                 * For Android Back or another direct dismiss path,
+                 * restore the hidden Mini Player UI immediately.
+                 */
+                val closeAnimationCompleted =
+                    fullPlayerCloseAnimationCompleted
+
+                fullPlayerCloseAnimationCompleted = false
+
+                if (!closeAnimationCompleted) {
+
+                    if (
+                        ::miniPlayer.isInitialized &&
+                        currentSong != null
+                    ) {
+                        miniPlayer.animate().cancel()
+                        miniPlayer.visibility = View.VISIBLE
+                        miniPlayer.alpha = 1f
+                    }
+
+                    miniBottomNavigation?.let { nav ->
+                        nav.animate().cancel()
+                        nav.visibility = View.VISIBLE
+                        nav.translationY = 0f
+                        nav.alpha = 1f
+                    }
+                }
+
                 fullPlayerDialog = null
                 fullPlayerQueueExpanded = false
             }
