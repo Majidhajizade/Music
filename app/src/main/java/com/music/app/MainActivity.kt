@@ -3755,6 +3755,11 @@ class MainActivity : ComponentActivity() {
                     )
                     scaleType = ImageView.ScaleType.CENTER
                     alpha = 0.92f
+
+                    setColorFilter(
+                        Color.BLACK,
+                        android.graphics.PorterDuff.Mode.SRC_IN
+                    )
                 }
 
                 button.addView(
@@ -14224,8 +14229,8 @@ class MainActivity : ComponentActivity() {
             box.addView(
                 image,
                 LinearLayout.LayoutParams(
-                    dp(24),
-                    dp(24)
+                    dp(36),
+                    dp(36)
                 )
             )
 
@@ -14234,7 +14239,7 @@ class MainActivity : ComponentActivity() {
 
         val lyrics =
             secondaryButton(
-                com.music.app.R.drawable.ic_player_lyrics,
+                com.music.app.R.drawable.lyrics_custom,
                 "Lyrics"
             )
 
@@ -14246,7 +14251,7 @@ class MainActivity : ComponentActivity() {
 
         val cast =
             secondaryButton(
-                com.music.app.R.drawable.ic_player_cast,
+                com.music.app.R.drawable.cast_custom,
                 "Cast"
             )
 
@@ -14262,14 +14267,14 @@ class MainActivity : ComponentActivity() {
 
         val queue =
             secondaryButton(
-                com.music.app.R.drawable.ic_player_queue,
+                com.music.app.R.drawable.queue_custom,
                 "Queue"
             )
 
-        // Move Lyrics / Cast / Queue downward by 12dp.
-        lyrics.translationY = dp(12).toFloat()
-        cast.translationY = dp(12).toFloat()
-        queue.translationY = dp(12).toFloat()
+        // Move Lyrics / Cast / Queue downward by 16dp.
+        lyrics.translationY = dp(16).toFloat()
+        cast.translationY = dp(16).toFloat()
+        queue.translationY = dp(16).toFloat()
 
         // ---------- ADD SECONDARY PLAYER BUTTONS ----------
         secondary.addView(
@@ -14906,6 +14911,34 @@ class MainActivity : ComponentActivity() {
                     else -> {
 
                         text = icon
+                    }
+                }
+
+                if (
+                    icon == "SHUFFLE_DRAWABLE" ||
+                    icon == "REPEAT_DRAWABLE" ||
+                    icon == "INFINITY_DRAWABLE"
+                ) {
+                    addOnLayoutChangeListener {
+                        view,
+                        left, top, right, bottom,
+                        oldLeft, oldTop, oldRight, oldBottom ->
+
+                        val centeredPadding =
+                            ((view.width - dp(24)) / 2)
+                                .coerceAtLeast(0)
+
+                        if (
+                            view.paddingLeft != centeredPadding ||
+                            view.paddingRight != 0
+                        ) {
+                            view.setPadding(
+                                centeredPadding,
+                                0,
+                                0,
+                                0
+                            )
+                        }
                     }
                 }
 
