@@ -1379,19 +1379,21 @@ private fun loadAlbumArtAsync(
         }
 
         albumArtInFlight[song.id] =
-            mutableListOf { bitmap ->
-                mainHandler.post {
-                    if (imageView.tag == song.id &&
-                        !isFinishing &&
-                        !isDestroyed
-                    ) {
-                        bitmap?.let {
-                            imageView.setImageBitmap(it)
+            mutableListOf<(android.graphics.Bitmap?) -> Unit>(
+                { bitmap: android.graphics.Bitmap? ->
+                    mainHandler.post {
+                        if (imageView.tag == song.id &&
+                            !isFinishing &&
+                            !isDestroyed
+                        ) {
+                            bitmap?.let {
+                                imageView.setImageBitmap(it)
+                            }
+                            onLoaded?.invoke(bitmap)
                         }
-                        onLoaded?.invoke(bitmap)
                     }
                 }
-            }
+            )
     }
 
     albumArtExecutor.execute {
@@ -13482,7 +13484,7 @@ private fun loadAlbumArtAsync(
         val artworkLoadDelay =
             if (miniExpansionOpening) 400L else 0L
 
-        handler.postDelayed({
+        mainHandler.postDelayed({
 
             if (!fullPlayerArtworkActive ||
                 isFinishing ||
