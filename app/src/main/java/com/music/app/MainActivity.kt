@@ -10468,6 +10468,53 @@ private fun loadAlbumArtAsync(
         cover.translationY =
             centerY - cardCenterY
 
+        /*
+         * Keep the real Full Player artwork locked to the same
+         * screen-space center and visible size on every frame.
+         * This prevents a jump when the temporary cover is removed.
+         */
+        miniTransitionFullCover?.let { fullCover ->
+            miniTransitionCoverContainer?.let { container ->
+
+                if (
+                    fullCover.width > 0 &&
+                    container.width > 0 &&
+                    container.height > 0
+                ) {
+                    val containerLocation =
+                        IntArray(2)
+
+                    container.getLocationOnScreen(
+                        containerLocation
+                    )
+
+                    val fullBaseCenterX =
+                        containerLocation[0].toFloat() +
+                            container.width / 2f
+
+                    val fullBaseCenterY =
+                        containerLocation[1].toFloat() +
+                            container.height / 2f
+
+                    val synchronizedScale =
+                        coverSize.toFloat() /
+                            fullCover.width.toFloat()
+
+                    fullCover.translationX =
+                        centerX - fullBaseCenterX
+
+                    fullCover.translationY =
+                        centerY - fullBaseCenterY
+
+                    fullCover.scaleX =
+                        synchronizedScale
+
+                    fullCover.scaleY =
+                        synchronizedScale
+                }
+            }
+        }
+
         cover.alpha = 1f
         cover.rotation = 0f
         cover.scaleX = 1f
@@ -13787,8 +13834,8 @@ private fun loadAlbumArtAsync(
             }
         )
 
-        titleRow.translationY = -dp(72).toFloat()
-        artist.translationY = -dp(72).toFloat()
+        titleRow.translationY = -dp(48).toFloat()
+        artist.translationY = -dp(48).toFloat()
 
         info.addView(
             titleRow,
@@ -15735,80 +15782,32 @@ private fun loadAlbumArtAsync(
                     cover.width > 0 &&
                     cover.height > 0
                 ) {
-                    val fullLocation =
+                    /*
+                     * Capture the real, visible Full Player cover
+                     * destination from its centered container.
+                     */
+                    val containerLocation =
                         IntArray(2)
 
-                    cover.getLocationOnScreen(
-                        fullLocation
+                    coverContainer.getLocationOnScreen(
+                        containerLocation
                     )
 
                     miniFullTargetCenterX =
-                        fullLocation[0].toFloat() +
-                            cover.width / 2f
+                        containerLocation[0].toFloat() +
+                            coverContainer.width / 2f +
+                            cover.translationX
 
                     miniFullTargetCenterY =
-                        fullLocation[1].toFloat() +
-                            cover.height / 2f
+                        containerLocation[1].toFloat() +
+                            coverContainer.height / 2f +
+                            cover.translationY
 
                     miniFullTargetSize =
-                        cover.width
-
-                    /*
-                     * Put the hidden real artwork exactly
-                     * under the visible Expansion artwork.
-                     */
-                    miniExpansionCover?.let { expansionCover ->
-                        if (
-                            expansionCover.width > 0 &&
-                            expansionCover.height > 0
-                        ) {
-                            val expansionLocation =
-                                IntArray(2)
-
-                            expansionCover.getLocationOnScreen(
-                                expansionLocation
-                            )
-
-                            val expansionCenterX =
-                                expansionLocation[0].toFloat() +
-                                    expansionCover.width / 2f
-
-                            val expansionCenterY =
-                                expansionLocation[1].toFloat() +
-                                    expansionCover.height / 2f
-
-                            val fullCenterX =
-                                fullLocation[0].toFloat() +
-                                    cover.width / 2f
-
-                            val fullCenterY =
-                                fullLocation[1].toFloat() +
-                                    cover.height / 2f
-
-                            cover.translationX =
-                                expansionCenterX -
-                                    fullCenterX
-
-                            cover.translationY =
-                                expansionCenterY -
-                                    fullCenterY
-
-                            val handoffScale =
-                                (
-                                    expansionCover.width.toFloat() /
-                                        cover.width.toFloat()
-                                ).coerceIn(
-                                    0.05f,
-                                    1f
-                                )
-
-                            cover.scaleX =
-                                handoffScale
-
-                            cover.scaleY =
-                                handoffScale
-                        }
-                    }
+                        (
+                            cover.width.toFloat() *
+                                cover.scaleX
+                        ).toInt().coerceAtLeast(1)
 
                     /*
                      * The real Full Player cover is now measurable.
