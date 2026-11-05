@@ -14876,6 +14876,33 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
+                    "INFINITY_DRAWABLE" -> {
+
+                        text = ""
+
+                        val drawable =
+                            androidx.core.content.ContextCompat.getDrawable(
+                                this@MainActivity,
+                                R.drawable.ic_player_infinity
+                            )?.mutate()
+
+                        drawable?.setTint(Color.WHITE)
+
+                        drawable?.setBounds(
+                            0,
+                            0,
+                            dp(24),
+                            dp(24)
+                        )
+
+                        setCompoundDrawables(
+                            drawable,
+                            null,
+                            null,
+                            null
+                        )
+                    }
+
                     else -> {
 
                         text = icon
@@ -14955,7 +14982,7 @@ class MainActivity : ComponentActivity() {
 
         // INFINITY = REPEAT ALL
         infinityButton =
-            modeCard("∞") {
+            modeCard("INFINITY_DRAWABLE") {
 
                 val controller =
                     mediaPlayer
