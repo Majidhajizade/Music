@@ -13701,6 +13701,8 @@ class MainActivity : ComponentActivity() {
         )
 
         // ---------- SEEK BAR ----------
+        var isFullPlayerSeekBarTracking = false
+
         val seekBar = SeekBar(this).apply {
 
             max = 1000
@@ -13791,11 +13793,24 @@ class MainActivity : ComponentActivity() {
                     override fun onStartTrackingTouch(
                         seekBar: SeekBar?
                     ) {
+                        isFullPlayerSeekBarTracking = true
                     }
 
                     override fun onStopTrackingTouch(
                         seekBar: SeekBar?
                     ) {
+                        seekBar?.let { bar ->
+                            mediaPlayer?.let { player ->
+                                try {
+                                    val position =
+                                        (player.duration.toLong() *
+                                            bar.progress.toLong()) / 1000L
+                                    player.seekTo(position)
+                                } catch (_: Exception) {
+                                }
+                            }
+                        }
+                        isFullPlayerSeekBarTracking = false
                     }
                 }
             )
@@ -13876,6 +13891,22 @@ class MainActivity : ComponentActivity() {
                 gravity = Gravity.CENTER
             }
 
+        // Soft, transparent circular touch feedback for main controls.
+        fun applySoftCircularPress(view: android.view.View) {
+            view.background = android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(
+                    Color.argb(32, 0, 0, 0)
+                ),
+                null,
+                GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(Color.WHITE)
+                }
+            )
+            view.isClickable = true
+            view.isFocusable = true
+        }
+
         val previous =
             ImageView(this).apply {
 
@@ -13886,7 +13917,7 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                background = null
+                applySoftCircularPress(this)
 
                 contentDescription =
                     "Previous"
@@ -13948,7 +13979,7 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                background = null
+                applySoftCircularPress(this)
 
                 contentDescription =
                     if (mediaPlayer?.isPlaying == true)
@@ -13957,7 +13988,7 @@ class MainActivity : ComponentActivity() {
                         "Play"
 
                 val initialIconPadding =
-                    if (mediaPlayer?.isPlaying == true) dp(2) else dp(7)
+                    if (mediaPlayer?.isPlaying == true) dp(2) else dp(9)
 
                 setPadding(
                     initialIconPadding,
@@ -14012,7 +14043,7 @@ class MainActivity : ComponentActivity() {
                                         android.view.animation.AccelerateDecelerateInterpolator()
                                     )
                                     .withEndAction {
-                                        fullPlayerIconView.setPadding(dp(7), dp(7), dp(7), dp(7))
+                                        fullPlayerIconView.setPadding(dp(9), dp(9), dp(9), dp(9))
                                         fullPlayerIconView.setImageResource(
                                             com.music.app.R.drawable.ic_music_play_full
                                         )
@@ -14101,7 +14132,7 @@ class MainActivity : ComponentActivity() {
                 scaleType =
                     android.widget.ImageView.ScaleType.CENTER_INSIDE
 
-                background = null
+                applySoftCircularPress(this)
 
                 contentDescription =
                     "Next"
@@ -15417,12 +15448,14 @@ class MainActivity : ComponentActivity() {
 
                             if (duration > 0) {
 
-                                seekBar.progress =
-                                    (
-                                        position.toLong() *
-                                            1000L /
-                                            duration.toLong()
-                                    ).toInt()
+                                if (!isFullPlayerSeekBarTracking) {
+                                    seekBar.progress =
+                                        (
+                                            position.toLong() *
+                                                1000L /
+                                                duration.toLong()
+                                        ).toInt()
+                                }
 
                                 elapsed.text =
                                     formatTime(
