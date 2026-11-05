@@ -13490,7 +13490,7 @@ class MainActivity : ComponentActivity() {
         cover.scaleY = cover.scaleX
 
         // Move only the artwork upward without moving the info panel.
-        cover.translationY = -dp(18).toFloat()
+        cover.translationY = -dp(30).toFloat()
 
         // Queue panel is attached after its declaration below.
 
@@ -13706,8 +13706,8 @@ class MainActivity : ComponentActivity() {
             max = 1000
             progress = 0
 
-            minHeight = dp(7)
-            minimumHeight = dp(7)
+            minHeight = dp(4)
+            minimumHeight = dp(4)
 
             setPadding(
                 0,
@@ -13805,7 +13805,7 @@ class MainActivity : ComponentActivity() {
             seekBar,
             LinearLayout.LayoutParams(
                 -1,
-                dp(7)
+                dp(4)
             ).apply {
                 topMargin = -dp(47)
             }
@@ -14145,6 +14145,12 @@ class MainActivity : ComponentActivity() {
             }
         )
 
+        // Move main Full Player elements upward by 12dp.
+        info.translationY = -dp(12).toFloat()
+        seekBar.translationY = -dp(12).toFloat()
+        timeRow.translationY = -dp(10).toFloat()
+        controls.translationY = -dp(12).toFloat()
+
         // ---------- SECONDARY ----------
         val secondary =
             LinearLayout(this).apply {
@@ -14175,7 +14181,17 @@ class MainActivity : ComponentActivity() {
                     gravity =
                         Gravity.CENTER
 
-                    background = null
+                    background = android.graphics.drawable.RippleDrawable(
+                        android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.parseColor("#1A000000")
+                        ),
+                        null,
+                        android.graphics.drawable.GradientDrawable().apply {
+                            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                            cornerRadius = dp(12).toFloat()
+                            setColor(android.graphics.Color.WHITE)
+                        }
+                    )
 
                     elevation = 0f
 
@@ -14247,8 +14263,8 @@ class MainActivity : ComponentActivity() {
 
         // Local songs do not provide online lyrics.
         lyrics.alpha = 0.35f
-        lyrics.isEnabled = false
-        lyrics.isClickable = false
+        lyrics.isEnabled = true
+        lyrics.isClickable = true
         lyrics.contentDescription = "Lyrics unavailable for local music"
 
         val cast =
