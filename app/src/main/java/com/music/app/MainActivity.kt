@@ -13888,20 +13888,7 @@ private fun loadAlbumArtAsync(
                         progress: Int,
                         fromUser: Boolean
                     ) {
-                        if (fromUser) {
-                            mediaPlayer?.let {
-                                try {
-                                    val position =
-                                        (
-                                            it.duration.toLong() *
-                                            progress.toLong()
-                                        ) / 1000L
-
-                                    it.seekTo(position)
-                                } catch (_: Exception) {
-                                }
-                            }
-                        }
+                        // Seek only after the user releases the SeekBar.
                     }
 
                     override fun onStartTrackingTouch(
@@ -14138,6 +14125,15 @@ private fun loadAlbumArtAsync(
 
                                 it.pause()
 
+                                // Keep Full Player visible while playback is paused.
+                                if (!dialog.isShowing) {
+                                    dialog.show()
+                                }
+                                root.visibility = android.view.View.VISIBLE
+                                root.alpha = 1f
+                                root.translationY = 0f
+                                miniPlayer.alpha = 0f
+
                                 cover.animate()
                                     .scaleX(coverStoppedScale)
                                     .scaleY(coverStoppedScale)
@@ -14178,7 +14174,7 @@ private fun loadAlbumArtAsync(
 
 
                                 playButton.setImageResource(
-                                    com.music.app.R.drawable.ic_music_play_full
+                                    com.music.app.R.drawable.ic_music_play
                                 )
 
                             } else {
@@ -15604,6 +15600,10 @@ private fun loadAlbumArtAsync(
                     )
                 }
             }
+
+        // Start time and SeekBar updates immediately.
+        handler.removeCallbacks(updater)
+        handler.post(updater)
 
         // ---------- ATTACH LOWER PLAYER PANEL ----------
 
