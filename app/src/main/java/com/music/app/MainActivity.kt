@@ -61,6 +61,15 @@ class MainActivity : ComponentActivity() {
     private val backgroundExecutor: ExecutorService =
         Executors.newSingleThreadExecutor()
 
+    // Album artwork extraction must never run on the UI thread.
+    private val albumArtExecutor: ExecutorService =
+        Executors.newSingleThreadExecutor()
+
+    private val albumArtLock = Any()
+
+    private val albumArtInFlight =
+        mutableMapOf<Long, MutableList<(android.graphics.Bitmap?) -> Unit>>()
+
     private val songs = mutableListOf<Song>()
     private var mediaPlayer: MediaController? = null
 
@@ -1248,102 +1257,156 @@ class MainActivity : ComponentActivity() {
     }
 
     private val albumArtCache =
-        object : android.util.LruCache<Long, android.graphics.Bitmap>(
-            (
-                Runtime.getRuntime().maxMemory() / 1024L / 8L
-            ).toInt().coerceAtMost(16 * 1024)
-        ) {
-            override fun sizeOf(
-                key: Long,
-                value: android.graphics.Bitmap
-            ): Int {
-                return value.byteCount / 1024
-            }
-        }
-
-    private val albumArtMissCache =
-        mutableSetOf<Long>()
-
-    private val albumColorCache =
-        object : android.util.LruCache<Long, IntArray>(256) {
-        }
-
-    private fun getAlbumArt(song: Song): android.graphics.Bitmap? {
-
-        albumArtCache.get(song.id)?.let {
-            return it
-        }
-
-        if (albumArtMissCache.contains(song.id)) {
-            return null
-        }
-
-        return try {
-
-            val uri =
-                ContentUris.withAppendedId(
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    song.id
-                )
-
-            val retriever =
-                MediaMetadataRetriever()
-
-            try {
-
-                retriever.setDataSource(
-                    this,
-                    uri
-                )
-
-                val data =
-                    retriever.embeddedPicture
-
-                if (data != null) {
-
-                    val bitmap =
-                        android.graphics.BitmapFactory
-                            .decodeByteArray(
-                                data,
-                                0,
-                                data.size
-                            )
-
-                    if (bitmap != null) {
-                        albumArtCache.put(
-                            song.id,
-                            bitmap
-                        )
-                    } else {
-                        albumArtMissCache.add(
-                            song.id
-                        )
-                    }
-
-                    bitmap
-
-                } else {
-
-                    albumArtMissCache.add(
-                        song.id
-                    )
-
-                    null
-                }
-
-            } finally {
-                retriever.release()
-            }
-
-        } catch (e: Exception) {
-
-            albumArtMissCache.add(
-                song.id
-            )
-
-            null
+    object : android.util.LruCache<Long, android.graphics.Bitmap>(
+        (
+            Runtime.getRuntime().maxMemory() / 1024L / 8L
+        ).toInt().coerceAtMost(16 * 1024)
+    ) {
+        override fun sizeOf(
+            key: Long,
+            value: android.graphics.Bitmap
+        ): Int {
+            return value.byteCount / 1024
         }
     }
+
+private val albumArtMissCache =
+    mutableSetOf<Long>()
+
+private val albumColorCache =
+    object : android.util.LruCache<Long, IntArray>(256) {
+    }
+
+private fun getAlbumArtCached(
+    song: Song
+): android.graphics.Bitmap? {
+    return synchronized(albumArtLock) {
+        albumArtCache.get(song.id)
+    }
+}
+
+/*
+ * Worker-thread only.
+ * Never call this method directly from UI code.
+ */
+private fun getAlbumArt(
+    song: Song
+): android.graphics.Bitmap? {
+
+    synchronized(albumArtLock) {
+        albumArtCache.get(song.id)?.let { return it }
+        if (albumArtMissCache.contains(song.id)) return null
+    }
+
+    return try {
+        val uri = ContentUris.withAppendedId(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            song.id
+        )
+
+        val retriever = MediaMetadataRetriever()
+
+        try {
+            retriever.setDataSource(this, uri)
+            val data = retriever.embeddedPicture
+
+            val bitmap = if (data != null) {
+                android.graphics.BitmapFactory.decodeByteArray(
+                    data, 0, data.size
+                )
+            } else {
+                null
+            }
+
+            synchronized(albumArtLock) {
+                if (bitmap != null) {
+                    albumArtCache.put(song.id, bitmap)
+                    albumArtMissCache.remove(song.id)
+                } else {
+                    albumArtMissCache.add(song.id)
+                }
+            }
+
+            bitmap
+        } finally {
+            retriever.release()
+        }
+    } catch (e: Exception) {
+        synchronized(albumArtLock) {
+            albumArtMissCache.add(song.id)
+        }
+        null
+    }
+}
+
+/*
+ * Safe asynchronous artwork loader.
+ * ImageView tag prevents stale results from replacing newer songs.
+ */
+private fun loadAlbumArtAsync(
+    song: Song,
+    imageView: ImageView,
+    fallbackRes: Int = R.drawable.icon,
+    onLoaded: ((android.graphics.Bitmap?) -> Unit)? = null
+) {
+    imageView.tag = song.id
+
+    val cached = getAlbumArtCached(song)
+    if (cached != null) {
+        imageView.setImageBitmap(cached)
+        onLoaded?.invoke(cached)
+        return
+    }
+
+    imageView.setImageResource(fallbackRes)
+
+    synchronized(albumArtLock) {
+        albumArtInFlight[song.id]?.let { callbacks ->
+            callbacks.add { bitmap ->
+                mainHandler.post {
+                    if (imageView.tag == song.id &&
+                        !isFinishing &&
+                        !isDestroyed
+                    ) {
+                        bitmap?.let {
+                            imageView.setImageBitmap(it)
+                        }
+                        onLoaded?.invoke(bitmap)
+                    }
+                }
+            }
+            return
+        }
+
+        albumArtInFlight[song.id] =
+            mutableListOf { bitmap ->
+                mainHandler.post {
+                    if (imageView.tag == song.id &&
+                        !isFinishing &&
+                        !isDestroyed
+                    ) {
+                        bitmap?.let {
+                            imageView.setImageBitmap(it)
+                        }
+                        onLoaded?.invoke(bitmap)
+                    }
+                }
+            }
+    }
+
+    albumArtExecutor.execute {
+        val bitmap = getAlbumArt(song)
+
+        val callbacks = synchronized(albumArtLock) {
+            albumArtInFlight.remove(song.id)?.toList()
+                ?: emptyList()
+        }
+
+        callbacks.forEach { callback ->
+            callback(bitmap)
+        }
+    }
+}
 
     private fun showHome() {
 
@@ -4115,11 +4178,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                    getAlbumArt(song)?.let {
-                        setImageBitmap(it)
-                    } ?: run {
-                        setImageResource(R.drawable.icon)
-                    }
+                    loadAlbumArtAsync(song, this)
                 }
 
                 row.addView(
@@ -4543,11 +4602,7 @@ class MainActivity : ComponentActivity() {
                     setBackgroundColor(Color.rgb(238, 238, 238))
                 }
 
-                getAlbumArt(song)?.let {
-                    cover.setImageBitmap(it)
-                } ?: run {
-                    cover.setImageResource(R.drawable.icon)
-                }
+                loadAlbumArtAsync(song, cover)
 
                 row.addView(
                     cover,
@@ -7218,15 +7273,7 @@ class MainActivity : ComponentActivity() {
             )
             scaleType = ImageView.ScaleType.CENTER_CROP
 
-            val art = getAlbumArt(song)
-
-            if (art != null) {
-                setImageBitmap(art)
-            } else {
-                setImageResource(R.drawable.icon)
-                clearColorFilter()
-                background = null
-            }
+            loadAlbumArtAsync(song, this)
         }
     }
 
@@ -7534,11 +7581,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        getAlbumArt(song)?.let {
-            cover.setImageBitmap(it)
-        } ?: run {
-            cover.setImageResource(R.drawable.icon)
-        }
+        loadAlbumArtAsync(song, cover)
 
         row.addView(
             cover,
@@ -8754,13 +8797,7 @@ class MainActivity : ComponentActivity() {
 
             if (song != null) {
 
-                val bitmap = getAlbumArt(song)
-
-                if (bitmap != null) {
-                    image.setImageBitmap(bitmap)
-                } else {
-                    image.setImageResource(R.drawable.icon)
-                }
+                loadAlbumArtAsync(song, image)
             } else {
                 image.setImageResource(R.drawable.icon)
             }
@@ -10104,6 +10141,7 @@ class MainActivity : ComponentActivity() {
 
         val card = FrameLayout(this).apply {
             clipChildren = false
+            tag = song.id
             background = createMiniExpansionBackground(song)
             elevation = dp(12).toFloat()
         }
@@ -10216,6 +10254,32 @@ class MainActivity : ComponentActivity() {
         miniExpansionCover = cover
         miniExpansionTitle = title
         miniExpansionArtist = artist
+
+        loadAlbumArtAsync(song, cover) { bitmap ->
+            if (bitmap != null &&
+                miniExpansionCard === card &&
+                card.tag == song.id
+            ) {
+                val w = bitmap.width.coerceAtLeast(1)
+                val h = bitmap.height.coerceAtLeast(1)
+
+                val points = intArrayOf(
+                    bitmap.getPixel(0, 0),
+                    bitmap.getPixel(w / 2, h / 2),
+                    bitmap.getPixel(w - 1, h - 1)
+                )
+
+                card.background = GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    points
+                ).apply {
+                    cornerRadii = floatArrayOf(
+                        0f, 0f, 0f, 0f,
+                        0f, 0f, 0f, 0f
+                    )
+                }
+            }
+        }
 
         miniPlayer.alpha = 0f
 
@@ -10735,70 +10799,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun createMiniExpansionBackground(
-        song: Song
-    ): GradientDrawable {
+    song: Song
+): GradientDrawable {
 
-        val bitmap =
-            getAlbumArt(song)
-
-        if (bitmap == null) {
-
-            return GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(
-                    Color.rgb(80, 80, 80),
-                    Color.rgb(20, 20, 20)
-                )
-            ).apply {
-
-                cornerRadii =
-                    floatArrayOf(
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f
-                    )
-            }
-        }
-
-        val points =
-            intArrayOf(
-                bitmap.getPixel(
-                    0,
-                    0
-                ),
-                bitmap.getPixel(
-                    bitmap.width / 2,
-                    bitmap.height / 2
-                ),
-                bitmap.getPixel(
-                    bitmap.width - 1,
-                    bitmap.height - 1
-                )
-            )
-
-        return GradientDrawable(
-            GradientDrawable.Orientation.TL_BR,
-            points
-        ).apply {
-
-            cornerRadii =
-                floatArrayOf(
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f
-                )
-        }
+    return GradientDrawable(
+        GradientDrawable.Orientation.TL_BR,
+        intArrayOf(
+            Color.rgb(80, 80, 80),
+            Color.rgb(20, 20, 20)
+        )
+    ).apply {
+        cornerRadii = floatArrayOf(
+            0f, 0f, 0f, 0f,
+            0f, 0f, 0f, 0f
+        )
     }
+}
 
     private fun removeMiniExpansionCard() {
 
@@ -11340,30 +11356,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun updateAllPlayerArtwork(song: Song) {
-        val artwork = getAlbumArt(song)
-
         if (::miniCover.isInitialized) {
-            artwork?.let {
-                miniCover.setImageBitmap(it)
-            } ?: miniCover.setImageResource(
-                R.drawable.icon
-            )
+            loadAlbumArtAsync(song, miniCover)
         }
 
         miniExpansionCover?.let { cover ->
-            artwork?.let {
-                cover.setImageBitmap(it)
-            } ?: cover.setImageResource(
-                R.drawable.icon
-            )
+            loadAlbumArtAsync(song, cover)
         }
 
         fullPlayerCover?.let { cover ->
-            artwork?.let {
-                cover.setImageBitmap(it)
-            } ?: cover.setImageResource(
-                R.drawable.icon
-            )
+            loadAlbumArtAsync(song, cover)
 
             if (fullPlayerQueueExpanded) {
                 cover.animate().cancel()
@@ -11375,11 +11377,7 @@ class MainActivity : ComponentActivity() {
         }
 
         (miniTransitionFullCover as? ImageView)?.let { cover ->
-            artwork?.let {
-                cover.setImageBitmap(it)
-            } ?: cover.setImageResource(
-                R.drawable.icon
-            )
+            loadAlbumArtAsync(song, cover)
         }
     }
 
@@ -11479,7 +11477,7 @@ class MainActivity : ComponentActivity() {
     ): ByteArray? {
 
         val bitmap =
-            getAlbumArt(song)
+            getAlbumArtCached(song)
                 ?: return null
 
         return try {
@@ -11548,12 +11546,8 @@ class MainActivity : ComponentActivity() {
                 .setArtist(song.artist)
                 .setAlbumTitle(song.album)
 
-        artworkBytes(song)?.let {
-            metadataBuilder.setArtworkData(
-                it,
-                MediaMetadata.PICTURE_TYPE_FRONT_COVER
-            )
-        }
+        // Artwork is loaded separately by the player UI.
+        // Avoid synchronous artwork extraction while creating MediaItems.
 
         return MediaItem.Builder()
             .setMediaId(song.id.toString())
@@ -11631,13 +11625,7 @@ class MainActivity : ComponentActivity() {
 
                     showMiniPlayer()
 
-                    getAlbumArt(song)?.let {
-                        miniCover.setImageBitmap(it)
-                    } ?: run {
-                        miniCover.setImageResource(
-                            R.drawable.icon
-                        )
-                    }
+                    loadAlbumArtAsync(song, miniCover)
 
                     miniTitle.text = song.title
                     miniArtist.text = song.artist
@@ -11698,13 +11686,7 @@ class MainActivity : ComponentActivity() {
 
         showMiniPlayer()
 
-        getAlbumArt(song)?.let {
-            miniCover.setImageBitmap(it)
-        } ?: run {
-            miniCover.setImageResource(
-                R.drawable.icon
-            )
-        }
+        loadAlbumArtAsync(song, miniCover)
 
         miniTitle.text = song.title
         miniArtist.text = song.artist
@@ -12453,7 +12435,7 @@ class MainActivity : ComponentActivity() {
          * avoiding an artwork lookup in the middle of animation.
          */
         val fullPlayerArtwork =
-            getAlbumArt(song)
+            getAlbumArtCached(song)
 
         cover.animate().cancel()
 
@@ -12584,6 +12566,34 @@ class MainActivity : ComponentActivity() {
               root.animate().cancel()
               root.alpha = 1f
               root.background = newBackground
+        }
+
+        // Load missing artwork without blocking the transition.
+        loadAlbumArtAsync(song, cover) { bitmap ->
+            if (bitmap != null &&
+                currentSong?.id == song.id &&
+                !isFinishing &&
+                !isDestroyed
+            ) {
+                if (!fullPlayerQueueExpanded) {
+                    cover.alpha = 1f
+                    cover.setImageBitmap(bitmap)
+                }
+
+                val w = bitmap.width.coerceAtLeast(1)
+                val h = bitmap.height.coerceAtLeast(1)
+
+                val colors = intArrayOf(
+                    bitmap.getPixel(w / 2, h / 4),
+                    bitmap.getPixel(w / 2, h / 2),
+                    bitmap.getPixel(w / 2, (h * 3) / 4)
+                )
+
+                root.background = GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    colors
+                )
+            }
         }
     }
 
@@ -13332,18 +13342,20 @@ class MainActivity : ComponentActivity() {
             bitmap: android.graphics.Bitmap
         ): IntArray {
 
-            albumColorCache.get(song.id)?.let {
-                return it
+            synchronized(albumArtLock) {
+                albumColorCache.get(song.id)?.let {
+                    return it
+                }
+
+                val colors = extractColors(bitmap)
+
+                albumColorCache.put(
+                    song.id,
+                    colors
+                )
+
+                return colors
             }
-
-            val colors = extractColors(bitmap)
-
-            albumColorCache.put(
-                song.id,
-                colors
-            )
-
-            return colors
         }
 
         var currentColors = intArrayOf(
@@ -13359,13 +13371,13 @@ class MainActivity : ComponentActivity() {
                         as? android.graphics.drawable.BitmapDrawable
                 )?.bitmap
             } else {
-                getAlbumArt(song)
+                null
             }
 
         /*
          * During Mini -> Full handoff, avoid bitmap/color work on
          * the animation frame. The background will be refreshed
-         * by colorUpdater immediately after the player is shown.
+         * asynchronously after the player is shown.
          */
         if (!miniExpansionOpening) {
             val fallbackArtwork =
@@ -13463,6 +13475,106 @@ class MainActivity : ComponentActivity() {
         }
 
         fullPlayerCover = cover
+
+        // Artwork loading and color animation are performed asynchronously.
+        var fullPlayerArtworkActive = true
+
+        val artworkLoadDelay =
+            if (miniExpansionOpening) 400L else 0L
+
+        handler.postDelayed({
+
+            if (!fullPlayerArtworkActive ||
+                isFinishing ||
+                isDestroyed
+            ) {
+                return@postDelayed
+            }
+
+            loadAlbumArtAsync(song, cover) { bitmap ->
+
+                if (bitmap == null ||
+                    !fullPlayerArtworkActive ||
+                    currentSong?.id != song.id ||
+                    isFinishing ||
+                    isDestroyed
+                ) {
+                    return@loadAlbumArtAsync
+                }
+
+                val targetColors = getAlbumColors(
+                    song,
+                    bitmap
+                )
+
+                val startColors = currentColors.copyOf()
+
+                val animator =
+                    android.animation.ValueAnimator.ofFloat(
+                        0f,
+                        1f
+                    ).apply {
+
+                        duration = 1800L
+
+                        addUpdateListener {
+                            if (!fullPlayerArtworkActive ||
+                                currentSong?.id != song.id
+                            ) {
+                                cancel()
+                                return@addUpdateListener
+                            }
+
+                            val f =
+                                it.animatedValue as Float
+
+                            val colors = IntArray(3)
+
+                            for (i in 0..2) {
+                                colors[i] = mixColor(
+                                    startColors[i],
+                                    targetColors[i],
+                                    f
+                                )
+                            }
+
+                            applyBackground(colors)
+                        }
+
+                        addListener(
+                            object :
+                                android.animation.Animator.AnimatorListener {
+
+                                override fun onAnimationStart(
+                                    animation: android.animation.Animator
+                                ) {}
+
+                                override fun onAnimationEnd(
+                                    animation: android.animation.Animator
+                                ) {
+                                    if (fullPlayerArtworkActive &&
+                                        currentSong?.id == song.id
+                                    ) {
+                                        currentColors = targetColors
+                                    }
+                                }
+
+                                override fun onAnimationCancel(
+                                    animation: android.animation.Animator
+                                ) {}
+
+                                override fun onAnimationRepeat(
+                                    animation: android.animation.Animator
+                                ) {}
+                            }
+                        )
+                    }
+
+                animator.start()
+            }
+
+        }, artworkLoadDelay)
+
 
         val coverContainer = FrameLayout(this).apply {
 
@@ -14567,11 +14679,7 @@ class MainActivity : ComponentActivity() {
                 clipToOutline = true
             }
 
-        getAlbumArt(song)?.let {
-            queueCover.setImageBitmap(it)
-        } ?: run {
-            queueCover.setImageResource(R.drawable.icon)
-        }
+        loadAlbumArtAsync(song, queueCover)
 
         val queueSongTitle =
             TextView(this).apply {
@@ -15301,11 +15409,7 @@ class MainActivity : ComponentActivity() {
                         ImageView.ScaleType.CENTER_CROP
                 }
 
-            getAlbumArt(queueSong)?.let {
-                cover.setImageBitmap(it)
-            } ?: run {
-                cover.setImageResource(R.drawable.icon)
-            }
+            loadAlbumArtAsync(queueSong, cover)
 
             val name =
                 TextView(this).apply {
@@ -15499,111 +15603,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-        // ---------- DYNAMIC COLOR ANIMATION ----------
-
-        val colorUpdater =
-            object : Runnable {
-
-                override fun run() {
-
-                    val bitmap =
-                        getAlbumArt(song)
-
-                    if (bitmap != null) {
-
-                        val targetColors =
-                            getAlbumColors(
-                                song,
-                                bitmap
-                            )
-
-                        val startColors =
-                            currentColors.copyOf()
-
-                        val animator =
-                            android.animation.ValueAnimator.ofFloat(
-                                0f,
-                                1f
-                            ).apply {
-
-                                duration = 1800L
-
-                                addUpdateListener {
-
-                                    val f =
-                                        it.animatedValue
-                                            as Float
-
-                                    val colors =
-                                        IntArray(3)
-
-                                    for (
-                                        i in 0..2
-                                    ) {
-                                        colors[i] =
-                                            mixColor(
-                                                startColors[i],
-                                                targetColors[i],
-                                                f
-                                            )
-                                    }
-
-                                    applyBackground(
-                                        colors
-                                    )
-                                }
-
-                                addListener(
-                                    object :
-                                        android.animation.Animator.AnimatorListener {
-
-                                        override fun onAnimationStart(
-                                            animation:
-                                                android.animation.Animator
-                                        ) {}
-
-                                        override fun onAnimationEnd(
-                                            animation:
-                                                android.animation.Animator
-                                        ) {
-                                            currentColors =
-                                                targetColors
-                                        }
-
-                                        override fun onAnimationCancel(
-                                            animation:
-                                                android.animation.Animator
-                                        ) {}
-
-                                        override fun onAnimationRepeat(
-                                            animation:
-                                                android.animation.Animator
-                                        ) {}
-                                    }
-                                )
-                            }
-
-                        animator.start()
-                    }
-
-                    handler.postDelayed(
-                        this,
-                        2000L
-                    )
-                }
-            }
-
-        handler.post(updater)
-
-        if (miniExpansionOpening) {
-            handler.postDelayed(
-                colorUpdater,
-                400L
-            )
-        } else {
-            handler.post(colorUpdater)
-        }
-
         // ---------- ATTACH LOWER PLAYER PANEL ----------
 
         root.addView(
@@ -15694,9 +15693,7 @@ class MainActivity : ComponentActivity() {
                 updater
             )
 
-            handler.removeCallbacks(
-                colorUpdater
-            )
+            fullPlayerArtworkActive = false
 
             if (miniTransitionDialog === dialog) {
                 miniTransitionDialog = null
@@ -16707,23 +16704,11 @@ class MainActivity : ComponentActivity() {
                 miniTextDirection
             )
 
-            getAlbumArt(song)?.let {
-                miniCover.setImageBitmap(it)
-            } ?: run {
-                miniCover.setImageResource(
-                    R.drawable.icon
-                )
-            }
+            loadAlbumArtAsync(song, miniCover)
 
         } else {
 
-            getAlbumArt(song)?.let {
-                miniCover.setImageBitmap(it)
-            } ?: run {
-                miniCover.setImageResource(
-                    R.drawable.icon
-                )
-            }
+            loadAlbumArtAsync(song, miniCover)
 
             miniTitle.text = song.title
             miniArtist.text = song.artist
@@ -16815,6 +16800,11 @@ class MainActivity : ComponentActivity() {
          * Destroying the Activity must never release playback.
          */
         backgroundExecutor.shutdownNow()
+        albumArtExecutor.shutdownNow()
+
+        synchronized(albumArtLock) {
+            albumArtInFlight.clear()
+        }
 
         super.onDestroy()
     }
