@@ -13654,21 +13654,38 @@ private fun loadAlbumArtAsync(
             }
 
         val fallbackArtwork = try {
-            val drawable = getDrawable(R.mipmap.ic_launcher)
-            if (drawable == null) {
-                null
-            } else {
-                val size = dp(432).coerceAtLeast(1)
-                android.graphics.Bitmap.createBitmap(
-                    size,
-                    size,
-                    android.graphics.Bitmap.Config.ARGB_8888
-                ).also { bitmap ->
-                    val canvas = android.graphics.Canvas(bitmap)
-                    drawable.setBounds(0, 0, size, size)
-                    drawable.draw(canvas)
-                }
+            val size = dp(432).coerceAtLeast(1)
+
+            val bitmap = android.graphics.Bitmap.createBitmap(
+                size,
+                size,
+                android.graphics.Bitmap.Config.ARGB_8888
+            )
+
+            val canvas = android.graphics.Canvas(bitmap)
+
+            // Pure black background.
+            canvas.drawColor(Color.BLACK)
+
+            // Small centered white Music logo.
+            val logo = getDrawable(R.drawable.ic_music)
+
+            if (logo != null) {
+                val logoSize = dp(132).coerceAtLeast(1)
+                val left = (size - logoSize) / 2
+                val top = (size - logoSize) / 2
+
+                logo.setBounds(
+                    left,
+                    top,
+                    left + logoSize,
+                    top + logoSize
+                )
+
+                logo.draw(canvas)
             }
+
+            bitmap
         } catch (e: Exception) {
             null
         }
