@@ -345,6 +345,7 @@ class MainActivity : ComponentActivity() {
     private var miniTransitionCoverContainer: View? = null
     private var miniExpansionOpening = false
     private var fullPlayerCover: ImageView? = null
+    private var fullPlayerBackgroundRoot: View? = null
     private var fullPlayerDialog: android.app.Dialog? = null
     private var fullPlayerQueueExpanded = false
 
@@ -11464,6 +11465,114 @@ private fun loadAlbumArtAsync(
         )
     }
 
+
+    /*
+     * Full Player artwork background.
+     *
+     * A separate low-resolution copy of the current album
+     * artwork creates a soft blurred background.
+     * A vertical dark gradient fades it into pure black.
+     * The foreground album cover remains untouched.
+     */
+    private fun applyFullPlayerArtworkBackground(
+        target: View,
+        artwork: Bitmap
+    ) {
+        if (
+            artwork.isRecycled ||
+            artwork.width <= 0 ||
+            artwork.height <= 0
+        ) return
+
+        try {
+            val blurWidth =
+                (artwork.width / 14).coerceAtLeast(1)
+
+            val blurHeight =
+                (artwork.height / 14).coerceAtLeast(1)
+
+            val smallBitmap =
+                Bitmap.createScaledBitmap(
+                    artwork,
+                    blurWidth,
+                    blurHeight,
+                    true
+                )
+
+            val blurredBitmap =
+                Bitmap.createScaledBitmap(
+                    smallBitmap,
+                    artwork.width,
+                    artwork.height,
+                    true
+                )
+
+            if (smallBitmap !== artwork &&
+                !smallBitmap.isRecycled
+            ) {
+                smallBitmap.recycle()
+            }
+
+            val artworkLayer =
+                android.graphics.drawable.BitmapDrawable(
+                    resources,
+                    blurredBitmap
+                ).apply {
+                    gravity = Gravity.FILL
+                    alpha = 255
+                }
+
+            val fadeLayer =
+                GradientDrawable(
+                    GradientDrawable.Orientation.TOP_BOTTOM,
+                    intArrayOf(
+                        Color.argb(35, 0, 0, 0),
+                        Color.argb(75, 0, 0, 0),
+                        Color.argb(155, 0, 0, 0),
+                        Color.argb(225, 0, 0, 0),
+                        Color.BLACK
+                    )
+                )
+
+            val newBackground =
+                android.graphics.drawable.LayerDrawable(
+                    arrayOf(
+                        artworkLayer,
+                        fadeLayer
+                    )
+                )
+
+            val previousBackground =
+                target.background
+
+            if (previousBackground != null) {
+
+                val transition =
+                    android.graphics.drawable.TransitionDrawable(
+                        arrayOf(
+                            previousBackground,
+                            newBackground
+                        )
+                    ).apply {
+                        isCrossFadeEnabled = true
+                    }
+
+                target.background = transition
+                transition.startTransition(650)
+
+            } else {
+                target.background = newBackground
+            }
+
+        } catch (error: Exception) {
+            android.util.Log.e(
+                "MusicArtworkBackground",
+                "Unable to update artwork background",
+                error
+            )
+        }
+    }
+
     private fun updateAllPlayerArtwork(song: Song) {
         if (::miniCover.isInitialized) {
             loadAlbumArtAsync(song, miniCover)
@@ -11474,7 +11583,20 @@ private fun loadAlbumArtAsync(
         }
 
         fullPlayerCover?.let { cover ->
-            loadAlbumArtAsync(song, cover)
+            loadAlbumArtAsync(song, cover) { bitmap ->
+
+                if (
+                    bitmap != null &&
+                    currentSong?.id == song.id
+                ) {
+                    fullPlayerBackgroundRoot?.let { backgroundRoot ->
+                        applyFullPlayerArtworkBackground(
+                            backgroundRoot,
+                            bitmap
+                        )
+                    }
+                }
+            }
 
             if (fullPlayerQueueExpanded) {
                 cover.animate().cancel()
@@ -13349,133 +13471,7 @@ private fun loadAlbumArtAsync(
                 }
         }
 
-        // ---------- DYNAMIC BACKGROUND ----------
-
-        fun mixColor(a: Int, b: Int, fraction: Float): Int {
-            val f = fraction.coerceIn(0f, 1f)
-
-            val ar = Color.red(a)
-            val ag = Color.green(a)
-            val ab = Color.blue(a)
-
-            val br = Color.red(b)
-            val bg = Color.green(b)
-            val bb = Color.blue(b)
-
-            return Color.rgb(
-                (ar + (br - ar) * f).toInt(),
-                (ag + (bg - ag) * f).toInt(),
-                (ab + (bb - ab) * f).toInt()
-            )
-        }
-
-        fun extractColors(bitmap: android.graphics.Bitmap): IntArray {
-
-            val w = bitmap.width
-            val h = bitmap.height
-
-            if (w <= 0 || h <= 0) {
-                return intArrayOf(
-                    Color.rgb(245, 245, 247),
-                    Color.rgb(225, 225, 230),
-                    Color.rgb(205, 205, 210)
-                )
-            }
-
-            val points = arrayOf(
-                intArrayOf(w / 4, h / 4),
-                intArrayOf(3 * w / 4, h / 4),
-                intArrayOf(w / 4, 3 * h / 4),
-                intArrayOf(3 * w / 4, 3 * h / 4)
-            )
-
-            var r1 = 0
-            var g1 = 0
-            var b1 = 0
-
-            var r2 = 0
-            var g2 = 0
-            var b2 = 0
-
-            var r3 = 0
-            var g3 = 0
-            var b3 = 0
-
-            points.forEachIndexed { index, point ->
-
-                val x = point[0].coerceIn(0, w - 1)
-                val y = point[1].coerceIn(0, h - 1)
-
-                val c = bitmap.getPixel(x, y)
-
-                if (index < 2) {
-                    r1 += Color.red(c)
-                    g1 += Color.green(c)
-                    b1 += Color.blue(c)
-                }
-
-                if (index >= 1) {
-                    r2 += Color.red(c)
-                    g2 += Color.green(c)
-                    b2 += Color.blue(c)
-                }
-
-                r3 += Color.red(c)
-                g3 += Color.green(c)
-                b3 += Color.blue(c)
-            }
-
-            val color1 = Color.rgb(
-                (r1 / 2).coerceIn(0, 255),
-                (g1 / 2).coerceIn(0, 255),
-                (b1 / 2).coerceIn(0, 255)
-            )
-
-            val color2 = Color.rgb(
-                (r2 / 3).coerceIn(0, 255),
-                (g2 / 3).coerceIn(0, 255),
-                (b2 / 3).coerceIn(0, 255)
-            )
-
-            val color3 = Color.rgb(
-                (r3 / 4).coerceIn(0, 255),
-                (g3 / 4).coerceIn(0, 255),
-                (b3 / 4).coerceIn(0, 255)
-            )
-
-            return intArrayOf(
-                color1,
-                color2,
-                color3
-            )
-        }
-
-        fun getAlbumColors(
-            song: Song,
-            bitmap: android.graphics.Bitmap
-        ): IntArray {
-
-            synchronized(albumArtLock) {
-                albumColorCache.get(song.id)?.let {
-                    return it
-                }
-
-                val colors = extractColors(bitmap)
-
-                albumColorCache.put(
-                    song.id,
-                    colors
-                )
-
-                return colors
-            }
-        }
-
-        var currentColors = intArrayOf(
-            Color.rgb(245, 245, 247),
-            Color.rgb(225, 225, 230),
-            Color.rgb(205, 205, 210)
-        )
+        // ---------- ALBUM ART BACKGROUND ----------
 
         val initialArtwork =
             if (miniExpansionOpening) {
@@ -13487,50 +13483,16 @@ private fun loadAlbumArtAsync(
                 null
             }
 
-        /*
-         * During Mini -> Full handoff, avoid bitmap/color work on
-         * the animation frame. The background will be refreshed
-         * asynchronously after the player is shown.
-         */
-        if (!miniExpansionOpening) {
-            val fallbackArtwork =
-                android.graphics.BitmapFactory.decodeResource(
-                    resources,
-                    R.drawable.icon
-                )
+        fullPlayerBackgroundRoot = root
 
-            if (initialArtwork == null && fallbackArtwork != null) {
-                currentColors = extractColors(fallbackArtwork)
-            }
+        root.setBackgroundColor(Color.BLACK)
+
+        initialArtwork?.let { artwork ->
+            applyFullPlayerArtworkBackground(
+                root,
+                artwork
+            )
         }
-
-        fun applyBackground(colors: IntArray) {
-
-            val drawable =
-                android.graphics.drawable.GradientDrawable(
-                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                    intArrayOf(
-                        colors[0],
-                        colors[1],
-                        colors[2]
-                    )
-                ).apply {
-                    cornerRadius = 0f
-                }
-
-            root.background = drawable
-        }
-
-        if (!miniExpansionOpening) {
-            initialArtwork?.let {
-                currentColors = getAlbumColors(
-                    song,
-                    it
-                )
-            }
-        }
-
-        applyBackground(currentColors)
 
         // ---------- ARTWORK ----------
 
@@ -13589,7 +13551,9 @@ private fun loadAlbumArtAsync(
 
         fullPlayerCover = cover
 
-        // Artwork loading and color animation are performed asynchronously.
+        // Background and foreground artwork are loaded
+        // independently of the Mini -> Full animation.
+
         var fullPlayerArtworkActive = true
 
         val artworkLoadDelay =
@@ -13597,7 +13561,8 @@ private fun loadAlbumArtAsync(
 
         mainHandler.postDelayed({
 
-            if (!fullPlayerArtworkActive ||
+            if (
+                !fullPlayerArtworkActive ||
                 isFinishing ||
                 isDestroyed
             ) {
@@ -13606,7 +13571,8 @@ private fun loadAlbumArtAsync(
 
             loadAlbumArtAsync(song, cover) { bitmap ->
 
-                if (bitmap == null ||
+                if (
+                    bitmap == null ||
                     !fullPlayerArtworkActive ||
                     currentSong?.id != song.id ||
                     isFinishing ||
@@ -13615,75 +13581,10 @@ private fun loadAlbumArtAsync(
                     return@loadAlbumArtAsync
                 }
 
-                val targetColors = getAlbumColors(
-                    song,
+                applyFullPlayerArtworkBackground(
+                    root,
                     bitmap
                 )
-
-                val startColors = currentColors.copyOf()
-
-                val animator =
-                    android.animation.ValueAnimator.ofFloat(
-                        0f,
-                        1f
-                    ).apply {
-
-                        duration = 1800L
-
-                        addUpdateListener {
-                            if (!fullPlayerArtworkActive ||
-                                currentSong?.id != song.id
-                            ) {
-                                cancel()
-                                return@addUpdateListener
-                            }
-
-                            val f =
-                                it.animatedValue as Float
-
-                            val colors = IntArray(3)
-
-                            for (i in 0..2) {
-                                colors[i] = mixColor(
-                                    startColors[i],
-                                    targetColors[i],
-                                    f
-                                )
-                            }
-
-                            applyBackground(colors)
-                        }
-
-                        addListener(
-                            object :
-                                android.animation.Animator.AnimatorListener {
-
-                                override fun onAnimationStart(
-                                    animation: android.animation.Animator
-                                ) {}
-
-                                override fun onAnimationEnd(
-                                    animation: android.animation.Animator
-                                ) {
-                                    if (fullPlayerArtworkActive &&
-                                        currentSong?.id == song.id
-                                    ) {
-                                        currentColors = targetColors
-                                    }
-                                }
-
-                                override fun onAnimationCancel(
-                                    animation: android.animation.Animator
-                                ) {}
-
-                                override fun onAnimationRepeat(
-                                    animation: android.animation.Animator
-                                ) {}
-                            }
-                        )
-                    }
-
-                animator.start()
             }
 
         }, artworkLoadDelay)
@@ -15831,6 +15732,11 @@ private fun loadAlbumArtAsync(
                 }
 
                 fullPlayerDialog = null
+
+                if (fullPlayerBackgroundRoot === root) {
+                    fullPlayerBackgroundRoot = null
+                }
+
                 fullPlayerQueueExpanded = false
             }
 
