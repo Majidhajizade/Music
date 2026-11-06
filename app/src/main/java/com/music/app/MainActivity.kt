@@ -1139,6 +1139,8 @@ class MainActivity : ComponentActivity() {
                 songs.addAll(loadedSongs)
 
                 showMain()
+
+                ensureLibraryQueueForSystemControls()
             }
         }
     }
@@ -11464,6 +11466,8 @@ private fun loadAlbumArtAsync(
 
                     updatePlaybackUiFromController()
 
+                    ensureLibraryQueueForSystemControls()
+
                 } catch (_: Exception) {
                     mediaPlayer = null
                 }
@@ -11499,6 +11503,94 @@ private fun loadAlbumArtAsync(
 
         (miniTransitionFullCover as? ImageView)?.let { cover ->
             loadAlbumArtAsync(song, cover)
+        }
+    }
+
+    /**
+     * Keep the complete library queue available to Android SystemUI.
+     * Rebuild it without changing the currently playing song or position.
+     */
+    private fun ensureLibraryQueueForSystemControls() {
+
+        val controller = mediaPlayer ?: return
+        val library = songs.toList()
+
+        if (library.isEmpty()) return
+
+        val activeItem = controller.currentMediaItem
+        val activeId = activeItem?.mediaId?.toLongOrNull()
+
+        // Do not replace an active item that does not belong to this library.
+        if (activeItem != null && activeId == null) return
+
+        val savedSongId =
+            if (activeItem == null) {
+                playerPrefs.getLong("song_id", -1L)
+            } else {
+                -1L
+            }
+
+        var activeIndex =
+            when {
+                activeId != null ->
+                    library.indexOfFirst { it.id == activeId }
+
+                savedSongId > 0L ->
+                    library.indexOfFirst { it.id == savedSongId }
+
+                else -> 0
+            }
+
+        if (activeIndex < 0) {
+            if (activeItem != null) return
+            activeIndex = 0
+        }
+
+        val currentPosition =
+            if (activeItem != null) {
+                controller.currentPosition.coerceAtLeast(0L)
+            } else if (savedSongId == library[activeIndex].id) {
+                playerPrefs.getLong("position", 0L).coerceAtLeast(0L)
+            } else {
+                0L
+            }
+
+        val resumeAfterRebuild = controller.playWhenReady
+
+        val queueAlreadyMatches =
+            activeItem != null &&
+            controller.mediaItemCount == library.size &&
+            (0 until library.size).all { index ->
+                controller.getMediaItemAt(index).mediaId ==
+                    library[index].id.toString()
+            }
+
+        playbackQueue = library.toMutableList()
+        playbackIndex = activeIndex
+        currentSong = library[activeIndex]
+
+        if (queueAlreadyMatches) return
+
+        try {
+            val mediaItems = library.map { mediaItemForSong(it) }
+
+            controller.setMediaItems(
+                mediaItems,
+                activeIndex,
+                currentPosition
+            )
+
+            controller.prepare()
+
+            // Preserve the previous play/pause state.
+            if (resumeAfterRebuild) {
+                controller.play()
+            } else {
+                controller.pause()
+            }
+
+        } catch (_: Exception) {
+            // Keep the existing playback state if rebuilding fails.
         }
     }
 
@@ -11667,8 +11759,14 @@ private fun loadAlbumArtAsync(
                 .setArtist(song.artist)
                 .setAlbumTitle(song.album)
 
-        // Artwork is loaded separately by the player UI.
-        // Avoid synchronous artwork extraction while creating MediaItems.
+        // Attach cached album artwork to Media3 metadata
+        // so Android SystemUI can display it on the lock screen.
+        artworkBytes(song)?.let { artwork ->
+            metadataBuilder.setArtworkData(
+                artwork,
+                MediaMetadata.PICTURE_TYPE_FRONT_COVER
+            )
+        }
 
         return MediaItem.Builder()
             .setMediaId(song.id.toString())
