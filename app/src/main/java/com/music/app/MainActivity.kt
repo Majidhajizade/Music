@@ -13653,11 +13653,28 @@ private fun loadAlbumArtAsync(
                 null
             }
 
+        val fallbackArtwork = try {
+            val drawable = getDrawable(R.mipmap.ic_launcher)
+            if (drawable == null) {
+                null
+            } else {
+                val size = dp(432).coerceAtLeast(1)
+                android.graphics.Bitmap.createBitmap(
+                    size,
+                    size,
+                    android.graphics.Bitmap.Config.ARGB_8888
+                ).also { bitmap ->
+                    val canvas = android.graphics.Canvas(bitmap)
+                    drawable.setBounds(0, 0, size, size)
+                    drawable.draw(canvas)
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+
         val initialBackgroundArtwork =
-            initialArtwork ?: android.graphics.BitmapFactory.decodeResource(
-                resources,
-                R.drawable.ic_launcher_foreground
-            )
+            initialArtwork ?: fallbackArtwork
 
         root.background =
             android.graphics.drawable.ColorDrawable(
@@ -13715,7 +13732,9 @@ private fun loadAlbumArtAsync(
             initialArtwork?.let {
                 setImageBitmap(it)
             } ?: run {
-                setImageResource(R.mipmap.ic_launcher)
+                fallbackArtwork?.let { bitmap ->
+                    setImageBitmap(bitmap)
+                } ?: setImageResource(R.mipmap.ic_launcher)
             }
         }
 
