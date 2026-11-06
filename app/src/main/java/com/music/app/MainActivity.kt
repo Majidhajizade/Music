@@ -13483,16 +13483,10 @@ private fun loadAlbumArtAsync(
                 null
             }
 
-        fullPlayerBackgroundRoot = root
-
-        root.setBackgroundColor(Color.BLACK)
-
-        initialArtwork?.let { artwork ->
-            applyFullPlayerArtworkBackground(
-                root,
-                artwork
-            )
-        }
+        // Keep the content root transparent.
+        // The artwork gradient is attached to the full-screen
+        // window decor so it also covers both system-bar areas.
+        root.setBackgroundColor(Color.TRANSPARENT)
 
         // ---------- ARTWORK ----------
 
@@ -15881,6 +15875,25 @@ private fun loadAlbumArtAsync(
             window.addFlags(
                 android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             )
+
+            // Draw the artwork and its existing vertical gradient
+            // across the entire window, including status/navigation bars.
+            val fullScreenBackgroundSurface =
+                window.decorView
+
+            fullPlayerBackgroundRoot =
+                fullScreenBackgroundSurface
+
+            fullScreenBackgroundSurface.setBackgroundColor(
+                Color.BLACK
+            )
+
+            initialArtwork?.let { artwork ->
+                applyFullPlayerArtworkBackground(
+                    fullScreenBackgroundSurface,
+                    artwork
+                )
+            }
         }
     }
 
