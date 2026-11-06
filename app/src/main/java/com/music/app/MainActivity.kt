@@ -1682,7 +1682,8 @@ private fun loadAlbumArtAsync(
 
                 val cover = createRealSongCover(
                     song,
-                    330
+                    330,
+                    fallbackRes = R.drawable.lmusic
                 ).apply {
                     scaleType = ImageView.ScaleType.CENTER_CROP
                     clipToOutline = true
@@ -1839,7 +1840,8 @@ private fun loadAlbumArtAsync(
                 val card = createRealSongCard(
                     song,
                     widthDp = 156,
-                    imageDp = 156
+                    imageDp = 156,
+                    fallbackRes = R.drawable.music_fallback
                 ) {
                     playSong(song)
                 }
@@ -7267,7 +7269,11 @@ private fun loadAlbumArtAsync(
         )
     }
 
-    private fun createRealSongCover(song: Song, sizeDp: Int): ImageView {
+    private fun createRealSongCover(
+        song: Song,
+        sizeDp: Int,
+        fallbackRes: Int = R.mipmap.ic_launcher
+    ): ImageView {
         return ImageView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 dp(sizeDp),
@@ -7275,7 +7281,7 @@ private fun loadAlbumArtAsync(
             )
             scaleType = ImageView.ScaleType.CENTER_CROP
 
-            loadAlbumArtAsync(song, this)
+            loadAlbumArtAsync(song, this, fallbackRes)
         }
     }
 
@@ -7283,6 +7289,7 @@ private fun loadAlbumArtAsync(
         song: Song,
         widthDp: Int,
         imageDp: Int,
+        fallbackRes: Int = R.mipmap.ic_launcher,
         onClick: (() -> Unit)? = null
     ): LinearLayout {
 
@@ -7337,7 +7344,8 @@ private fun loadAlbumArtAsync(
 
         val cover = createRealSongCover(
             song,
-            imageDp
+            imageDp,
+            fallbackRes
         ).apply {
             scaleType =
                 ImageView.ScaleType.CENTER_CROP
@@ -11474,7 +11482,11 @@ private fun loadAlbumArtAsync(
         }
 
         fullPlayerCover?.let { cover ->
-            loadAlbumArtAsync(song, cover)
+            loadAlbumArtAsync(
+                song,
+                cover,
+                R.drawable.music_fallback
+            )
 
             if (fullPlayerQueueExpanded) {
                 cover.animate().cancel()
@@ -12918,6 +12930,14 @@ private fun loadAlbumArtAsync(
         val fullPlayerArtwork =
             getAlbumArtCached(song)
 
+        // Update the artwork immediately when the song changes.
+        // Cached artwork is shown instantly; otherwise use Music artwork.
+        loadAlbumArtAsync(
+            song,
+            cover,
+            R.drawable.music_fallback
+        )
+
         cover.animate().cancel()
 
         cover.animate()
@@ -12927,12 +12947,6 @@ private fun loadAlbumArtAsync(
             .setDuration(180L)
             .setInterpolator(decelerate)
             .withEndAction {
-
-                fullPlayerArtwork?.let {
-                    cover.setImageBitmap(it)
-                } ?: run {
-                    cover.setImageResource(R.mipmap.ic_launcher)
-                }
 
                 if (fullPlayerQueueExpanded) {
                     cover.animate().cancel()
@@ -12976,7 +12990,11 @@ private fun loadAlbumArtAsync(
         }
 
         // Load missing artwork without blocking the transition.
-        loadAlbumArtAsync(song, cover) { bitmap ->
+        loadAlbumArtAsync(
+            song,
+            cover,
+            R.drawable.music_fallback
+        ) { bitmap ->
             if (bitmap != null &&
                 currentSong?.id == song.id &&
                 !isFinishing &&
@@ -13654,39 +13672,11 @@ private fun loadAlbumArtAsync(
             }
 
         val fallbackArtwork = try {
-            val size = dp(432).coerceAtLeast(1)
-
-            val bitmap = android.graphics.Bitmap.createBitmap(
-                size,
-                size,
-                android.graphics.Bitmap.Config.ARGB_8888
+            android.graphics.BitmapFactory.decodeResource(
+                resources,
+                R.drawable.music_fallback
             )
-
-            val canvas = android.graphics.Canvas(bitmap)
-
-            // Pure black background.
-            canvas.drawColor(Color.BLACK)
-
-            // Small centered white Music logo.
-            val logo = getDrawable(R.drawable.ic_music)
-
-            if (logo != null) {
-                val logoSize = dp(132).coerceAtLeast(1)
-                val left = (size - logoSize) / 2
-                val top = (size - logoSize) / 2
-
-                logo.setBounds(
-                    left,
-                    top,
-                    left + logoSize,
-                    top + logoSize
-                )
-
-                logo.draw(canvas)
-            }
-
-            bitmap
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
 
@@ -13780,7 +13770,11 @@ private fun loadAlbumArtAsync(
                 return@postDelayed
             }
 
-            loadAlbumArtAsync(song, cover) { bitmap ->
+            loadAlbumArtAsync(
+                song,
+                cover,
+                R.drawable.music_fallback
+            ) { bitmap ->
 
                 if (bitmap == null ||
                     !fullPlayerArtworkActive ||
