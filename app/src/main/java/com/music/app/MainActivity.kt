@@ -12784,6 +12784,20 @@ private fun loadAlbumArtAsync(
     }
 
 
+    private fun resetFullPlayerBlurBackground(root: android.view.View) {
+        // Invalidate pending blur jobs so an old song cannot restore its background.
+        fullPlayerBlurGeneration++
+
+        fullPlayerBlurFuture?.cancel(true)
+        fullPlayerBlurFuture = null
+
+        root.background = android.graphics.drawable.ColorDrawable(
+            Color.rgb(12, 12, 16)
+        )
+        root.invalidate()
+    }
+
+
     private fun animateSongChange(
         song: Song,
         root: ViewGroup,
@@ -12981,12 +12995,14 @@ private fun loadAlbumArtAsync(
         // STRONG BLURRED ALBUM BACKGROUND
         // -------------------------------------------------
 
-        fullPlayerArtwork?.let { bitmap ->
+        if (fullPlayerArtwork != null) {
             updateFullPlayerBlurBackground(
                 root,
-                bitmap,
+                fullPlayerArtwork,
                 song.id
             )
+        } else {
+            resetFullPlayerBlurBackground(root)
         }
 
         // Load missing artwork without blocking the transition.
@@ -13012,6 +13028,12 @@ private fun loadAlbumArtAsync(
                         song.id
                     )
                 }
+            } else if (
+                currentSong?.id == song.id &&
+                !isFinishing &&
+                !isDestroyed
+            ) {
+                resetFullPlayerBlurBackground(root)
             }
         }
     }
@@ -13661,12 +13683,11 @@ private fun loadAlbumArtAsync(
 
         // ---------- DYNAMIC BACKGROUND ----------
 
+        // Use only verified, cached song artwork.
+        // Never treat the Mini Player fallback image as real artwork.
         val initialArtwork =
             if (miniExpansionOpening) {
-                (
-                    miniExpansionCover?.drawable
-                        as? android.graphics.drawable.BitmapDrawable
-                )?.bitmap
+                getAlbumArtCached(song)
             } else {
                 null
             }
@@ -13680,8 +13701,9 @@ private fun loadAlbumArtAsync(
             null
         }
 
-        val initialBackgroundArtwork =
-            initialArtwork ?: fallbackArtwork
+        // Only real song artwork may generate the blurred background.
+        // The fallback image is reserved for the foreground cover.
+        val initialBackgroundArtwork = initialArtwork
 
         root.background =
             android.graphics.drawable.ColorDrawable(
@@ -13776,8 +13798,7 @@ private fun loadAlbumArtAsync(
                 R.drawable.music_fallback
             ) { bitmap ->
 
-                if (bitmap == null ||
-                    !fullPlayerArtworkActive ||
+                if (!fullPlayerArtworkActive ||
                     currentSong?.id != song.id ||
                     isFinishing ||
                     isDestroyed
@@ -13785,11 +13806,15 @@ private fun loadAlbumArtAsync(
                     return@loadAlbumArtAsync
                 }
 
-                updateFullPlayerBlurBackground(
-                    root,
-                    bitmap,
-                    song.id
-                )
+                if (bitmap != null) {
+                    updateFullPlayerBlurBackground(
+                        root,
+                        bitmap,
+                        song.id
+                    )
+                } else {
+                    resetFullPlayerBlurBackground(root)
+                }
             }
 
         }, artworkLoadDelay)
