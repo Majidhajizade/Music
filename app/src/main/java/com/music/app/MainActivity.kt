@@ -7907,7 +7907,7 @@ private fun loadAlbumArtAsync(
                                             ""
                                         ) ?: ""
 
-                                    if (audioUrl.isBlank()) {
+                                    if (audioUrl.isBlank() || !isSafeHttpsUrl(audioUrl)) {
                                         continue
                                     }
 
@@ -8282,6 +8282,10 @@ private fun loadAlbumArtAsync(
                     "/" +
                     encodedPath
 
+                if (!isSafeHttpsUrl(audioUrl)) {
+                    continue
+                }
+
                 val result =
                     Pair(
                         audioUrl,
@@ -8304,9 +8308,33 @@ private fun loadAlbumArtAsync(
         }
     }
 
+
+    private fun isSafeHttpsUrl(address: String): Boolean {
+        return try {
+            val parsed = URL(address.trim())
+            val host = parsed.host.lowercase()
+
+            parsed.protocol.equals("https", ignoreCase = true) &&
+                host.isNotBlank() &&
+                host.contains(".") &&
+                !host.contains(":") &&
+                parsed.userInfo == null &&
+                host != "localhost" &&
+                !host.endsWith(".localhost") &&
+                !host.endsWith(".local") &&
+                !host.matches(Regex("""\d{1,3}(\.\d{1,3}){3}"""))
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun httpGet(
         address: String
     ): String {
+
+        if (!isSafeHttpsUrl(address)) {
+            throw java.io.IOException("Blocked unsafe URL")
+        }
 
         val connection =
             URL(address)
@@ -8345,6 +8373,15 @@ private fun loadAlbumArtAsync(
     private fun playOnlineTrack(
         track: OnlineTrack
     ) {
+
+        if (!isSafeHttpsUrl(track.audioUrl)) {
+            Toast.makeText(
+                this,
+                "Blocked unsafe audio address",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
 
         val controller =
             mediaPlayer
@@ -8415,6 +8452,10 @@ private fun loadAlbumArtAsync(
             var success = false
 
             try {
+
+                if (!isSafeHttpsUrl(track.audioUrl)) {
+                    throw java.io.IOException("Blocked unsafe download URL")
+                }
 
                 connection =
                     URL(track.audioUrl)
