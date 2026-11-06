@@ -29,21 +29,79 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build APK
-        run: gradle assembleDebug
+      - name: Validate signing secrets and prepare keystore
+        env:
+          MUSIC_KEYSTORE_BASE64: ${{ secrets.MUSIC_KEYSTORE_BASE64 }}
+          MUSIC_KEYSTORE_PASSWORD: ${{ secrets.MUSIC_KEYSTORE_PASSWORD }}
+          MUSIC_KEY_ALIAS: ${{ secrets.MUSIC_KEY_ALIAS }}
+          MUSIC_KEY_PASSWORD: ${{ secrets.MUSIC_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
 
-      - name: Create Release
+          for name in \
+            MUSIC_KEYSTORE_BASE64 \
+            MUSIC_KEYSTORE_PASSWORD \
+            MUSIC_KEY_ALIAS \
+            MUSIC_KEY_PASSWORD
+          do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing GitHub Secret: $name"
+              exit 1
+            fi
+          done
+
+          printf '%s' "$MUSIC_KEYSTORE_BASE64" |
+            base64 --decode > "$RUNNER_TEMP/music-release.jks"
+
+          test -s "$RUNNER_TEMP/music-release.jks"
+          chmod 600 "$RUNNER_TEMP/music-release.jks"
+
+      - name: Build signed Release APK
+        env:
+          MUSIC_KEYSTORE_FILE: ${{ runner.temp }}/music-release.jks
+          MUSIC_KEYSTORE_PASSWORD: ${{ secrets.MUSIC_KEYSTORE_PASSWORD }}
+          MUSIC_KEY_ALIAS: ${{ secrets.MUSIC_KEY_ALIAS }}
+          MUSIC_KEY_PASSWORD: ${{ secrets.MUSIC_KEY_PASSWORD }}
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
+        run: |
+          gradle --no-daemon clean assembleRelease
+
+      - name: Verify APK signature and generate checksum
+        run: |
+          set -euo pipefail
+
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK"
+
+          APKSIGNER="$(find "$SDK/build-tools" \
+            -type f -name apksigner | sort -V | tail -n 1)"
+
+          test -x "$APKSIGNER"
+
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+
+          sha256sum "$APK" > "$APK.sha256"
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: Music v1.0.${{ github.run_number }}
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/app-release.apk.sha256
           generate_release_notes: true
 
-
-      - name: Upload APK Artifact
+      - name: Upload Release Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Music-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Music-release-apk
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/app-release.apk.sha256
+          retention-days: 14
           if-no-files-found: error

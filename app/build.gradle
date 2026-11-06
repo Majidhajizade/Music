@@ -1,6 +1,17 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
+def releaseSigning = [
+    storeFile: System.getenv("MUSIC_KEYSTORE_FILE"),
+    storePassword: System.getenv("MUSIC_KEYSTORE_PASSWORD"),
+    keyAlias: System.getenv("MUSIC_KEY_ALIAS"),
+    keyPassword: System.getenv("MUSIC_KEY_PASSWORD")
+]
+
+def hasReleaseSigning = releaseSigning.values().every {
+    it != null && !it.trim().isEmpty()
+}
+
 android {
     namespace 'com.music.app'
     compileSdk 35
@@ -9,8 +20,9 @@ android {
         applicationId 'com.music.app'
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName '1.0'
+
+        versionCode (System.getenv("VERSION_CODE") ?: "1").toInteger()
+        versionName System.getenv("VERSION_NAME") ?: "1.0"
     }
 
     compileOptions {
@@ -22,9 +34,24 @@ android {
         jvmTarget = '17'
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseSigning.storeFile)
+                storePassword releaseSigning.storePassword
+                keyAlias releaseSigning.keyAlias
+                keyPassword releaseSigning.keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
