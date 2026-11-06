@@ -14,7 +14,7 @@ def hasReleaseSigning = releaseSigning.values().every {
 
 android {
     namespace 'com.music.app'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.music.app'
