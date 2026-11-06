@@ -1346,7 +1346,7 @@ private fun getAlbumArt(
 private fun loadAlbumArtAsync(
     song: Song,
     imageView: ImageView,
-    fallbackRes: Int = R.drawable.icon,
+    fallbackRes: Int = R.mipmap.ic_launcher,
     onLoaded: ((android.graphics.Bitmap?) -> Unit)? = null
 ) {
     imageView.tag = song.id
@@ -8801,7 +8801,7 @@ private fun loadAlbumArtAsync(
 
                 loadAlbumArtAsync(song, image)
             } else {
-                image.setImageResource(R.drawable.icon)
+                image.setImageResource(R.mipmap.ic_launcher)
             }
 
             return image
@@ -10214,7 +10214,7 @@ private fun loadAlbumArtAsync(
             initialArtwork?.let {
                 setImageBitmap(it)
             } ?: run {
-                setImageResource(R.drawable.icon)
+                setImageResource(R.mipmap.ic_launcher)
             }
 
             alpha = 1f
@@ -12931,7 +12931,7 @@ private fun loadAlbumArtAsync(
                 fullPlayerArtwork?.let {
                     cover.setImageBitmap(it)
                 } ?: run {
-                    cover.setImageResource(R.drawable.icon)
+                    cover.setImageResource(R.mipmap.ic_launcher)
                 }
 
                 if (fullPlayerQueueExpanded) {
@@ -13656,7 +13656,7 @@ private fun loadAlbumArtAsync(
         val initialBackgroundArtwork =
             initialArtwork ?: android.graphics.BitmapFactory.decodeResource(
                 resources,
-                R.drawable.icon
+                R.drawable.ic_launcher_foreground
             )
 
         root.background =
@@ -13715,7 +13715,7 @@ private fun loadAlbumArtAsync(
             initialArtwork?.let {
                 setImageBitmap(it)
             } ?: run {
-                setImageResource(R.drawable.icon)
+                setImageResource(R.mipmap.ic_launcher)
             }
         }
 
@@ -15592,6 +15592,30 @@ private fun loadAlbumArtAsync(
                 ImageView(this).apply {
                     scaleType =
                         ImageView.ScaleType.CENTER_CROP
+
+                    clipToOutline = true
+
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = dp(8).toFloat()
+                        setColor(Color.TRANSPARENT)
+                    }
+
+                    outlineProvider =
+                        object : ViewOutlineProvider() {
+                            override fun getOutline(
+                                view: View,
+                                outline: android.graphics.Outline
+                            ) {
+                                outline.setRoundRect(
+                                    0,
+                                    0,
+                                    view.width,
+                                    view.height,
+                                    dp(8).toFloat()
+                                )
+                            }
+                        }
                 }
 
             loadAlbumArtAsync(queueSong, cover)
