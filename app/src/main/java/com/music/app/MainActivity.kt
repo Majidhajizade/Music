@@ -12400,6 +12400,378 @@ private fun loadAlbumArtAsync(
             .show()
     }
 
+
+    // FULL_PLAYER_STRONG_BLUR_V1
+
+    @Volatile
+    private var fullPlayerBlurGeneration = 0
+
+    private val fullPlayerBlurExecutor: ExecutorService =
+        Executors.newSingleThreadExecutor()
+
+    private var fullPlayerBlurFuture:
+        java.util.concurrent.Future<*>? = null
+
+    private fun blurFullPlayerBackgroundPass(
+        source: android.graphics.Bitmap,
+        radius: Int
+    ): android.graphics.Bitmap {
+
+        val width = source.width
+        val height = source.height
+
+        val pixels = IntArray(width * height)
+        val horizontal = IntArray(width * height)
+        val output = IntArray(width * height)
+
+        source.getPixels(
+            pixels,
+            0,
+            width,
+            0,
+            0,
+            width,
+            height
+        )
+
+        val window = radius * 2 + 1
+
+        // Horizontal blur.
+        for (y in 0 until height) {
+
+            if (Thread.currentThread().isInterrupted) {
+                throw InterruptedException("Blur cancelled")
+            }
+
+            var a = 0
+            var r = 0
+            var g = 0
+            var b = 0
+
+            for (offset in -radius..radius) {
+
+                val x = offset.coerceIn(0, width - 1)
+                val color = pixels[y * width + x]
+
+                a += android.graphics.Color.alpha(color)
+                r += android.graphics.Color.red(color)
+                g += android.graphics.Color.green(color)
+                b += android.graphics.Color.blue(color)
+            }
+
+            for (x in 0 until width) {
+
+                val index = y * width + x
+
+                horizontal[index] =
+                    android.graphics.Color.argb(
+                        a / window,
+                        r / window,
+                        g / window,
+                        b / window
+                    )
+
+                val removeX =
+                    (x - radius).coerceIn(0, width - 1)
+
+                val addX =
+                    (x + radius + 1).coerceIn(0, width - 1)
+
+                val removeColor =
+                    pixels[y * width + removeX]
+
+                val addColor =
+                    pixels[y * width + addX]
+
+                a +=
+                    android.graphics.Color.alpha(addColor) -
+                    android.graphics.Color.alpha(removeColor)
+
+                r +=
+                    android.graphics.Color.red(addColor) -
+                    android.graphics.Color.red(removeColor)
+
+                g +=
+                    android.graphics.Color.green(addColor) -
+                    android.graphics.Color.green(removeColor)
+
+                b +=
+                    android.graphics.Color.blue(addColor) -
+                    android.graphics.Color.blue(removeColor)
+            }
+        }
+
+        // Vertical blur.
+        for (x in 0 until width) {
+
+            if (Thread.currentThread().isInterrupted) {
+                throw InterruptedException("Blur cancelled")
+            }
+
+            var a = 0
+            var r = 0
+            var g = 0
+            var b = 0
+
+            for (offset in -radius..radius) {
+
+                val y = offset.coerceIn(0, height - 1)
+                val color = horizontal[y * width + x]
+
+                a += android.graphics.Color.alpha(color)
+                r += android.graphics.Color.red(color)
+                g += android.graphics.Color.green(color)
+                b += android.graphics.Color.blue(color)
+            }
+
+            for (y in 0 until height) {
+
+                val index = y * width + x
+
+                output[index] =
+                    android.graphics.Color.argb(
+                        a / window,
+                        r / window,
+                        g / window,
+                        b / window
+                    )
+
+                val removeY =
+                    (y - radius).coerceIn(0, height - 1)
+
+                val addY =
+                    (y + radius + 1).coerceIn(0, height - 1)
+
+                val removeColor =
+                    horizontal[removeY * width + x]
+
+                val addColor =
+                    horizontal[addY * width + x]
+
+                a +=
+                    android.graphics.Color.alpha(addColor) -
+                    android.graphics.Color.alpha(removeColor)
+
+                r +=
+                    android.graphics.Color.red(addColor) -
+                    android.graphics.Color.red(removeColor)
+
+                g +=
+                    android.graphics.Color.green(addColor) -
+                    android.graphics.Color.green(removeColor)
+
+                b +=
+                    android.graphics.Color.blue(addColor) -
+                    android.graphics.Color.blue(removeColor)
+            }
+        }
+
+        return android.graphics.Bitmap.createBitmap(
+            width,
+            height,
+            android.graphics.Bitmap.Config.ARGB_8888
+        ).apply {
+            setPixels(
+                output,
+                0,
+                width,
+                0,
+                0,
+                width,
+                height
+            )
+        }
+    }
+
+    private fun createFullPlayerBlurBitmap(
+        source: android.graphics.Bitmap
+    ): android.graphics.Bitmap? {
+
+        var band: android.graphics.Bitmap? = null
+        var working: android.graphics.Bitmap? = null
+
+        try {
+
+            if (
+                source.isRecycled ||
+                source.width <= 0 ||
+                source.height <= 0
+            ) {
+                return null
+            }
+
+            // Use the middle one-third of the album artwork.
+            val cropHeight =
+                (source.height / 3).coerceAtLeast(1)
+
+            val cropTop =
+                ((source.height - cropHeight) / 2)
+                    .coerceAtLeast(0)
+
+            band = android.graphics.Bitmap.createBitmap(
+                source,
+                0,
+                cropTop,
+                source.width,
+                cropHeight
+            )
+
+            // Work at one-quarter screen resolution to reduce CPU cost.
+            val metrics = resources.displayMetrics
+
+            val targetWidth =
+                (metrics.widthPixels / 4)
+                    .coerceIn(180, 360)
+
+            val targetHeight =
+                (metrics.heightPixels / 4)
+                    .coerceIn(360, 800)
+
+            working = android.graphics.Bitmap.createScaledBitmap(
+                band,
+                targetWidth,
+                targetHeight,
+                true
+            )
+
+            if (working !== band && !band.isRecycled) {
+                band.recycle()
+            }
+
+            // Three strong blur passes.
+            repeat(3) {
+
+                val current = working
+                    ?: return null
+
+                val next = blurFullPlayerBackgroundPass(
+                    current,
+                    22
+                )
+
+                if (!current.isRecycled) {
+                    current.recycle()
+                }
+
+                working = next
+            }
+
+            val result = working
+                ?: return null
+
+            // Slight darkening keeps white controls readable.
+            android.graphics.Canvas(result).drawColor(
+                android.graphics.Color.argb(
+                    75,
+                    0,
+                    0,
+                    0
+                ),
+                android.graphics.PorterDuff.Mode.SRC_ATOP
+            )
+
+            working = null
+
+            return result
+
+        } catch (_: Exception) {
+
+            working?.let {
+                if (!it.isRecycled) it.recycle()
+            }
+
+            band?.let {
+                if (it !== working && !it.isRecycled) {
+                    it.recycle()
+                }
+            }
+
+            return null
+        }
+    }
+
+    private fun updateFullPlayerBlurBackground(
+        root: android.view.View,
+        artwork: android.graphics.Bitmap,
+        songId: Long
+    ) {
+
+        // Invalidate and interrupt the previous request.
+        val generation = ++fullPlayerBlurGeneration
+
+        fullPlayerBlurFuture?.cancel(true)
+        fullPlayerBlurFuture = null
+
+        fullPlayerBlurFuture =
+            fullPlayerBlurExecutor.submit {
+
+                val blurredBitmap =
+                    createFullPlayerBlurBitmap(artwork)
+
+                if (blurredBitmap != null) {
+
+                    // Do not post obsolete results to the UI thread.
+                    if (
+                        Thread.currentThread().isInterrupted ||
+                        generation != fullPlayerBlurGeneration
+                    ) {
+                        if (!blurredBitmap.isRecycled) {
+                            blurredBitmap.recycle()
+                        }
+                    } else {
+
+                        runOnUiThread {
+
+                            if (
+                                blurredBitmap.isRecycled
+                            ) {
+                                return@runOnUiThread
+                            }
+
+                            if (
+                                generation != fullPlayerBlurGeneration ||
+                                currentSong?.id != songId ||
+                                isFinishing ||
+                                isDestroyed
+                            ) {
+                                if (!blurredBitmap.isRecycled) {
+                                    blurredBitmap.recycle()
+                                }
+                                return@runOnUiThread
+                            }
+
+                            val previousBitmap =
+                                (
+                                    root.background
+                                        as? android.graphics.drawable.BitmapDrawable
+                                )?.bitmap
+
+                            root.background =
+                                android.graphics.drawable.BitmapDrawable(
+                                    resources,
+                                    blurredBitmap
+                                ).apply {
+                                    gravity = android.view.Gravity.FILL
+                                    isFilterBitmap = true
+                                    setDither(true)
+                                }
+
+                            root.invalidate()
+
+                            if (
+                                previousBitmap != null &&
+                                previousBitmap !== blurredBitmap &&
+                                !previousBitmap.isRecycled
+                            ) {
+                                previousBitmap.recycle()
+                            }
+                        }
+                    }
+                }
+            }
+    }
+
+
     private fun animateSongChange(
         song: Song,
         root: ViewGroup,
@@ -12591,90 +12963,16 @@ private fun loadAlbumArtAsync(
             .start()
 
         // -------------------------------------------------
-        // BACKGROUND
+        // -------------------------------------------------
+        // STRONG BLURRED ALBUM BACKGROUND
         // -------------------------------------------------
 
         fullPlayerArtwork?.let { bitmap ->
-
-            val colors = run {
-
-                val w = bitmap.width.coerceAtLeast(1)
-                val h = bitmap.height.coerceAtLeast(1)
-
-                val points = arrayOf(
-                    intArrayOf(w / 2, h / 4),
-                    intArrayOf(w / 2, h / 2),
-                    intArrayOf(w / 3, (h * 3) / 4),
-                    intArrayOf((w * 2) / 3, (h * 3) / 4)
-                )
-
-                var r1 = 0
-                var g1 = 0
-                var b1 = 0
-
-                var r2 = 0
-                var g2 = 0
-                var b2 = 0
-
-                var r3 = 0
-                var g3 = 0
-                var b3 = 0
-
-                points.forEachIndexed { index, point ->
-
-                    val x = point[0].coerceIn(0, w - 1)
-                    val y = point[1].coerceIn(0, h - 1)
-
-                    val c = bitmap.getPixel(x, y)
-
-                    if (index < 2) {
-                        r1 += Color.red(c)
-                        g1 += Color.green(c)
-                        b1 += Color.blue(c)
-                    }
-
-                    if (index >= 1) {
-                        r2 += Color.red(c)
-                        g2 += Color.green(c)
-                        b2 += Color.blue(c)
-                    }
-
-                    r3 += Color.red(c)
-                    g3 += Color.green(c)
-                    b3 += Color.blue(c)
-                }
-
-                intArrayOf(
-                    Color.rgb(
-                        (r1 / 2).coerceIn(0, 255),
-                        (g1 / 2).coerceIn(0, 255),
-                        (b1 / 2).coerceIn(0, 255)
-                    ),
-                    Color.rgb(
-                        (r2 / 3).coerceIn(0, 255),
-                        (g2 / 3).coerceIn(0, 255),
-                        (b2 / 3).coerceIn(0, 255)
-                    ),
-                    Color.rgb(
-                        (r3 / 4).coerceIn(0, 255),
-                        (g3 / 4).coerceIn(0, 255),
-                        (b3 / 4).coerceIn(0, 255)
-                    )
-                )
-            }
-
-            val newBackground =
-                android.graphics.drawable.GradientDrawable(
-                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                    colors
-                )
-
-              // Swap the background directly.
-              // The cover and controls are already animating, so
-              // animating the entire root would add extra compositing.
-              root.animate().cancel()
-              root.alpha = 1f
-              root.background = newBackground
+            updateFullPlayerBlurBackground(
+                root,
+                bitmap,
+                song.id
+            )
         }
 
         // Load missing artwork without blocking the transition.
@@ -12689,19 +12987,13 @@ private fun loadAlbumArtAsync(
                     cover.setImageBitmap(bitmap)
                 }
 
-                val w = bitmap.width.coerceAtLeast(1)
-                val h = bitmap.height.coerceAtLeast(1)
-
-                val colors = intArrayOf(
-                    bitmap.getPixel(w / 2, h / 4),
-                    bitmap.getPixel(w / 2, h / 2),
-                    bitmap.getPixel(w / 2, (h * 3) / 4)
-                )
-
-                root.background = GradientDrawable(
-                    GradientDrawable.Orientation.TL_BR,
-                    colors
-                )
+                if (fullPlayerArtwork == null) {
+                    updateFullPlayerBlurBackground(
+                        root,
+                        bitmap,
+                        song.id
+                    )
+                }
             }
         }
     }
@@ -13351,132 +13643,6 @@ private fun loadAlbumArtAsync(
 
         // ---------- DYNAMIC BACKGROUND ----------
 
-        fun mixColor(a: Int, b: Int, fraction: Float): Int {
-            val f = fraction.coerceIn(0f, 1f)
-
-            val ar = Color.red(a)
-            val ag = Color.green(a)
-            val ab = Color.blue(a)
-
-            val br = Color.red(b)
-            val bg = Color.green(b)
-            val bb = Color.blue(b)
-
-            return Color.rgb(
-                (ar + (br - ar) * f).toInt(),
-                (ag + (bg - ag) * f).toInt(),
-                (ab + (bb - ab) * f).toInt()
-            )
-        }
-
-        fun extractColors(bitmap: android.graphics.Bitmap): IntArray {
-
-            val w = bitmap.width
-            val h = bitmap.height
-
-            if (w <= 0 || h <= 0) {
-                return intArrayOf(
-                    Color.rgb(245, 245, 247),
-                    Color.rgb(225, 225, 230),
-                    Color.rgb(205, 205, 210)
-                )
-            }
-
-            val points = arrayOf(
-                intArrayOf(w / 4, h / 4),
-                intArrayOf(3 * w / 4, h / 4),
-                intArrayOf(w / 4, 3 * h / 4),
-                intArrayOf(3 * w / 4, 3 * h / 4)
-            )
-
-            var r1 = 0
-            var g1 = 0
-            var b1 = 0
-
-            var r2 = 0
-            var g2 = 0
-            var b2 = 0
-
-            var r3 = 0
-            var g3 = 0
-            var b3 = 0
-
-            points.forEachIndexed { index, point ->
-
-                val x = point[0].coerceIn(0, w - 1)
-                val y = point[1].coerceIn(0, h - 1)
-
-                val c = bitmap.getPixel(x, y)
-
-                if (index < 2) {
-                    r1 += Color.red(c)
-                    g1 += Color.green(c)
-                    b1 += Color.blue(c)
-                }
-
-                if (index >= 1) {
-                    r2 += Color.red(c)
-                    g2 += Color.green(c)
-                    b2 += Color.blue(c)
-                }
-
-                r3 += Color.red(c)
-                g3 += Color.green(c)
-                b3 += Color.blue(c)
-            }
-
-            val color1 = Color.rgb(
-                (r1 / 2).coerceIn(0, 255),
-                (g1 / 2).coerceIn(0, 255),
-                (b1 / 2).coerceIn(0, 255)
-            )
-
-            val color2 = Color.rgb(
-                (r2 / 3).coerceIn(0, 255),
-                (g2 / 3).coerceIn(0, 255),
-                (b2 / 3).coerceIn(0, 255)
-            )
-
-            val color3 = Color.rgb(
-                (r3 / 4).coerceIn(0, 255),
-                (g3 / 4).coerceIn(0, 255),
-                (b3 / 4).coerceIn(0, 255)
-            )
-
-            return intArrayOf(
-                color1,
-                color2,
-                color3
-            )
-        }
-
-        fun getAlbumColors(
-            song: Song,
-            bitmap: android.graphics.Bitmap
-        ): IntArray {
-
-            synchronized(albumArtLock) {
-                albumColorCache.get(song.id)?.let {
-                    return it
-                }
-
-                val colors = extractColors(bitmap)
-
-                albumColorCache.put(
-                    song.id,
-                    colors
-                )
-
-                return colors
-            }
-        }
-
-        var currentColors = intArrayOf(
-            Color.rgb(245, 245, 247),
-            Color.rgb(225, 225, 230),
-            Color.rgb(205, 205, 210)
-        )
-
         val initialArtwork =
             if (miniExpansionOpening) {
                 (
@@ -13487,62 +13653,16 @@ private fun loadAlbumArtAsync(
                 null
             }
 
-        /*
-         * During Mini -> Full handoff, avoid bitmap/color work on
-         * the animation frame. The background will be refreshed
-         * asynchronously after the player is shown.
-         */
-        if (!miniExpansionOpening) {
-            val fallbackArtwork =
-                android.graphics.BitmapFactory.decodeResource(
-                    resources,
-                    R.drawable.icon
-                )
+        val initialBackgroundArtwork =
+            initialArtwork ?: android.graphics.BitmapFactory.decodeResource(
+                resources,
+                R.drawable.icon
+            )
 
-            if (initialArtwork == null && fallbackArtwork != null) {
-                currentColors = extractColors(fallbackArtwork)
-            }
-        }
-
-        var ambientTintColor: Int? = null
-
-        fun applyBackground(colors: IntArray) {
-
-            val drawable =
-                android.graphics.drawable.GradientDrawable(
-                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                    intArrayOf(
-                        colors[0],
-                        colors[1],
-                        colors[2]
-                    )
-                ).apply {
-                    cornerRadius = 0f
-                }
-
-            root.background = drawable
-
-            // Preserve the current ambient tint on every new gradient.
-            ambientTintColor?.let { tintColor ->
-                drawable.setColorFilter(
-                    android.graphics.PorterDuffColorFilter(
-                        tintColor,
-                        android.graphics.PorterDuff.Mode.SRC_ATOP
-                    )
-                )
-            }
-        }
-
-        if (!miniExpansionOpening) {
-            initialArtwork?.let {
-                currentColors = getAlbumColors(
-                    song,
-                    it
-                )
-            }
-        }
-
-        applyBackground(currentColors)
+        root.background =
+            android.graphics.drawable.ColorDrawable(
+                Color.rgb(12, 12, 16)
+            )
 
         // ---------- ARTWORK ----------
 
@@ -13604,72 +13724,12 @@ private fun loadAlbumArtAsync(
         // Artwork loading and color animation are performed asynchronously.
         var fullPlayerArtworkActive = true
 
-        var backgroundColorAnimator:
-            android.animation.ValueAnimator? = null
-
-        /*
-         * Very slow ambient color animation.
-         * The existing album-art gradient remains the base.
-         * A subtle hue tint moves continuously over it.
-         */
-        fun startFullPlayerAmbientColorAnimation() {
-
-            backgroundColorAnimator?.cancel()
-
-            backgroundColorAnimator =
-                android.animation.ValueAnimator.ofFloat(
-                    0f,
-                    360f
-                ).apply {
-
-                    duration = 120_000L
-                    repeatCount =
-                        android.animation.ValueAnimator.INFINITE
-
-                    repeatMode =
-                        android.animation.ValueAnimator.RESTART
-
-                    interpolator =
-                        android.view.animation.LinearInterpolator()
-
-                    addUpdateListener { animation ->
-
-                        if (
-                            !fullPlayerArtworkActive ||
-                            isFinishing ||
-                            isDestroyed
-                        ) {
-                            cancel()
-                            return@addUpdateListener
-                        }
-
-                        val hue =
-                            animation.animatedValue as Float
-
-                        val tintColor =
-                            Color.HSVToColor(
-                                20,
-                                floatArrayOf(
-                                    hue,
-                                    0.48f,
-                                    1f
-                                )
-                            )
-
-                        ambientTintColor = tintColor
-
-                        root.background?.setColorFilter(
-                            android.graphics.PorterDuffColorFilter(
-                                tintColor,
-                                android.graphics.PorterDuff.Mode.SRC_ATOP
-                            )
-                        )
-
-                        root.invalidate()
-                    }
-
-                    start()
-                }
+        initialBackgroundArtwork?.let { artwork ->
+            updateFullPlayerBlurBackground(
+                root,
+                artwork,
+                song.id
+            )
         }
 
         val artworkLoadDelay =
@@ -13695,75 +13755,11 @@ private fun loadAlbumArtAsync(
                     return@loadAlbumArtAsync
                 }
 
-                val targetColors = getAlbumColors(
-                    song,
-                    bitmap
+                updateFullPlayerBlurBackground(
+                    root,
+                    bitmap,
+                    song.id
                 )
-
-                val startColors = currentColors.copyOf()
-
-                val animator =
-                    android.animation.ValueAnimator.ofFloat(
-                        0f,
-                        1f
-                    ).apply {
-
-                        duration = 1800L
-
-                        addUpdateListener {
-                            if (!fullPlayerArtworkActive ||
-                                currentSong?.id != song.id
-                            ) {
-                                cancel()
-                                return@addUpdateListener
-                            }
-
-                            val f =
-                                it.animatedValue as Float
-
-                            val colors = IntArray(3)
-
-                            for (i in 0..2) {
-                                colors[i] = mixColor(
-                                    startColors[i],
-                                    targetColors[i],
-                                    f
-                                )
-                            }
-
-                            applyBackground(colors)
-                        }
-
-                        addListener(
-                            object :
-                                android.animation.Animator.AnimatorListener {
-
-                                override fun onAnimationStart(
-                                    animation: android.animation.Animator
-                                ) {}
-
-                                override fun onAnimationEnd(
-                                    animation: android.animation.Animator
-                                ) {
-                                    if (fullPlayerArtworkActive &&
-                                        currentSong?.id == song.id
-                                    ) {
-                                        currentColors = targetColors
-                                    }
-                                }
-
-                                override fun onAnimationCancel(
-                                    animation: android.animation.Animator
-                                ) {}
-
-                                override fun onAnimationRepeat(
-                                    animation: android.animation.Animator
-                                ) {}
-                            }
-                        )
-                    }
-
-                animator.start()
             }
 
         }, artworkLoadDelay)
@@ -15919,12 +15915,10 @@ private fun loadAlbumArtAsync(
             )
 
             fullPlayerArtworkActive = false
+            fullPlayerBlurGeneration++
 
-            backgroundColorAnimator?.cancel()
-            backgroundColorAnimator = null
-
-            ambientTintColor = null
-            root.background?.setColorFilter(null)
+            fullPlayerBlurFuture?.cancel(true)
+            fullPlayerBlurFuture = null
 
             if (miniTransitionDialog === dialog) {
                 miniTransitionDialog = null
@@ -15951,8 +15945,6 @@ private fun loadAlbumArtAsync(
 
         dialog.show()
 
-        // Start the subtle continuous background color animation.
-        startFullPlayerAmbientColorAnimation()
 
         if (miniExpansionOpening) {
             /*
@@ -16995,6 +16987,14 @@ private fun loadAlbumArtAsync(
          * The actual player belongs to MusicPlaybackService.
          * Destroying the Activity must never release playback.
          */
+        // Stop all pending Full Player blur work.
+        fullPlayerBlurGeneration++
+
+        fullPlayerBlurFuture?.cancel(true)
+        fullPlayerBlurFuture = null
+
+        fullPlayerBlurExecutor.shutdownNow()
+
         backgroundExecutor.shutdownNow()
         albumArtExecutor.shutdownNow()
 
