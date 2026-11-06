@@ -13504,6 +13504,8 @@ private fun loadAlbumArtAsync(
             }
         }
 
+        var ambientTintColor: Int? = null
+
         fun applyBackground(colors: IntArray) {
 
             val drawable =
@@ -13519,6 +13521,16 @@ private fun loadAlbumArtAsync(
                 }
 
             root.background = drawable
+
+            // Preserve the current ambient tint on every new gradient.
+            ambientTintColor?.let { tintColor ->
+                drawable.setColorFilter(
+                    android.graphics.PorterDuffColorFilter(
+                        tintColor,
+                        android.graphics.PorterDuff.Mode.SRC_ATOP
+                    )
+                )
+            }
         }
 
         if (!miniExpansionOpening) {
@@ -13591,6 +13603,74 @@ private fun loadAlbumArtAsync(
 
         // Artwork loading and color animation are performed asynchronously.
         var fullPlayerArtworkActive = true
+
+        var backgroundColorAnimator:
+            android.animation.ValueAnimator? = null
+
+        /*
+         * Very slow ambient color animation.
+         * The existing album-art gradient remains the base.
+         * A subtle hue tint moves continuously over it.
+         */
+        fun startFullPlayerAmbientColorAnimation() {
+
+            backgroundColorAnimator?.cancel()
+
+            backgroundColorAnimator =
+                android.animation.ValueAnimator.ofFloat(
+                    0f,
+                    360f
+                ).apply {
+
+                    duration = 120_000L
+                    repeatCount =
+                        android.animation.ValueAnimator.INFINITE
+
+                    repeatMode =
+                        android.animation.ValueAnimator.RESTART
+
+                    interpolator =
+                        android.view.animation.LinearInterpolator()
+
+                    addUpdateListener { animation ->
+
+                        if (
+                            !fullPlayerArtworkActive ||
+                            isFinishing ||
+                            isDestroyed
+                        ) {
+                            cancel()
+                            return@addUpdateListener
+                        }
+
+                        val hue =
+                            animation.animatedValue as Float
+
+                        val tintColor =
+                            Color.HSVToColor(
+                                20,
+                                floatArrayOf(
+                                    hue,
+                                    0.48f,
+                                    1f
+                                )
+                            )
+
+                        ambientTintColor = tintColor
+
+                        root.background?.setColorFilter(
+                            android.graphics.PorterDuffColorFilter(
+                                tintColor,
+                                android.graphics.PorterDuff.Mode.SRC_ATOP
+                            )
+                        )
+
+                        root.invalidate()
+                    }
+
+                    start()
+                }
+        }
 
         val artworkLoadDelay =
             if (miniExpansionOpening) 400L else 0L
@@ -15840,6 +15920,12 @@ private fun loadAlbumArtAsync(
 
             fullPlayerArtworkActive = false
 
+            backgroundColorAnimator?.cancel()
+            backgroundColorAnimator = null
+
+            ambientTintColor = null
+            root.background?.setColorFilter(null)
+
             if (miniTransitionDialog === dialog) {
                 miniTransitionDialog = null
                 miniTransitionRoot = null
@@ -15864,6 +15950,9 @@ private fun loadAlbumArtAsync(
         }
 
         dialog.show()
+
+        // Start the subtle continuous background color animation.
+        startFullPlayerAmbientColorAnimation()
 
         if (miniExpansionOpening) {
             /*
